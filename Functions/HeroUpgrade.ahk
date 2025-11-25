@@ -10,6 +10,34 @@ HeroUpgrade(){
     MsgBox, , Hero Upgrades, Opening Hero Upgrade Menu, 2
     Send, U
     Sleep, 1500
+    ; Check if Next Milestone Daily Quests is checked
+    GuiControlGet, Checked, , NextMilestone,
+    If (Checked = 1)
+    {
+        ; Set to Next Milestone
+        MaxTries := 10
+        Count := 0
+        Loop
+        {
+            PixelSearch, X, Y, 1500, 975, 1504, 985, 0x542710, 3, Fast RGB
+            if (ErrorLevel = 0)
+            {
+                if (MaxUpgrade = 1){
+                    MouseClick, Left, 1599, 951, 1, 0
+                    Sleep, 300
+                }
+                break
+            }
+            MouseClick, Left, 1599, 951, 1, 0
+            Sleep, 300
+            Count++
+            if (Count >= MaxTries)
+            {
+                MsgBox, , Hero Upgrades, Failed to find pixel after %Count% tries., 2
+                break
+            }
+        }
+    }
     ; check special upgrade
     PixelSearch, X, Y, 1874, 207, 1889, 249, 0x0AA008, 3, Fast RGB
     If (ErrorLevel = 0 ){

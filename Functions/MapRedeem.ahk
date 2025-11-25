@@ -80,5 +80,29 @@ MapRedeem(){
         } Else {
             MsgBox, , Troop Check, No troops found - leaving maps, 1.5
         }
+        ; Reset the memory if we found the reset map mission button
+    ControlFocus,, ahk_exe Firestone.exe
+    Sleep, 500
+    PixelSearch, X, Y, 104, 878, 300, 977, 0xED00EF, 3, Fast RGB
+    If (ErrorLevel = 0){
+        ClickedPoints := ""
+        SessionStart := A_Now
+        IniWrite, %SessionStart%, %stateFile%, Memory, SessionStart
+        IniWrite, %ClickedPoints%, %stateFile%, Memory, ClickedPoints
+        global MapReset
+        IniRead, MapReset, settings.ini, CommonOptions, MapReset, 0
+        if (MapReset = 1){
+            MouseMove, 200, 930
+            MsgBox, , Reset mission, Reset map mission, 1.5
+            ControlFocus,, ahk_exe Firestone.exe
+            Sleep, 500
+            Click
+            Sleep, 1500
+            MouseMove, 961, 675
+            Click
+            Sleep, 500
+            Goto, Troops
+        }
+    }
     ClaimCampaign()
 }

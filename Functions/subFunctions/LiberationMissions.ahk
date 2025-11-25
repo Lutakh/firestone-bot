@@ -54,7 +54,7 @@ LiberationMissions(){
                 Sleep, 5000
             }
         Goto, 155Stars
-    } 
+    }
     155Stars:
     {
         MouseMove, 791, 755
@@ -184,40 +184,43 @@ LiberationMissions(){
 
     CheckDungeon:
     {
-        ; open dungeon
-        MouseMove, 1223, 794
-        Sleep, 1000
-        Click
-        Sleep, 1500
-    }
-    120Stars:
-    {
-        MouseMove, 1149, 763
-        Sleep, 1000
-        Click
-        Sleep, 1500
-        PixelSearch, X, Y, 1723, 51, 1797, 123, 0xFF4805, 10, Fast RGB
-            If (ErrorLevel=0){
+        IniRead, DungeonQuest,  settings.ini, SettingsNoGui, DungeonQuest,            0
+        If (DungeonQuest = 1) {
+            ; open dungeon
+            MouseMove, 1223, 794
+            Sleep, 1000
+            Click
+            Sleep, 1500
+            120Stars:
+            {
+                MouseMove, 1149, 763
+                Sleep, 1000
+                Click
+                Sleep, 1500
+                PixelSearch, X, Y, 1723, 51, 1797, 123, 0xFF4805, 10, Fast RGB
+                If (ErrorLevel=0){
+                    Goto, 70Stars
+                }
+                While !LiberationInProgress(){
+                    Sleep, 5000
+                }
                 Goto, 70Stars
             }
-            While !LiberationInProgress(){
-                Sleep, 5000
+            70Stars:
+            {
+                MouseMove, 768, 762
+                Sleep, 1000
+                Click
+                Sleep, 1500
+                PixelSearch, X, Y, 1723, 51, 1797, 123, 0xFF4805, 10, Fast RGB
+                If (ErrorLevel=0){
+                    Return
+                }
+                While !LiberationInProgress(){
+                    Sleep, 5000
+                }
             }
-        Goto, 70Stars
-    }
-    70Stars:
-    {
-        MouseMove, 768, 762
-        Sleep, 1000
-        Click
-        Sleep, 1500
-        PixelSearch, X, Y, 1723, 51, 1797, 123, 0xFF4805, 10, Fast RGB
-            If (ErrorLevel=0){
-                Return
-            }
-            While !LiberationInProgress(){
-                Sleep, 5000
-            }
+        }
     }
 BigClose()
 BigClose()

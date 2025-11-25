@@ -109,10 +109,10 @@ loop:
             If (lastExecutionTimeArena <= 0 || currentTimeArena - lastExecutionTimeArena >= 6 * 60 * 60 * 1000){
                 Arena()
                 lastExecutionTimeArena := currentTimeArena
-            } 
-        } 
+            }
+        }
     ; check if we are skipping alchemy
-    GuiControlGet, Checked, , Alch, 
+    GuiControlGet, Checked, , Alch,
         If (Checked = 1){
             Goto, ResearchStart
         } Else {
@@ -176,4 +176,4 @@ loop:
 GuiEscape:
 GuiClose:
     $Esc::
-    ExitApp  
+    ExitApp
