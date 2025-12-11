@@ -1,3 +1,6 @@
 settings.ini
 *.bak
 *.bak
+*.bak
+Gui.ahk.bak
+MapStartState.ini

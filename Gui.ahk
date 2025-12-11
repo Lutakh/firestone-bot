@@ -36,7 +36,7 @@ SettingsMap["Priority2"] := ["MissionPriority", "War"]
 SettingsMap["Priority3"] := ["MissionPriority", "Medium"]
 SettingsMap["Priority4"] := ["MissionPriority", "Short"]
 SettingsMap["Priority5"] := ["MissionPriority", "Leftover"]
-
+SettingsMap["MapReset"] := ["MissionPriority", 0]
 ; --- QoL/Rare Options ---
 SettingsMap["Beer"] := ["QoL/RareOptions", 0]
 SettingsMap["Scarab"] := ["QoL/RareOptions", 0]
@@ -225,8 +225,9 @@ Gui, Tab, 2
     Gui, Add, Checkbox, y+10 vBeer Checked%Beer%, Skip Claiming Beer
     Gui, Add, Checkbox, y+10 vScarab Checked%Scarab%, Skip Using Scarab Token
 
-    ; --- Mission Priority ---
-    Gui, Add, GroupBox, x650 y440 w290 h210, Mission Priority Order
+; --- Mission Priority ---
+    ; Augmentation de la hauteur (h) de 210 à 240 pour inclure la checkbox
+    Gui, Add, GroupBox, x650 y440 w290 h240, Mission Priority Order
     PriorityList := "2 Squad|War|Medium|Short|Leftover"
 
     Gui, Add, Text, xp+10 yp+25, 1st:
@@ -253,6 +254,8 @@ Gui, Tab, 2
     Gui, Add, DropDownList, x+10 w200 vPriority5, %PriorityList%
     if (Priority5 != "")
         GuiControl, ChooseString, Priority5, %Priority5%
+
+    Gui, Add, Checkbox, x660 y+15 vMapReset Checked%MapReset%, Reset map cooldown with gems
 
 ; ------------------------------------------------------------------------------
 ; TAB 3: GUILD & PERSONAL TREE
