@@ -28,6 +28,39 @@ Guardian(){
     ; check for training
     PixelSearch, X, Y, 1199, 766, 1257, 810, 0x0AA008, 3, Fast RGB
     If (ErrorLevel = 0){
+        SendInput, {Left down}
+        Sleep, 2000
+        SendInput, {Left up}
+        Sleep, 500
+        global GuardianTrain
+        IniRead, GuardianTrain, settings.ini, CommonOptions, GuardianTrain, 0
+        if (GuardianTrain == "Grace"){
+            Loop, 1
+            {
+                SendEvent, {Right down}
+                Sleep, 100
+                SendEvent, {Right up}
+                Sleep, 100
+            }
+        }
+        if (GuardianTrain == "Ankaa"){
+            Loop, 2
+            {
+                SendEvent, {Right down}
+                Sleep, 100
+                SendEvent, {Right up}
+                Sleep, 100
+            }
+        }
+        if (GuardianTrain == "Azhar"){
+            Loop, 3
+            {
+                SendEvent, {Right down}
+                Sleep, 100
+                SendEvent, {Right up}
+                Sleep, 100
+            }
+        }
         MouseMove, 1138, 787
         Sleep, 1000
         click
