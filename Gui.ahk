@@ -107,7 +107,7 @@ Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v5.8.0
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.0.0
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -348,7 +348,7 @@ Gui, Tab, 4
     if (Talents800 != "")
         GuiControl, ChooseString, Talents800, %Talents800%
 
-Gui, Show, w960 h750, Firestone Bot V5.8.0
+Gui, Show, w960 h750, Firestone Bot V6.0.0
 Return
 
 ; ==============================================================================
@@ -362,7 +362,7 @@ SaveSettings:
 Return
 
 ButtonStart:
-    Gui, Submit, Hide
+    Gui, Submit, NoHide
     If IsFunc("MainScript") {
         SetTimer, MainScript, -100
     } Else {
