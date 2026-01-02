@@ -74,6 +74,9 @@ SettingsMap["Talents800"] := ["OtherOptions", "Don't Upgrade Talents (500+ Talen
 ; --- SettingsNoGui (Maintained for code compatibility) ---
 SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0]
 
+; --- Account / Discord ---
+SettingsMap["DiscordID"] := ["SettingsNoGui", ""]
+
 ; --- Personal Tree ---
 SettingsMap["AttDmg"] := ["PersonalTree", 0]
 SettingsMap["AttHp"] := ["PersonalTree", 0]
@@ -107,14 +110,13 @@ Gui, Font, s10, Segoe UI
 Gui, Color, White
 
 ; Tabs Structure
-Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War Machines
-
+Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War Machines|Settings
 ; ------------------------------------------------------------------------------
 ; TAB 1: HOME (INSTRUCTIONS & START)
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.0.0
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.1.0
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -369,7 +371,21 @@ Gui, Tab, 4
     if (Talents800 != "")
         GuiControl, ChooseString, Talents800, %Talents800%
 
-Gui, Show, w960 h750, Firestone Bot V6.0.0
+
+; ------------------------------------------------------------------------------
+; TAB 5: SETTINGS
+; ------------------------------------------------------------------------------
+Gui, Tab, 5
+    Gui, Font, Bold
+    Gui, Add, Text, x20 y40 w900 h30 Center, BOT SETTINGS
+    Gui, Font, Norm
+
+    Gui, Add, GroupBox, x40 y80 w450 h120, Discord Configuration
+    Gui, Add, Text, xp+20 yp+40, Discord ID:
+    Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
+    Gui, Add, Text, x60 y+10 w400,
+
+Gui, Show, w960 h750, Firestone Bot V6.1.0
 Return
 
 ; ==============================================================================
