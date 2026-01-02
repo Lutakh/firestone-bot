@@ -32,7 +32,14 @@ MapStart(){
     Squad2.Insert(Object("x",970,"y",810)) ; Orc Lieutenant
     Squad2.Insert(Object("x",1486,"y",770)) ; Ships On Fire
     Squad2.Insert(Object("x",1255,"y",853)) ; Trade Route
-
+    Squad2.Insert(Object("x",1533,"y",98))
+    Squad2.Insert(Object("x",1608,"y",119))
+    Squad2.Insert(Object("x",1534,"y",123))
+    Squad2.Insert(Object("x",1440,"y",140))
+    Squad2.Insert(Object("x",1207,"y",32))
+    Squad2.Insert(Object("x",1290,"y",99))
+    Squad2.Insert(Object("x",1177,"y",35))
+    Squad2.Insert(Object("x",1104,"y",43))
     War := []
     War.Insert(Object("x",672,"y",423)) ; Tipsy Wisp Tavern
     War.Insert(Object("x",720,"y",675)) ; Ambush in the Trees
@@ -91,14 +98,6 @@ MapStart(){
 
 
     Leftover := []
-    Leftover.Insert(Object("x",1533,"y",98))
-    Leftover.Insert(Object("x",1608,"y",119))
-    Leftover.Insert(Object("x",1534,"y",123))
-    Leftover.Insert(Object("x",1440,"y",140))
-    Leftover.Insert(Object("x",1207,"y",32))
-    Leftover.Insert(Object("x",1290,"y",99))
-    Leftover.Insert(Object("x",1177,"y",35))
-    Leftover.Insert(Object("x",1104,"y",43))
     Leftover.Insert(Object("x",923,"y",369))
     Leftover.Insert(Object("x",538,"y",190))
     Leftover.Insert(Object("x",1221,"y",467))

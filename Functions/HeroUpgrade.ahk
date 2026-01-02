@@ -12,7 +12,8 @@ ClickHeroIfPixelFound(x1, y1, x2, y2, color, clickX, clickY, clickCount := 20)
     {
         PixelSearch, X, Y, x1, y1, x2, y2, color, 3, Fast RGB
         if (ErrorLevel = 0){
-            ; Pixel found → click
+            ; Pixel found -> click
+            SendHeartbeat("HeroUpgrade: found pixel", false, true)
             MouseClick, Left, clickX, clickY, 1, 0
             Sleep, 300  ; wait between clicks
         } else {
@@ -24,13 +25,29 @@ ClickHeroIfPixelFound(x1, y1, x2, y2, color, clickX, clickY, clickCount := 20)
 ; function that upgrades heros
 HeroUpgrade(){
     ControlFocus,, ahk_exe Firestone.exe
+
+    ; Fetch GUI settings locally
+    GuiControlGet, NoHeroVal, , NoHero
+    if (NoHeroVal = 1)
+        Return
+
+    ; Load specific upgrade preferences
+    GuiControlGet, UpgradeSpecial, , UpgradeSpecial
+    GuiControlGet, UpgradeGuardian, , UpgradeGuardian
+    GuiControlGet, UpgradeH1, , UpgradeH1
+    GuiControlGet, UpgradeH2, , UpgradeH2
+    GuiControlGet, UpgradeH3, , UpgradeH3
+    GuiControlGet, UpgradeH4, , UpgradeH4
+    GuiControlGet, UpgradeH5, , UpgradeH5
+    GuiControlGet, NextMilestoneVal, , NextMilestone
+
     ; open upgrade menu
     MsgBox, , Hero Upgrades, Opening Hero Upgrade Menu, 2
     Send, U
     Sleep, 1500
+
     ; Check if Next Milestone Daily Quests is checked
-    GuiControlGet, Checked, , NextMilestone,
-    If (Checked = 1)
+    If (NextMilestoneVal = 1)
     {
         ; Set to Next Milestone
         MaxTries := 10
@@ -40,12 +57,13 @@ HeroUpgrade(){
             PixelSearch, X, Y, 1500, 975, 1504, 985, 0x542710, 3, Fast RGB
             if (ErrorLevel = 0)
             {
-                if (MaxUpgrade = 1){
-                    MouseClick, Left, 1599, 951, 1, 0
-                    Sleep, 300
-                }
+                ; Found the toggle button color indicating we are NOT on max/milestone yet?
+                ; Or clicking to toggle. Based on your code, this clicks until satisfied.
+                MouseClick, Left, 1599, 951, 1, 0
+                Sleep, 300
                 break
             }
+            ; Try clicking to switch mode
             MouseClick, Left, 1599, 951, 1, 0
             Sleep, 300
             Count++
@@ -55,74 +73,105 @@ HeroUpgrade(){
                 break
             }
         }
+
         ; --- Special Upgrade ---
-        ClickHeroIfPixelFound(1874, 207, 1889, 249, 0x16BC15, 1670, 205)
+        If (UpgradeSpecial = 1)
+            ClickHeroIfPixelFound(1874, 207, 1889, 249, 0x16BC15, 1670, 205)
 
         ; --- Heroes upgrades (from 5th to 1st) ---
-        ClickHeroIfPixelFound(1868, 880, 1885, 912, 0x16BC15, 1670, 873)  ; 5th hero
-        ClickHeroIfPixelFound(1864, 770, 1889, 802, 0x16BC15, 1670, 772)  ; 4th hero
-        ClickHeroIfPixelFound(1866, 654, 1889, 693, 0x16BC15, 1670, 650)  ; 3rd hero
-        ClickHeroIfPixelFound(1866, 545, 1885, 584, 0x16BC15, 1670, 539)  ; 2nd hero
-        ClickHeroIfPixelFound(1862, 434, 1888, 469, 0x16BC15, 1670, 427)  ; 1st hero
+        If (UpgradeH5 = 1)
+            ClickHeroIfPixelFound(1868, 880, 1885, 912, 0x16BC15, 1670, 873)  ; 5th hero
+        If (UpgradeH4 = 1)
+            ClickHeroIfPixelFound(1864, 770, 1889, 802, 0x16BC15, 1670, 772)  ; 4th hero
+        If (UpgradeH3 = 1)
+            ClickHeroIfPixelFound(1866, 654, 1889, 693, 0x16BC15, 1670, 650)  ; 3rd hero
+        If (UpgradeH2 = 1)
+            ClickHeroIfPixelFound(1866, 545, 1885, 584, 0x16BC15, 1670, 539)  ; 2nd hero
+        If (UpgradeH1 = 1)
+            ClickHeroIfPixelFound(1862, 434, 1888, 469, 0x16BC15, 1670, 427)  ; 1st hero
 
         ; --- Guardian Upgrade ---
-        ClickHeroIfPixelFound(1869, 319, 1890, 352, 0x16BC15, 1670, 317)
+        If (UpgradeGuardian = 1)
+            ClickHeroIfPixelFound(1869, 319, 1890, 352, 0x16BC15, 1670, 317)
+
     } else {
+        ; --- Standard Single Check Mode ---
+
         ; check special upgrade
-        PixelSearch, X, Y, 1874, 207, 1889, 249, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 205
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeSpecial = 1) {
+            PixelSearch, X, Y, 1874, 207, 1889, 249, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 205
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check 5th hero
-        PixelSearch, X, Y, 1868, 880, 1885, 912, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 873
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeH5 = 1) {
+            PixelSearch, X, Y, 1868, 880, 1885, 912, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 873
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check 4th hero
-        PixelSearch, X, Y, 1864, 770, 1889, 802, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 772
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeH4 = 1) {
+            PixelSearch, X, Y, 1864, 770, 1889, 802, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 772
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check 3rd hero
-        PixelSearch, X, Y, 1866, 654, 1889, 693, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 650
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeH3 = 1) {
+            PixelSearch, X, Y, 1866, 654, 1889, 693, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 650
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check 2nd hero
-        PixelSearch, X, Y, 1866, 545, 1885, 584, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 539
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeH2 = 1) {
+            PixelSearch, X, Y, 1866, 545, 1885, 584, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 539
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check 1st hero
-        PixelSearch, X, Y, 1862, 434, 1888, 469, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 427
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeH1 = 1) {
+            PixelSearch, X, Y, 1862, 434, 1888, 469, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 427
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
+
         ; check guardian
-        PixelSearch, X, Y, 1869, 319, 1890, 352, 0x0AA008, 3, Fast RGB
-        If (ErrorLevel = 0 ){
-        MouseMove, 1670, 317
-        Sleep, 1000
-        Click
-        Sleep, 1000
+        If (UpgradeGuardian = 1) {
+            PixelSearch, X, Y, 1869, 319, 1890, 352, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0 ){
+                MouseMove, 1670, 317
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
     }
     BigClose()

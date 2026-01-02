@@ -184,8 +184,8 @@ LiberationMissions(){
 
     CheckDungeon:
     {
-        IniRead, DungeonQuest,  settings.ini, SettingsNoGui, DungeonQuest,            0
-        If (DungeonQuest = 1) {
+        GuiControlGet, Checked, , DungeonQuest,
+        If (Checked = 1){
             ; open dungeon
             MouseMove, 1223, 794
             Sleep, 1000

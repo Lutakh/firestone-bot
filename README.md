@@ -1,6 +1,6 @@
 # Firestone Bot (Deaeth85's Version)
 
-**Version:** 6.0.0
+**Version:** 6.1.0
 
 An AutoHotkey (AHK) automation script for the game **Firestone**. This bot automates daily routines, missions, upgrades, and various in-game activities to maximize efficiency.
 
