@@ -80,6 +80,7 @@ MapRedeem(){
     PixelSearch, X, Y, 1175, 996, 1187, 1012, 0x542710, 10, Fast RGB
         If (ErrorLevel = 0){
             MsgBox, , Troop Check, Idle troops found - starting maps, 1.5
+            SendHeartbeat("Map: Free troops found", false, true)
             MapStart()
         } Else {
             MsgBox, , Troop Check, No troops found - leaving maps, 1.5

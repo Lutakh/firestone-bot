@@ -22,6 +22,7 @@ SettingsMap["GearChestExclude"] := ["CommonOptions", "Mythic"]
 SettingsMap["JewelChestExclude"] := ["CommonOptions", "Emerald"]
 SettingsMap["Bless"] := ["CommonOptions", 1]
 SettingsMap["Delay"] := ["CommonOptions", 0]
+SettingsMap["Quests"] := ["CommonOptions", 0]
 SettingsMap["Events"] := ["CommonOptions", 0]
 SettingsMap["Mail"] := ["CommonOptions", 1]
 SettingsMap["Awaken"] := ["CommonOptions", 0]
@@ -29,7 +30,13 @@ SettingsMap["Crystal"] := ["CommonOptions", 1]
 SettingsMap["Chaos"] := ["CommonOptions", 1]
 SettingsMap["PTree"] := ["CommonOptions", 0]
 SettingsMap["GuardianTrain"] := ["CommonOptions", "Vermilion"]
-
+SettingsMap["UpgradeSpecial"] := ["HeroOptions", 1]
+SettingsMap["UpgradeGuardian"] := ["HeroOptions", 1]
+SettingsMap["UpgradeH1"] := ["HeroOptions", 1]
+SettingsMap["UpgradeH2"] := ["HeroOptions", 1]
+SettingsMap["UpgradeH3"] := ["HeroOptions", 1]
+SettingsMap["UpgradeH4"] := ["HeroOptions", 1]
+SettingsMap["UpgradeH5"] := ["HeroOptions", 1]
 ; --- Mission Priority ---
 SettingsMap["Priority1"] := ["MissionPriority", "2 Squad"]
 SettingsMap["Priority2"] := ["MissionPriority", "War"]
@@ -65,7 +72,7 @@ SettingsMap["Talents450"] := ["OtherOptions", "Don't Upgrade Talents (0-450 Tale
 SettingsMap["Talents800"] := ["OtherOptions", "Don't Upgrade Talents (500+ Talent Points)"]
 
 ; --- SettingsNoGui (Maintained for code compatibility) ---
-SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0] ; <--- NOUVELLE OPTION
+SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0]
 
 ; --- Personal Tree ---
 SettingsMap["AttDmg"] := ["PersonalTree", 0]
@@ -171,8 +178,6 @@ Gui, Tab, 2
     Gui, Add, GroupBox, x20 y400 w300 h230, Other Automation
     Gui, Add, Checkbox, xp+15 yp+30 vNoEng Checked%NoEng%, Skip Engineer
     Gui, Add, Checkbox, y+10 vResearch Checked%Research%, Skip Research
-    Gui, Add, Checkbox, y+10 vNoHero Checked%NoHero%, Don't Upgrade Heroes
-    Gui, Add, Checkbox, y+10 vNextMilestone Checked%NextMilestone%, Set upgrade heroes to Next Milestone
     Gui, Add, Checkbox, y+10 vDisableWarning Checked%DisableWarning%, Disable Steam Warning
 
     Gui, Add, Text, y+15, Train Guardian:
@@ -206,10 +211,26 @@ Gui, Tab, 2
     Gui, Add, Checkbox, y+10 vDust Checked%Dust%, Don't Use Dust in Alchemy
     Gui, Add, Checkbox, y+10 vCoin Checked%Coin%, Use Exotic Coins in Alchemy
 
+; --- Hero Upgrades ---
+    Gui, Add, GroupBox, x335 y510 w300 h200, Hero Upgrades
+    Gui, Add, Checkbox, xp+15 yp+30 vNoHero Checked%NoHero%, Don't Upgrade Heroes (Master)
+    Gui, Add, Checkbox, y+10 vNextMilestone Checked%NextMilestone%, Set upgrade to Next Milestone
+    Gui, Add, Text, y+10, Select Upgrades to Perform:
+    Gui, Add, Checkbox, y+5 vUpgradeSpecial Checked%UpgradeSpecial%, Special Upgrade
+    Gui, Add, Checkbox, y+5 vUpgradeGuardian Checked%UpgradeGuardian%, Guardian
+
+    ;Heroes list
+    Gui, Add, Checkbox, y+10 vUpgradeH1 Checked%UpgradeH1%, Hero 1
+    Gui, Add, Checkbox, x+30 vUpgradeH2 Checked%UpgradeH2%, Hero 2
+    Gui, Add, Checkbox, x+30 vUpgradeH3 Checked%UpgradeH3%, Hero 3
+    Gui, Add, Checkbox, x350 y+5 vUpgradeH4 Checked%UpgradeH4%, Hero 4
+    Gui, Add, Checkbox, x+30 vUpgradeH5 Checked%UpgradeH5%, Hero 5
+
     ; === COLUMN 3 ===
     ; --- Daily Routine ---
     Gui, Add, GroupBox, x650 y70 w290 h220, Daily Routine
     Gui, Add, Checkbox, xp+15 yp+30 vMail Checked%Mail%, Check Mail
+    Gui, Add, Checkbox, y+10 vQuests Checked%Quests%, Claim Quests
     Gui, Add, Checkbox, y+10 vEvents Checked%Events%, Claim Basic Events
     Gui, Add, Checkbox, y+10 vChaos Checked%Chaos%, Participate in Chaos Rift
     Gui, Add, Checkbox, y+10 vShop Checked%Shop%, Free Gift & Check-In

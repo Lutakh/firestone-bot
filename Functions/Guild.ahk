@@ -16,6 +16,7 @@ Guild(){
     ; check if expeditions are ready
     PixelSearch, X, Y, 450, 410, 380, 490, 0xF40000, 3, Fast RGB
     If (ErrorLevel = 0){
+        SendHeartbeat("Guild expedition start", false, true)
         MouseMove, 308, 406
         Sleep, 1000
         Click
@@ -79,6 +80,7 @@ ClaimAxes(){
     Sleep, 1500
     PixelSearch, X, Y, 764, 617, 869, 653, 0x1EA569, 3, Fast RGB
     If (ErrorLevel = 0){
+        SendHeartbeat("ClaimAxe", false, true)
         MouseMove, 716, 637
         Sleep, 1000
         Click
@@ -94,6 +96,7 @@ HitCrystal(){
     Sleep, 1500
     PixelSearch, X, Y, 1101, 904, 1075, 946, 0x0AA008, 3, Fast RGB
     If (ErrorLevel = 0){
+        SendHeartbeat("HitCrystal", false, true)
         MouseMove, 957, 896
         Sleep, 1000
         Click

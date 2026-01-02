@@ -5,9 +5,10 @@
 AwakenRun(){
     ControlFocus,, ahk_exe Firestone.exe
     ; Check for awaken heroes notification on crystal screen
-    PixelSearch, X, Y, 1877, 308, 1905, 339, 0xF40000, 3, Fast RGB
+    PixelSearch, X, Y, 1107, 745, 1367, 944, 0xF40000, 3, Fast RGB
     If (ErrorLevel = 0){
-        MouseMove, 1826, 360
+        SendHeartbeat("AwakenRun: found notif", false, true)
+        MouseMove, 1192, 847
         Sleep, 1000
         Click
         Sleep, 1500
@@ -36,6 +37,7 @@ AwakenRun(){
             }
         }
         ; Change to auto
+        SendHeartbeat("AwakenRun: auto button", false, false)
         MouseMove, 1774, 993
         Sleep, 1000
         Click
