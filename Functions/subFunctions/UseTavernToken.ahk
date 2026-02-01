@@ -4,22 +4,53 @@
 #include Functions\subFunctions\BigClose.ahk
 
 UseToken(){
+    global MaxTokens, TokenCountDaily, LastTokenReset ; Accès aux variables du GUI
+
+    ; --- 1. Vérification du Reset de 24h ---
+    if (LastTokenReset != "") {
+        TimeElapsed := A_Now
+        EnvSub, TimeElapsed, %LastTokenReset%, hours
+        if (TimeElapsed >= 24) {
+            TokenCountDaily := 0
+            LastTokenReset := "" ; Sera réinitialisé au prochain clic réussi
+            SaveSettings()      ; Sauvegarde le reset dans le fichier ini
+            SendHeartbeat("ResetTavernTokenUse", false, false)
+        }
+    }
+
+    ; --- 2. Vérification de la limite utilisateur ---
+    if (TokenCountDaily >= MaxTokens) {
+        return
+    }
+
     ; check for use token button
     PixelSearch, X, Y, 1019, 934, 1050, 991, 0x0AA008, 3, Fast RGB
     If (ErrorLevel = 0){
+
+        ; --- 3. Enregistrement de l'heure du premier clic de la période ---
+        if (TokenCountDaily = 0) {
+            LastTokenReset := A_Now
+        }
+
         MouseMove, 962, 958
         Sleep, 1000
         Click
+        SendHeartbeat("TavernTokenUse", false, true)
         Sleep, 1000
-        } Else {
-          Return
-        }
-            
+
+        ; --- 4. Incrémentation et Persistance ---
+        TokenCountDaily++
+        SaveSettings() ; Sauvegarde immédiate pour que le compteur survive à un redémarrage du bot
+
+    } Else {
+        Return
+    }
+
     ; Define the X and Y coordinates for each card
     XCoords := [680, 956, 1243, 680, 956, 1243]
     YCoords := [315, 315, 315, 715, 715, 715]
 
-    ; Generate a random index for card selection to be randomized
+    ; Generate a random index for card selection
     Random, RandomIndex, 1, 6
 
     ; Get the random location

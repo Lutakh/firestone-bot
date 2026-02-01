@@ -23,9 +23,13 @@ ClickHeroIfPixelFound(x1, y1, x2, y2, color, clickX, clickY, clickCount := 20)
 }
 
 ; function that upgrades heros
-HeroUpgrade(){
+HeroUpgrade(MaxUpgrade := 0){
     ControlFocus,, ahk_exe Firestone.exe
-
+    if (MaxUpgrade = 1){
+    ; Open upgrade menu
+        Send, U
+        Sleep, 1500
+    }
     ; Fetch GUI settings locally
     GuiControlGet, NoHeroVal, , NoHero
     if (NoHeroVal = 1)
@@ -57,10 +61,10 @@ HeroUpgrade(){
             PixelSearch, X, Y, 1500, 975, 1504, 985, 0x542710, 3, Fast RGB
             if (ErrorLevel = 0)
             {
-                ; Found the toggle button color indicating we are NOT on max/milestone yet?
-                ; Or clicking to toggle. Based on your code, this clicks until satisfied.
-                MouseClick, Left, 1599, 951, 1, 0
-                Sleep, 300
+                if (MaxUpgrade = 1){
+                    MouseClick, Left, 1599, 951, 1, 0
+                    Sleep, 300
+                }
                 break
             }
             ; Try clicking to switch mode

@@ -99,6 +99,16 @@ SettingsMap["Tank"] := ["PersonalTree", 0]
 SettingsMap["Damage"] := ["PersonalTree", 0]
 SettingsMap["Heal"] := ["PersonalTree", 0]
 
+SettingsMap["MaxTokens"] := ["CommonOptions", 10]
+SettingsMap["TokenCountDaily"] := ["CommonOptions", 0]
+SettingsMap["LastTokenReset"] := ["CommonOptions", ""]
+SettingsMap["MaxCrystals"] := ["CommonOptions", 5]
+SettingsMap["CrystalCountDaily"] := ["CommonOptions", 0]
+SettingsMap["LastCrystalReset"] := ["CommonOptions", ""]
+SettingsMap["MaxChaos"] := ["CommonOptions", 10]
+SettingsMap["ChaosCountDaily"] := ["CommonOptions", 0]
+SettingsMap["LastChaosReset"] := ["CommonOptions", ""]
+
 ; Load settings immediately
 LoadSettings()
 
@@ -231,21 +241,27 @@ Gui, Tab, 2
     ; === COLUMN 3 ===
     ; --- Daily Routine ---
     Gui, Add, GroupBox, x650 y70 w290 h220, Daily Routine
-    Gui, Add, Checkbox, xp+15 yp+30 vMail Checked%Mail%, Check Mail
-    Gui, Add, Checkbox, y+10 vQuests Checked%Quests%, Claim Quests
-    Gui, Add, Checkbox, y+10 vEvents Checked%Events%, Claim Basic Events
-    Gui, Add, Checkbox, y+10 vChaos Checked%Chaos%, Participate in Chaos Rift
-    Gui, Add, Checkbox, y+10 vShop Checked%Shop%, Free Gift & Check-In
+    Gui, Add, Checkbox, xp+15 yp+30 vMail Checked%Mail% Section, Check Mail
+    Gui, Add, Checkbox, xs y+10 vEvents Checked%Events%, Claim Basic Events
+    Gui, Add, Checkbox, xs y+10 vChaos Checked%Chaos%, Participate in Chaos Rift
+    Gui, Add, Text, x+5 yp, Max:
+    Gui, Add, Edit, x+2 yp-3 w35 vMaxChaos, %MaxChaos%
+    Gui, Add, Checkbox, xs y+10 vShop Checked%Shop%, Free Gift & Check-In
 
-    Gui, Add, Text, y+20, End of Cycle Delay (Sec):
+    Gui, Add, Text, xs y+20, End of Cycle Delay (Sec):
     Gui, Add, DropDownList, w150 vDelay, 0|30|60||90|120
     if (Delay != "")
         GuiControl, ChooseString, Delay, %Delay%
 
-    ; --- Tavern / Scarab ---
+; --- Tavern / Scarab ---
     Gui, Add, GroupBox, x650 y300 w290 h130, Tavern / Scarab
-    Gui, Add, Checkbox, xp+15 yp+30 vToken Checked%Token%, Use Tavern Tokens / Artifacts
-    Gui, Add, Checkbox, y+10 vBeer Checked%Beer%, Skip Claiming Beer
+    ; On ajoute 'Section' ici pour définir le point de départ de l'alignement
+    Gui, Add, Checkbox, xp+15 yp+30 vToken Checked%Token% Section, Use Tavern Tokens
+    Gui, Add, Text, x+5 yp, Max:
+    Gui, Add, Edit, x+2 yp-3 w35 vMaxTokens, %MaxTokens%
+
+    ; On utilise 'xs' pour revenir à l'alignement X de la section (le bord gauche)
+    Gui, Add, Checkbox, xs y+10 vBeer Checked%Beer%, Skip Claiming Beer
     Gui, Add, Checkbox, y+10 vScarab Checked%Scarab%, Skip Using Scarab Token
 
 ; --- Mission Priority ---
@@ -289,12 +305,14 @@ Gui, Tab, 3
     Gui, Add, Text, x20 y40 w900 h20 Center, GUILD & HERO MANAGEMENT
     Gui, Font, Norm
 
-    Gui, Add, GroupBox, x20 y60 w920 h130, Guild Options
+Gui, Add, GroupBox, x20 y60 w920 h130, Guild Options
     Gui, Add, Checkbox, xp+20 yp+30 vNoGuild Checked%NoGuild%, Skip Guild Functions
     Gui, Add, Checkbox, y+15 vGNotif Checked%GNotif%, Clear Guild Notifications
 
-    Gui, Add, Checkbox, x350 y90 vPickaxes Checked%Pickaxes%, Skip Claiming Pickaxes
-    Gui, Add, Checkbox, y+15 vCrystal Checked%Crystal%, Spend Pickaxes (Crystal)
+    Gui, Add, Checkbox, x350 y90 vPickaxes Checked%Pickaxes% Section, Skip Claiming Pickaxes
+    Gui, Add, Checkbox, xs y+15 vCrystal Checked%Crystal%, Spend Pickaxes (Crystal)
+    Gui, Add, Text, x+5 yp, Max:
+    Gui, Add, Edit, x+2 yp-3 w35 vMaxCrystals, %MaxCrystals%
 
     Gui, Add, Checkbox, x650 y90 vAwaken Checked%Awaken%, Awaken Heroes
 
@@ -383,7 +401,14 @@ Gui, Tab, 5
     Gui, Add, GroupBox, x40 y80 w450 h120, Discord Configuration
     Gui, Add, Text, xp+20 yp+40, Discord ID:
     Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
-    Gui, Add, Text, x60 y+10 w400,
+
+    ; --- Nouveau groupe pour le reset des compteurs ---
+    Gui, Add, GroupBox, x40 y220 w450 h150, Reset Daily Counters
+    Gui, Add, Text, xp+20 yp+30, Manually reset the 24h counters:
+
+    Gui, Add, Button, xp y+15 w120 h40 gResetTavern, Reset Tavern
+    Gui, Add, Button, x+15 yp w120 h40 gResetChaos, Reset Chaos
+    Gui, Add, Button, x+15 yp w120 h40 gResetCrystal, Reset Crystal
 
 Gui, Show, w960 h750, Firestone Bot V6.1.0
 Return
@@ -407,6 +432,26 @@ ButtonStart:
     }
 Return
 
+ResetTavern:
+    TokenCountDaily := 0
+    LastTokenReset := ""
+    SaveSettings() ; Sauvegarde le reset dans le fichier ini
+    MsgBox, 64, Reset, Tavern token counter has been reset!
+Return
+
+ResetChaos:
+    ChaosCountDaily := 0
+    LastChaosReset := ""
+    SaveSettings()
+    MsgBox, 64, Reset, Chaos Rift counter has been reset!
+Return
+
+ResetCrystal:
+    CrystalCountDaily := 0
+    LastCrystalReset := ""
+    SaveSettings()
+    MsgBox, 64, Reset, Crystal hit counter has been reset!
+Return
 
 ; --- INI Helper Functions ---
 LoadSettings() {

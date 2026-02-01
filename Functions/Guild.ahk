@@ -35,8 +35,9 @@ Guild(){
         AwakenRun()
     }
     ; check if Chaos Rift is selected
-    GuiControlGet, Checked, , Chaos,
-    If (Checked = 1){
+    global Chaos
+    IniRead, Chaos, settings.ini, CommonOptions, Chaos, 0
+    If (Chaos = 1){
         HitChaos()
     }
     ; check if skipping claiming pickaxes
@@ -90,17 +91,47 @@ ClaimAxes(){
     Return
 }
 HitCrystal(){
+    ; Déclaration des variables globales pour le suivi
+    global CrystalCountDaily, MaxCrystals, LastCrystalReset
     MouseMove, 1646, 928
     Sleep, 1000
     Click
     Sleep, 1500
+    ; --- 1. Vérification du Reset de 24h ---
+    if (LastCrystalReset != "") {
+        TimeElapsed := A_Now
+        EnvSub, TimeElapsed, %LastCrystalReset%, Hours
+        if (TimeElapsed >= 24) {
+            CrystalCountDaily := 0
+            LastCrystalReset := ""
+            SaveSettings() ; Sauvegarde le reset dans le ini
+            SendHeartbeat("ResetHitCrystalUse", false, false)
+        }
+    }
+
+    ; --- 2. Test de la limite utilisateur ---
+    if (CrystalCountDaily >= MaxCrystals) {
+        BigClose() ; On ferme si on a atteint le max
+        return
+    }
+
+    ; --- 3. Logique de clic (votre code original) ---
     PixelSearch, X, Y, 1101, 904, 1075, 946, 0x0AA008, 3, Fast RGB
     If (ErrorLevel = 0){
-        SendHeartbeat("HitCrystal", false, true)
+        ; Enregistre l'heure au premier clic réussi de la journée
+        if (CrystalCountDaily = 0) {
+            LastCrystalReset := A_Now
+        }
+
         MouseMove, 957, 896
         Sleep, 1000
         Click
+        SendHeartbeat("HitCrystalUse", false, true)
         Sleep, 1500
+
+        ; --- 4. Incrémentation et sauvegarde ---
+        CrystalCountDaily++
+        SaveSettings()
     }
     BigClose()
     Return

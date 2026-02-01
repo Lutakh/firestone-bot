@@ -2,6 +2,7 @@
 
 #SingleInstance Force
 #Include Gui.ahk
+#Include <Vis2>
 #Include Functions\Alchemist.ahk
 #Include Functions\Arena.ahk
 #Include Functions\CheckMail.ahk
@@ -20,6 +21,7 @@
 #Include Functions\Research.ahk
 #Include Functions\Shop.ahk
 #Include Functions\SendHeartbeat.ahk
+#Include Functions\AutoPrestige.ahk
 #Include Functions\subFunctions\BigClose.ahk
 #Include Functions\subFunctions\GetColor.ahk
 #Include Functions\subFunctions\GoMap.ahk
@@ -56,6 +58,7 @@ loop:
     MsgBox, , Main Menu Check, Checking to ensure we are on main screen after claiming quests, 2
     MainMenu()
     ControlFocus,, ahk_exe Firestone.exe
+    ;AutoPrestige()
     ;~ ; check if Claim Free Gift and Check-in is checked
     GuiControlGet, Checked, , Shop,
     If (Checked = 1){

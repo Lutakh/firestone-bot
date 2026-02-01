@@ -79,6 +79,7 @@ MapStart(){
     Medium.Insert(Object("x",1481,"y",261)) ; Dreadland Shore
 
     Short := []
+    Short.Insert(Object("x",490,"y",190)) ; Visit the Northern Tribes
     Short.Insert(Object("x",556,"y",500)) ; Jungle Terror
     Short.Insert(Object("x",655,"y",357)) ; The Hombor King
     Short.Insert(Object("x",712,"y",517))
@@ -99,7 +100,6 @@ MapStart(){
 
     Leftover := []
     Leftover.Insert(Object("x",923,"y",369))
-    Leftover.Insert(Object("x",538,"y",190))
     Leftover.Insert(Object("x",1221,"y",467))
     Leftover.Insert(Object("x",742,"y",389))
     Leftover.Insert(Object("x",967,"y",547))
