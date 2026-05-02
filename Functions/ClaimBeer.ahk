@@ -25,7 +25,7 @@ ClaimBeer(){
             Sleep, 1000
             Click
             Sleep, 1000
-            PixelSearch, X, Y, 616, 610, 697, 656, 0x659BB0, 3, Fast RGB
+            PixelSearch, X, Y, 616, 610, 697, 656, 0xFFBB33, 3, Fast RGB
             If (ErrorLevel = 0){
                 MouseMove, 544, 630
                 Sleep, 1000

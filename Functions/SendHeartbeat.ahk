@@ -3,11 +3,20 @@
 }
 
 SendHeartbeat(msg, isStop, isImportant := false) {
+    ; Lecture de la variable EnableHeartbeat. Si elle n'existe pas, la valeur par défaut sera 0.
+    IniRead, EnableHeartbeat, settings.ini, SettingsNoGui, EnableHeartbeat, 0
+
+    ; Si la variable n'est pas à 1 (donc 0 ou inexistante), on quitte la fonction immédiatement
+    if (EnableHeartbeat != 1) {
+        return
+    }
+
     if (ConnectedToInternet()) {
         global ServerURL, MyID, DiscordID
         ServerURL := "https://fs-bot-logs.lutak.ovh/api/heartbeat"
         IniRead, DiscordID, settings.ini, SettingsNoGui, DiscordID, 0
         MyID := GetUniqueID()
+
         ; Conversion booléens pour JSON
         stopBool := isStop ? "true" : "false"
         impBool := isImportant ? "true" : "false"

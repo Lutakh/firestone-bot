@@ -183,7 +183,7 @@ Gui, Tab, 2
     Gui, Add, Checkbox, y+10 vDisableWarning Checked%DisableWarning%, Disable Steam Warning
 
     Gui, Add, Text, y+15, Train Guardian:
-    Gui, Add, DropDownList, w260 vGuardianTrain, Vermilion||Grace|Ankaa|Azhar
+    Gui, Add, DropDownList, w260 vGuardianTrain, 1||2|3|4
     if (GuardianTrain != "")
         GuiControl, ChooseString, GuardianTrain, %GuardianTrain%
 

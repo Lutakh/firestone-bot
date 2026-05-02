@@ -34,7 +34,7 @@ Guardian(){
         Sleep, 500
         global GuardianTrain
         IniRead, GuardianTrain, settings.ini, CommonOptions, GuardianTrain, 0
-        if (GuardianTrain == "Grace"){
+        if (GuardianTrain == "2"){
             Loop, 1
             {
                 SendEvent, {Right down}
@@ -43,7 +43,7 @@ Guardian(){
                 Sleep, 100
             }
         }
-        if (GuardianTrain == "Ankaa"){
+        if (GuardianTrain == "3"){
             Loop, 2
             {
                 SendEvent, {Right down}
@@ -52,7 +52,7 @@ Guardian(){
                 Sleep, 100
             }
         }
-        if (GuardianTrain == "Azhar"){
+        if (GuardianTrain == "4"){
             Loop, 3
             {
                 SendEvent, {Right down}

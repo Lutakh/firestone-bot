@@ -11,7 +11,7 @@ OracleDaily(){
         Click
         Sleep, 1500
         ; Claim Oracle's gift
-        MouseMove, 619, 756
+        MouseMove, 711, 791
         Sleep, 1000
         Click
         Sleep, 1500
