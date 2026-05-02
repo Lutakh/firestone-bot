@@ -42,7 +42,6 @@ loop:
     SendHeartbeat("Starting Bot", false, true)
     MsgBox, , Main Menu Check, Checking to ensure we are on main screen at loop start, 2
     MainMenu()
-    Shop()
     ControlFocus,, ahk_exe Firestone.exe
     GuiControlGet, Checked, , Events,
         If (Checked = 1){

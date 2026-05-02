@@ -116,7 +116,7 @@ Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.1.0
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.1.1
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -385,7 +385,7 @@ Gui, Tab, 5
     Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
     Gui, Add, Text, x60 y+10 w400,
 
-Gui, Show, w960 h750, Firestone Bot V6.1.0
+Gui, Show, w960 h750, Firestone Bot V6.1.1
 Return
 
 ; ==============================================================================
