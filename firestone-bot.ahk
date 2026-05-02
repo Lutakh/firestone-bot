@@ -20,6 +20,7 @@
 #Include Functions\Quests.ahk
 #Include Functions\Research.ahk
 #Include Functions\Shop.ahk
+#Include Functions\RestartGameRoutine.ahk
 #Include Functions\SendHeartbeat.ahk
 #Include Functions\AutoPrestige.ahk
 #Include Functions\subFunctions\BigClose.ahk
@@ -35,10 +36,19 @@ SetBatchLines, -1
 
 global lastExecutionTimeArena := 0
 global MapPoints :=
-
+global lastRestartTime := 0
 ; start of main script
 MainScript(){
 loop:
+    GuiControlGet, Checked, , RestartGame
+    If (Checked = 1){
+        currentTime := A_TickCount
+        ; 24 heures = 24 * 60 * 60 * 1000 millisecondes = 86400000
+        If (lastRestartTime <= 0 || currentTime - lastRestartTime >= 86400000){
+            SendHeartbeat("Initiating 24h Game Restart", false, true)
+            RestartGameRoutine()
+        }
+    }
     ControlFocus,, ahk_exe Firestone.exe
     ; do main screen sections
     SendHeartbeat("Starting Bot", false, true)

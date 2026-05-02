@@ -70,6 +70,7 @@ SettingsMap["WMOptions"] := ["OtherOptions", "Level and Blueprints"]
 SettingsMap["Blueprints"] := ["OtherOptions", "Damage and Health"]
 SettingsMap["Talents450"] := ["OtherOptions", "Don't Upgrade Talents (0-450 Talent Points)"]
 SettingsMap["Talents800"] := ["OtherOptions", "Don't Upgrade Talents (500+ Talent Points)"]
+SettingsMap["RestartGame"] := ["OtherOptions", 0]
 
 ; --- SettingsNoGui (Maintained for code compatibility) ---
 SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0]
@@ -191,7 +192,7 @@ Gui, Tab, 2
     Gui, Add, Checkbox, xp+15 yp+30 vNoEng Checked%NoEng%, Skip Engineer
     Gui, Add, Checkbox, y+10 vResearch Checked%Research%, Skip Research
     Gui, Add, Checkbox, y+10 vDisableWarning Checked%DisableWarning%, Disable Steam Warning
-
+    Gui, Add, Checkbox, y+10 vRestartGame Checked%RestartGame%, Restart Game Every 24h
     Gui, Add, Text, y+15, Train Guardian:
     Gui, Add, DropDownList, w260 vGuardianTrain, Vermilion||Grace|Ankaa|Azhar
     if (GuardianTrain != "")
