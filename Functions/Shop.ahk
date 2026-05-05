@@ -14,12 +14,12 @@ Shop(){
         Click
         Sleep, 1500
         ; claim mystery box
-        MouseMove, 591, 754
+        MouseMove, 591, 857
         Sleep, 1000
         Click
         Sleep, 1000
         ; open daily check-in
-        MouseMove, 1383, 116
+        MouseMove, 1440, 125
         Sleep, 1000
         Click
         Sleep, 1000
