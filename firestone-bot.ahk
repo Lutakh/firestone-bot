@@ -26,17 +26,29 @@
 #Include Functions\subFunctions\MainMenu.ahk
 #Include Functions\subFunctions\MapClose.ahk
 #Include Functions\subFunctions\OpenTown.ahk
+#Include Functions\RestartGameRoutine.ahk
 
 SetWorkingDir %A_ScriptDir%
 #NoEnv
 SetBatchLines, -1
-
-global lastExecutionTimeArena := 0
-global MapPoints :=
-
 ; start of main script
 MainScript(){
+currentTime := A_TickCount
+global lastExecutionTimeArena := 0
+global MapPoints :=
+global lastRestartTime := A_TickCount
+IniRead, RestartGameTime, settings.ini, OtherOptions, RestartGameTime, 0
+RestartGameTimeMs := RestartGameTime * 3600000
 loop:
+    GuiControlGet, Checked, , RestartGame
+    If (Checked = 1){
+        currentTime := A_TickCount
+        GuiControlGet, CheckedRestartGameTest, , RestartGameTest
+        If (CheckedRestartGameTest = 1 || currentTime - lastRestartTime >= RestartGameTimeMs){
+            SendHeartbeat("Initiating 24h Game Restart", false, true)
+            RestartGameRoutine()
+        }
+    }
     ControlFocus,, ahk_exe Firestone.exe
     ; do main screen sections
     SendHeartbeat("Starting Bot", false, true)

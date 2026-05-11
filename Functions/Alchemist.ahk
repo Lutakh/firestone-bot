@@ -76,17 +76,22 @@ Alchemist(){
             Click
             Sleep, 1000
         }
-    ; check for in-process alchemy with blood
-    PixelSearch, X, Y, 1007, 735, 1030, 766, 0x916A38, 3, Fast RGB
-        If (ErrorLevel = 0){
-            MsgBox, , Alchemy Status, Dragon Blood experiment has more than 3 minutes remaining, 1.5
+    ; check if don't use Dragon Blood is checked
+    GuiControlGet, Checked, , DragonBlood
+        If (Checked = 1){
             Goto, DustSearch
         } Else {
-            MouseMove, 951, 771
-            MsgBox, , Alchemy Status, Starting Dragon Blood experiment, 1.5
-            Click
-            Sleep, 1000
-            Goto, DustSearch
+            PixelSearch, X, Y, 1007, 735, 1030, 766, 0x916A38, 3, Fast RGB
+            If (ErrorLevel = 0){
+                MsgBox, , Alchemy Status, Dragon Blood experiment has more than 3 minutes remaining, 1.5
+                Goto, DustSearch
+            } Else {
+                MouseMove, 951, 771
+                MsgBox, , Alchemy Status, Starting Dragon Blood experiment, 1.5
+                Click
+                Sleep, 1000
+                Goto, DustSearch
+            }
         }
     DustSearch:
     ; check if don't use dust is checked
