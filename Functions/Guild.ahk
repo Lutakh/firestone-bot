@@ -70,11 +70,13 @@ Guild(){
     Return
 }
 ClaimAxes(){
+    ; Guild Shop
     MouseMove, 639, 263
     Sleep, 1000
     Click
     Sleep, 1500
-    MouseMove, 141, 740
+    ; Supplies
+    MouseMove, 141, 790
     Sleep, 1000
     Click
     Sleep, 1500

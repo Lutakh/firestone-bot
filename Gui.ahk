@@ -53,6 +53,7 @@ SettingsMap["Pickaxes"] := ["QoL/RareOptions", 0]
 SettingsMap["GNotif"] := ["QoL/RareOptions", 0]
 SettingsMap["Alch"] := ["QoL/RareOptions", 0]
 SettingsMap["Dust"] := ["QoL/RareOptions", 0]
+SettingsMap["DragonBlood"] := ["QoL/RareOptions", 0]
 SettingsMap["Coin"] := ["QoL/RareOptions", 0]
 SettingsMap["Research"] := ["QoL/RareOptions", 0]
 SettingsMap["SkipOracle"] := ["QoL/RareOptions", 0]
@@ -70,7 +71,9 @@ SettingsMap["WMOptions"] := ["OtherOptions", "Level and Blueprints"]
 SettingsMap["Blueprints"] := ["OtherOptions", "Damage and Health"]
 SettingsMap["Talents450"] := ["OtherOptions", "Don't Upgrade Talents (0-450 Talent Points)"]
 SettingsMap["Talents800"] := ["OtherOptions", "Don't Upgrade Talents (500+ Talent Points)"]
-
+SettingsMap["RestartGame"] := ["OtherOptions", 0]
+SettingsMap["RestartGameTest"] := ["OtherOptions", 0]
+SettingsMap["RestartGameTime"] := ["OtherOptions", "24"]
 ; --- SettingsNoGui (Maintained for code compatibility) ---
 SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0]
 
@@ -116,7 +119,7 @@ Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.1.1
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.2.0
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -181,7 +184,10 @@ Gui, Tab, 2
     Gui, Add, Checkbox, xp+15 yp+30 vNoEng Checked%NoEng%, Skip Engineer
     Gui, Add, Checkbox, y+10 vResearch Checked%Research%, Skip Research
     Gui, Add, Checkbox, y+10 vDisableWarning Checked%DisableWarning%, Disable Steam Warning
-
+    Gui, Add, Checkbox, y+10 vRestartGame Checked%RestartGame%, Restart Game
+    Gui, Add, Checkbox, y+10 vRestartGameTest Checked%RestartGameTest%, Try the game restart at the beginning
+    Gui, Add, Text, y+15, Restart Game Every X Hours:
+    Gui, Add, DropDownList, w260 vRestartGameTime, 6||12|18|24
     Gui, Add, Text, y+15, Train Guardian:
     Gui, Add, DropDownList, w260 vGuardianTrain, 1||2|3|4
     if (GuardianTrain != "")
@@ -208,13 +214,14 @@ Gui, Tab, 2
     Gui, Add, Checkbox, y+10 vSkipOracle Checked%SkipOracle%, Skip Oracle
 
     ; --- Alchemy ---
-    Gui, Add, GroupBox, x335 y380 w300 h120, Alchemy
+    Gui, Add, GroupBox, x335 y380 w300 h140, Alchemy
     Gui, Add, Checkbox, xp+15 yp+30 vAlch Checked%Alch%, Skip Alchemy
+    Gui, Add, Checkbox, y+10 vDragonBlood Checked%DragonBlood%, Don't Use DragonBlood in Alchemy
     Gui, Add, Checkbox, y+10 vDust Checked%Dust%, Don't Use Dust in Alchemy
     Gui, Add, Checkbox, y+10 vCoin Checked%Coin%, Use Exotic Coins in Alchemy
 
 ; --- Hero Upgrades ---
-    Gui, Add, GroupBox, x335 y510 w300 h200, Hero Upgrades
+    Gui, Add, GroupBox, x335 y520 w300 h200, Hero Upgrades
     Gui, Add, Checkbox, xp+15 yp+30 vNoHero Checked%NoHero%, Don't Upgrade Heroes (Master)
     Gui, Add, Checkbox, y+10 vNextMilestone Checked%NextMilestone%, Set upgrade to Next Milestone
     Gui, Add, Text, y+10, Select Upgrades to Perform:
@@ -385,7 +392,7 @@ Gui, Tab, 5
     Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
     Gui, Add, Text, x60 y+10 w400,
 
-Gui, Show, w960 h750, Firestone Bot V6.1.1
+Gui, Show, w960 h750, Firestone Bot V6.2.0
 Return
 
 ; ==============================================================================
