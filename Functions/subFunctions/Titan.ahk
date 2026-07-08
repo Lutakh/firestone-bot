@@ -1,9 +1,9 @@
-; Epic.ahk
+; Titan.ahk
 
 #Include Functions\subFunctions\BigClose.ahk
 
-Epic(){
-    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xB273F5, 3, Fast RGB
+Titan(){
+    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0x08BAC6, 3, Fast RGB
     If (ErrorLevel=0){
         MouseMove, FoundX, FoundY
         Sleep, 1000

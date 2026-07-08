@@ -6,6 +6,7 @@
 #Include Functions\Arena.ahk
 #Include Functions\CheckMail.ahk
 #Include Functions\ClaimBeer.ahk
+#include Functions\subFunctions\ScarabToken.ahk
 #include Functions\Scarab.ahk
 #Include Functions\ClaimEngineer.ahk
 #Include Functions\ClaimEvents.ahk
@@ -101,6 +102,8 @@ loop:
     ; tavern
     SendHeartbeat("ClaimBeer", false)
     ClaimBeer()
+    SendHeartbeat("ScarabToken", false)
+    ScarabToken()
     SendHeartbeat("Scarab", false)
     Scarab()
     ; claim rituals
@@ -201,11 +204,12 @@ loop:
         MouseMove, 947, 755
         Sleep, 120000
         Goto, Loop
-}
+    }
 }
 
 GuiEscape:
 GuiClose:
-    $Esc::
+;    *#$Esc::    ; Got rid of this so we can use ESC key.
+    ~*#$Esc::    ; This will only exit on Windows Key + ESC key.
     SendHeartbeat("Exit Bot", true, true)
     ExitApp

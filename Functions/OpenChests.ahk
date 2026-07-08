@@ -2,26 +2,28 @@
 
 #Include Functions\subFunctions\MainMenu.ahk
 #Include Functions\subFunctions\BigClose.ahk
-#Include Functions\subFunctions\Comet.ahk
-#Include Functions\subFunctions\Common.ahk
-#Include Functions\subFunctions\Cosmic.ahk
-#Include Functions\subFunctions\Diamond.ahk
-#Include Functions\subFunctions\Emerald.ahk
-#Include Functions\subFunctions\Epic.ahk
-#Include Functions\subFunctions\Galaxy.ahk
-#Include Functions\subFunctions\Golden.ahk
-#Include Functions\subFunctions\Iron.ahk
-#Include Functions\subFunctions\Legendary.ahk
-#Include Functions\subFunctions\Lunar.ahk
+;#Include Functions\subFunctions\Comet.ahk
+;#Include Functions\subFunctions\Common.ahk
+;#Include Functions\subFunctions\Cosmic.ahk
+;#Include Functions\subFunctions\Diamond.ahk
+;#Include Functions\subFunctions\Emerald.ahk
+;#Include Functions\subFunctions\Epic.ahk
+;#Include Functions\subFunctions\Galaxy.ahk
+;#Include Functions\subFunctions\Golden.ahk
+;#Include Functions\subFunctions\Iron.ahk
+;#Include Functions\subFunctions\Legendary.ahk
+;#Include Functions\subFunctions\Lunar.ahk
 #Include Functions\subFunctions\MysteryBox.ahk
-#Include Functions\subFunctions\Mythic.ahk
-#Include Functions\subFunctions\Nebula.ahk
-#Include Functions\subFunctions\Opal.ahk
+;#Include Functions\subFunctions\Mythic.ahk
+;#Include Functions\subFunctions\Nebula.ahk
+;#Include Functions\subFunctions\Opal.ahk
+#Include Functions\subFunctions\OpenChestType.ahk
 #Include Functions\subFunctions\OraclesGift.ahk
-#Include Functions\subFunctions\Solar.ahk
-#Include Functions\subFunctions\Rare.ahk
-#Include Functions\subFunctions\Uncommon.ahk
-#Include Functions\subFunctions\Wooden.ahk
+;#Include Functions\subFunctions\Rare.ahk
+;#Include Functions\subFunctions\Solar.ahk
+;#Include Functions\subFunctions\Titan.ahk
+;#Include Functions\subFunctions\Uncommon.ahk
+;#Include Functions\subFunctions\Wooden.ahk
 
 OpenChests(){
     ; open bag
@@ -41,7 +43,7 @@ OpenChests(){
     }
     GuiControlGet, SelectedItem, ,GearChestExclude,
     If (SelectedItem="Don't Exclude Any"){
-        Goto, Mythic
+        Goto, Titan
     }    
     GuiControlGet, SelectedItem, ,GearChestExclude,
     If (SelectedItem="Mythic"){
@@ -55,22 +57,32 @@ OpenChests(){
     If (SelectedItem="Epic and Higher"){
         Goto, Rare
     }    
+    Titan:
+    MsgBox, , Open Chests, Opening Titan Chests, 1.5
+    ;Titan()
+    OpenChestType("0x08BAC6", 3)
     Mythic:
     MsgBox, , Open Chests, Opening Mythic Chests, 1.5
-    Mythic()
+    ;Mythic()
+    OpenChestType("0xF09C15", 3)
     Legendary:
     MsgBox, , Open Chests, Opening Legendary Chests, 1.5
-    Legendary()
+    ;Legendary()
+    OpenChestType("0xC63A07", 2)
     Epic:
     MsgBox, , Open Chests, Opening Epic Chests, 1.5
-    Epic()
+    ;Epic()
+    OpenChestType("0xB273F5", 3)
     Rare:
     MsgBox, , Open Chests, Opening Rare Chests, 1.5
-    Rare()
+    ;Rare()
+    OpenChestType("0x5C98FB", 2)
     MsgBox, , Open Chests, Opening Uncommon Chests, 1.5
-    Uncommon()
+    ;Uncommon()
+    OpenChestType("0xB54424", 2)
     MsgBox, , Open Chests, Opening Common Chests, 1.5
-    Common()
+    ;Common()
+    OpenChestType("0xC9782B", 2)
 
     JewelChests:
     ; look for Jewel Chests
@@ -80,7 +92,7 @@ OpenChests(){
     }
     GuiControlGet, SelectedItem, ,JewelChestExclude,
     If (SelectedItem="Don't Exclude Any"){
-        Goto, Emerald
+        Goto, Platinum
     }
     GuiControlGet, SelectedItem, ,JewelChestExclude,
     If (SelectedItem="Diamond and Higher"){
@@ -94,22 +106,32 @@ OpenChests(){
     If (SelectedItem="Emerald"){
         Goto, Opal
     }
+    Platinum:
+    MsgBox, , Open Chests, Opening Platinum Chests, 1.5
+    ;Platinum()
+    OpenChestType("0xFFB2DC", 3)
     Emerald:
     MsgBox, , Open Chests, Opening Emerald Chests, 1.5
-    Emerald()
+    ;Emerald()
+    OpenChestType("0x7B6926", 2)
     Opal:
     MsgBox, , Open Chests, Opening Opal Chests, 1.5
-    Opal()
+    ;Opal()
+    OpenChestType("0xA1F3E3", 2)
     Diamond:
     MsgBox, , Open Chests, Opening Diamond Chests, 1.5
-    Diamond()
+    ;Diamond()
+    OpenChestType("0xF60151", 2)
     Golden:
     MsgBox, , Open Chests, Opening Golden Chests, 1.5
-    Golden()
+    ;Golden()
+    OpenChestType("0xCF7029", 2)
     MsgBox, , Open Chests, Opening Iron Chests, 1.5
-    Iron()
+    ;Iron()
+    OpenChestType("0x071250", 2)
     MsgBox, , Open Chests, Opening Wooden Chests, 1.5
-    Wooden()
+    ;Wooden()
+    OpenChestType("0x442522", 2)
     
     Gifts:
     ; look for Gifts
@@ -131,7 +153,7 @@ OpenChests(){
     Sleep, 1000
     Click
     Sleep, 1500
-    Return
+    Retur
 }
 
 ; section will trigger if Upgrade Blessings is selected and Open Chests is not
@@ -154,17 +176,23 @@ OpenBlessChests(){
     OpenBlessChestsNoBag:
     ; look for blessing chests
     MsgBox, , Open Chests, Opening Galaxy Chests, 1.5
-    Galaxy()
+    ;Galaxy()
+    OpenChestType("0xFF82FF", 2)
     MsgBox, , Open Chests, Opening Cosmic Chests, 1.5
-    Cosmic()
+    ;Cosmic()
+    OpenChestType("0xD326C0", 2)
     MsgBox, , Open Chests, Opening Nebula Chests, 1.5
-    Nebula()
+    ;Nebula()
+    OpenChestType("0x5B1D84", 2)
     MsgBox, , Open Chests, Opening Solar Chests, 1.5
-    Solar()
+    ;Solar()
+    OpenChestType("0xFEF343", 2)
     MsgBox, , Open Chests, Opening Lunar Chests, 1.5
-    Lunar()
+    ;Lunar()
+    OpenChestType("0x00F694", 2)
     MsgBox, , Open Chests, Opening Comet Chests, 1.5
-    Comet()
+    ;Comet()
+    OpenChestType("0x9F3C29", 1)
     ; close bag
     MouseMove, 1870, 246
     Sleep, 1000

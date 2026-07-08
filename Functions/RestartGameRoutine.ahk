@@ -49,6 +49,8 @@ RestartGameRoutine() {
         While ((A_TickCount - startTime) < 300000) {
             ; === PARAMÉTRAGE DU PIXEL À CHANGER ICI ===
             ; Remplacez X et Y par les coordonnées du pixel attestant que le jeu est prêt (ex: bouton Aventure)
+            WinActivate, ahk_exe Firestone.exe       ;This was added to try to ensure Firestone is in focus.
+            WinWaitActive, ahk_exe Firestone.exe,, 5 ;This was added to try to ensure Firestone is in focus.
 			ControlFocus,, ahk_exe Firestone.exe
 			Sleep, 500
 			MouseMove, 900, 900

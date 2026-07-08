@@ -1,9 +1,15 @@
-; Epic.ahk
+; OpenChestType.ahk
 
 #Include Functions\subFunctions\BigClose.ahk
 
-Epic(){
-    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xB273F5, 3, Fast RGB
+OpenChestType(colorHex, colorDistance := 2){
+;PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, colorHex, colorDistance, Fast RGB
+;if (ErrorLevel=0) {
+;    MouseMove, FoundX, FoundY
+;    Sleep, 1000
+;    return
+;}
+    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, colorHex, colorDistance, Fast RGB
     If (ErrorLevel=0){
         MouseMove, FoundX, FoundY
         Sleep, 1000

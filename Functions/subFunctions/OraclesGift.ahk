@@ -3,17 +3,52 @@
 #Include Functions\subFunctions\BigClose.ahk
 
 OraclesGift(){
-    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0x00EAF6, 5, Fast RGB
+    ; Scroll to the bottom to look for Oracle's Gifts
+    MouseMove, 1720, 608
+    MsgBox, , Setup, Scrolling to ensure tree setup, 1.5
+    Loop, 5{
+        Send, {WheelDown}
+        Sleep, 200
+    }
+    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xFFD800, 1, Fast RGB
     If (ErrorLevel=0){
         MouseMove, FoundX, FoundY
         Sleep, 1000
         Click
         Sleep, 1000
+;        ; click 1
+;        MouseMove, 904, 724
+;        Sleep, 1000
+;        Click
+;        Sleep, 10000 ; long delay in case 10 or more chests are opened
+
         ; click 1
-        MouseMove, 904, 724
+        ; 1 = 910, 10 = 950, 50 = 1047
+        MouseMove, 1047, 892 ; 950
         Sleep, 1000
         Click
         Sleep, 10000 ; long delay in case 10 or more chests are opened
+;        PixelSearch, X, Y, 1773, 932, 1831, 976, 0x0F4000, 3, Fast RGB
+;        If (ErrorLevel = 0){
+;            ; click 1
+;            MouseMove, 1797, 959
+;            Sleep, 1000
+;            Click
+;            Sleep, 10000 ; long delay in case 10 or more chests are opened
+;        }
+
+        Loop, 5{
+            PixelSearch, X, Y, 1773, 932, 1831, 976, 0x0AA008, 3, Fast RGB
+            If (ErrorLevel = 0){
+                ; click 50 or however many are left.
+                MouseMove, 1797, 959
+                Sleep, 1000
+                Click
+                Sleep, 10000 ; long delay in case 10 or more chests are opened
+            }
+            Sleep, 100 ; Small delay in case there is no button.
+        }
+
         BigClose()
         ; failsafe in case big close opens options
         MouseMove, 59, 181

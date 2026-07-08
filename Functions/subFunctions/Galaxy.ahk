@@ -14,6 +14,16 @@ Galaxy(){
         Sleep, 1000
         Click
         Sleep, 10000 ; long delay in case 10 or more chests are opened
+
+        PixelSearch, X, Y, 1773, 932, 1831, 976, 0x0AA008, 3, Fast RGB
+        If (ErrorLevel = 0){
+            ; click 1
+            MouseMove, 1797, 959
+            Sleep, 1000
+            Click
+            Sleep, 10000 ; long delay in case 10 or more chests are opened
+        }
+
         ; clicks equip or space it should be
         MouseMove, 962, 850
         Sleep, 1000
