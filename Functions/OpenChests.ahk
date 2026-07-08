@@ -153,7 +153,7 @@ OpenChests(){
     Sleep, 1000
     Click
     Sleep, 1500
-    Retur
+    Return
 }
 
 ; section will trigger if Upgrade Blessings is selected and Open Chests is not
