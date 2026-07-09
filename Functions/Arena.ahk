@@ -19,7 +19,7 @@ Arena(){
     XCoords := [700, 954, 1220]
     Random, RandomIndex, 1, 3
     RandomX := XCoords[RandomIndex]
-    Sleep, 1000
+    Sleep, 6000
     Loop, 5{
         ;refresh opponents
         MouseMove, 871, 195

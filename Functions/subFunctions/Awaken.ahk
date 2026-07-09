@@ -4,7 +4,7 @@
 
 AwakenRun(){
     ControlFocus,, ahk_exe Firestone.exe
-    ; Check for awaken heroes notification on crystal screen
+    ; Check for awaken heroes notification on guid screen
     PixelSearch, X, Y, 1107, 745, 1367, 944, 0xF40000, 3, Fast RGB
     If (ErrorLevel = 0){
         SendHeartbeat("AwakenRun (Improved): found notif", false, true)

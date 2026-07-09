@@ -34,7 +34,7 @@ BuyExotic(){
         Click
         Sleep, 1000
     }
-        ; open oracle chest tab
+    ; open oracle chest tab
     MouseMove, 689, 780
     Sleep, 1000
     Click

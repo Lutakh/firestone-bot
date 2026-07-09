@@ -9,7 +9,7 @@ Guardian(){
     MouseMove, 658, 284
     Sleep, 1000
     click
-    Sleep, 3500  ; I've noticed the guardian screen coming up slower at times.
+    Sleep, 6500  ; I've noticed the guardian screen coming up slower at times.
     ; check for evolve
     PixelSearch, X, Y, 1307, 107, 1346, 136, 0x0F40000, 3, Fast RGB
     if(ErrorLevel=0){

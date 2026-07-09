@@ -9,10 +9,10 @@ RestartGameRoutine() {
         ; Recherche de mots clés dans le chemin de l'exécutable
         If InStr(exePath, "steam") {
             platformDetected := "Steam"
-			    MsgBox, , Check Firestone launcher, Steam Firestone found , 2
+                MsgBox, , Check Firestone launcher, Steam Firestone found , 2
         } Else If InStr(exePath, "Epic") {
             platformDetected := "Epic"
-			MsgBox, , Check Firestone launcher, Epic Firestone found , 2
+            MsgBox, , Check Firestone launcher, Epic Firestone found , 2
         } Else {
             platformDetected := "Unknown"
         }
@@ -22,14 +22,14 @@ RestartGameRoutine() {
     If (platformDetected = "" || platformDetected = "Unknown") {
         SendHeartbeat("Error: Could not determine if game is Steam or Epic.", false, true)
         lastRestartTime := A_TickCount
-		MsgBox, , Firestone is not started, Could not determine if game is Steam or Epic
-		ExitApp
+        MsgBox, , Firestone is not started, Could not determine if game is Steam or Epic
+        ExitApp
     }
 
     Loop {
         ; 2. Fermeture du processus
         Process, Close, Firestone.exe
-        Sleep, 15000 ; Laisse 5 secondes au système pour fermer complètement
+        Sleep, 30000 ; Laisse 5 secondes au système pour fermer complètement
 
         ; 3. Lancement selon la plateforme détectée
         If (platformDetected = "Steam") {
@@ -38,8 +38,8 @@ RestartGameRoutine() {
         }
         Else If (platformDetected = "Epic") {
             ; Recherche et lancement du raccourci sur le bureau pour Epic
-			launchCommand := 					"com.epicgames.launcher://apps/bda8d2133655435982b9118972792328%3Ae0aa26672dcb40c3a137ced30ed1f160%3A43d4ef20fcb94eb39a864d13164fe3ca?action=launch&silent=true"
-			Run, explorer.exe "%launchCommand%"
+            launchCommand := "com.epicgames.launcher://apps/bda8d2133655435982b9118972792328%3Ae0aa26672dcb40c3a137ced30ed1f160%3A43d4ef20fcb94eb39a864d13164fe3ca?action=launch&silent=true"
+            Run, explorer.exe "%launchCommand%"
         }
 
         ; 4. Boucle d'attente de 5 minutes (300 000 ms) pour trouver le pixel
@@ -51,11 +51,11 @@ RestartGameRoutine() {
             ; Remplacez X et Y par les coordonnées du pixel attestant que le jeu est prêt (ex: bouton Aventure)
             WinActivate, ahk_exe Firestone.exe       ;This was added to try to ensure Firestone is in focus.
             WinWaitActive, ahk_exe Firestone.exe,, 5 ;This was added to try to ensure Firestone is in focus.
-			ControlFocus,, ahk_exe Firestone.exe
-			Sleep, 500
-			MouseMove, 900, 900
+            ControlFocus,, ahk_exe Firestone.exe
+            Sleep, 500
+            MouseMove, 900, 900
             Sleep, 1000
-			PixelSearch, X, Y, 845, 860, 1080, 937, 0x16BC15, 3, Fast RGB
+            PixelSearch, X, Y, 845, 860, 1080, 937, 0x16BC15, 3, Fast RGB
             If (ErrorLevel = 0){
                 Click
                 Sleep, 1000
