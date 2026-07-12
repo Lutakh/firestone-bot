@@ -15,8 +15,14 @@ OpenChestType(colorHex, colorDistance := 2){
         Sleep, 1000
         Click
         Sleep, 1000
-        ; click 1
-        MouseMove, 914, 812
+        PixelSearch, X, Y, 1200, 850, 1313, 850, 0x0AA008, 3, Fast RGB
+        If (ErrorLevel = 0){
+            ; click 50/max
+            MouseMove, 1209, 812
+        } Else {
+            ; click 1/10
+            MouseMove, 914, 812
+        }
         Sleep, 1000
         Click
         Sleep, 10000 ; long delay in case 10 or more chests are opened
@@ -35,14 +41,13 @@ OpenChestType(colorHex, colorDistance := 2){
                 Sleep, 1000
                 Click
                 Sleep, 10000 ; long delay in case 10 or more chests are opened
-            }
-            Sleep, 100 ; Small delay in case there is no button.
 
-            ; clicks equip or space it should be
-            MouseMove, 962, 850
-            Sleep, 1000
-            Click
-            Sleep, 1000
+                ; clicks equip or space it should be
+                MouseMove, 962, 850
+                Sleep, 1000
+                Click
+                Sleep, 1000
+            }
         }
 
         BigClose()

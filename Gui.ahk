@@ -119,7 +119,7 @@ Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.2.0
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.2.1
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -145,7 +145,7 @@ Gui, Tab, 1
     Gui, Add, Text, y+20 w840, BOT USAGE:
     Gui, Font, Norm
     Gui, Add, Text, y+5 w840, - Check all tabs and activate ONLY what you need. Deactivate the rest.
-    Gui, Add, Text, y+5 w840, - After starting the game, click "Maximise" (Square icon next to X).
+    Gui, Add, Text, y+5 w840, - After starting the game, click "Maximize" (Square icon next to X).
     Gui, Add, Text, y+5 w840, - DO NOT move or zoom the map. Leave it as it is on login. If moved, restart game.
 
     Gui, Font, Bold

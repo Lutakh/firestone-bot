@@ -42,12 +42,12 @@ AwakenRun(){
         Sleep, 1000
         Click
         Sleep, 1000
-        PixelSearch, X, Y, 1600, 566, 1845, 612, 0x0A9F05, 1, Fast RGB
+        PixelSearch, X, Y, 1600, 566, 1845, 612, 0xF4A044, 1, Fast RGB
         If (ErrorLevel = 0) {
-            PixelSearch, X, Y, 1650, 955, 1900, 1015, 0x0A9F05, 1, Fast RGB
-            If (ErrorLevel = 0) {
-                Goto, Automatic
-            }
+            ;PixelSearch, X, Y, 1650, 955, 1900, 1015, 0x0A9F05, 1, Fast RGB
+            ;If (ErrorLevel = 0) {
+            ;    Goto, Automatic
+            ;}
             ; Look for x160
             PixelSearch, X, Y, 1825, 632, 1910, 692, 0x0A9F05, 1, Fast RGB
             If (ErrorLevel = 0){
