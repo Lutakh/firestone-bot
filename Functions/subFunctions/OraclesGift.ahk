@@ -5,7 +5,7 @@
 OraclesGift(){
     ; Scroll to the bottom to look for Oracle's Gifts
     MouseMove, 1720, 608
-    MsgBox, , Setup, Scrolling to ensure tree setup, 1.5
+    MsgBox, , Oracle's Gift, Scrolling to ensure bottom gifts are visible, 1.5
     Loop, 5{
         Send, {WheelDown}
         Sleep, 200

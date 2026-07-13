@@ -60,29 +60,29 @@ OpenChests(){
     Titan:
     MsgBox, , Open Chests, Opening Titan Chests, 1.5
     ;Titan()
-    OpenChestType("0x08BAC6", 3)
+    OpenChestType("0x08BAC6", 1)
     Mythic:
     MsgBox, , Open Chests, Opening Mythic Chests, 1.5
     ;Mythic()
-    OpenChestType("0xF09C15", 3)
+    OpenChestType("0xF09C15", 1)
     Legendary:
     MsgBox, , Open Chests, Opening Legendary Chests, 1.5
     ;Legendary()
-    OpenChestType("0xC63A07", 2)
+    OpenChestType("0xC63A07", 1)
     Epic:
     MsgBox, , Open Chests, Opening Epic Chests, 1.5
     ;Epic()
-    OpenChestType("0xB273F5", 3)
+    OpenChestType("0xB273F5", 1)
     Rare:
     MsgBox, , Open Chests, Opening Rare Chests, 1.5
     ;Rare()
-    OpenChestType("0x5C98FB", 2)
+    OpenChestType("0x5C98FB", 1)
     MsgBox, , Open Chests, Opening Uncommon Chests, 1.5
     ;Uncommon()
-    OpenChestType("0xB54424", 2)
+    OpenChestType("0xB54424", 1)
     MsgBox, , Open Chests, Opening Common Chests, 1.5
     ;Common()
-    OpenChestType("0xC9782B", 2)
+    OpenChestType("0xC9782B", 1)
 
     JewelChests:
     ; look for Jewel Chests
@@ -109,29 +109,29 @@ OpenChests(){
     Platinum:
     MsgBox, , Open Chests, Opening Platinum Chests, 1.5
     ;Platinum()
-    OpenChestType("0xFFB2DC", 3)
+    OpenChestType("0xFFB2DC", 1)
     Emerald:
     MsgBox, , Open Chests, Opening Emerald Chests, 1.5
     ;Emerald()
-    OpenChestType("0x7B6926", 2)
+    OpenChestType("0x7B6926", 1)
     Opal:
     MsgBox, , Open Chests, Opening Opal Chests, 1.5
     ;Opal()
-    OpenChestType("0xA1F3E3", 2)
+    OpenChestType("0xA1F3E3", 1)
     Diamond:
     MsgBox, , Open Chests, Opening Diamond Chests, 1.5
     ;Diamond()
-    OpenChestType("0xF60151", 2)
+    OpenChestType("0xF60151", 1)
     Golden:
     MsgBox, , Open Chests, Opening Golden Chests, 1.5
     ;Golden()
-    OpenChestType("0xCF7029", 2)
+    OpenChestType("0xCF7029", 1)
     MsgBox, , Open Chests, Opening Iron Chests, 1.5
     ;Iron()
-    OpenChestType("0x071250", 2)
+    OpenChestType("0x071250", 1)
     MsgBox, , Open Chests, Opening Wooden Chests, 1.5
     ;Wooden()
-    OpenChestType("0x442522", 2)
+    OpenChestType("0x442522", 1)
     
     Gifts:
     ; look for Gifts
@@ -174,22 +174,31 @@ OpenBlessChests(){
     Sleep, 1000
     ; start here if also claiming other chests
     OpenBlessChestsNoBag:
+
+    ; Scroll to the bottom to look for Celestial Chests
+    MouseMove, 1720, 608
+    MsgBox, , Open Chests, Scrolling to ensure bottom gifts are visible, 1.5
+    Loop, 5{
+        Send, {WheelDown}
+        Sleep, 200
+    }
+
     ; look for blessing chests
     MsgBox, , Open Chests, Opening Galaxy Chests, 1.5
     ;Galaxy()
-    OpenChestType("0xFF82FF", 2)
+    OpenChestType("0xFF82FF", 1)
     MsgBox, , Open Chests, Opening Cosmic Chests, 1.5
     ;Cosmic()
-    OpenChestType("0xD326C0", 2)
+    OpenChestType("0xD326C0", 1)
     MsgBox, , Open Chests, Opening Nebula Chests, 1.5
     ;Nebula()
-    OpenChestType("0x5B1D84", 2)
+    OpenChestType("0x5B1D84", 1)
     MsgBox, , Open Chests, Opening Solar Chests, 1.5
     ;Solar()
-    OpenChestType("0xFEF343", 2)
+    OpenChestType("0xFEF343", 1)
     MsgBox, , Open Chests, Opening Lunar Chests, 1.5
     ;Lunar()
-    OpenChestType("0x00F694", 2)
+    OpenChestType("0x00F694", 1)
     MsgBox, , Open Chests, Opening Comet Chests, 1.5
     ;Comet()
     OpenChestType("0x9F3C29", 1)
