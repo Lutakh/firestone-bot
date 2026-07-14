@@ -29,7 +29,7 @@ RestartGameRoutine() {
     Loop {
         ; 2. Fermeture du processus
         Process, Close, Firestone.exe
-        Sleep, 30000 ; Laisse 5 secondes au système pour fermer complètement
+        Sleep, 15000 ; Laisse 5 secondes au système pour fermer complètement
 
         ; 3. Lancement selon la plateforme détectée
         If (platformDetected = "Steam") {
