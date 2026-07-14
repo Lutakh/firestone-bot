@@ -67,16 +67,18 @@ OpenChestType(colorHex, colorDistance := 2){
                     Sleep, 1000
                     Click
                     Sleep, 1000
+                } Else {
+                    Goto, OpenChestTypeClose
                 }
             }
         }
 
-        Goto, ClickClose
+        Goto, OpenChestTypeClose
 
         NoOpenButton:
         MsgBox, , Open Chests, No Open Button Available, 1.5
 
-        ClickClose:
+        OpenChestTypeClose:
         BigClose()
         ; failsafe in case big close opens options
         MouseMove, 59, 181

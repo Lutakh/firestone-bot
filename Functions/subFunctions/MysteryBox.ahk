@@ -10,21 +10,41 @@ MysteryBox(){
         Send, {WheelDown}
         Sleep, 200
     }
-    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xF78BF1, 1, Fast RGB
+    PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xF78BF1, 2, Fast RGB
     If (ErrorLevel=0){
         MouseMove, FoundX, FoundY
         Sleep, 1000
         Click
         Sleep, 1000
+
 ;        ; click 1
-;        MouseMove, 904, 724
+;        MouseMove, 950, 892
 ;        Sleep, 1000
 ;        Click
 ;        Sleep, 10000 ; long delay in case 10 or more chests are opened
-
-        ; click 1
-        MouseMove, 950, 892
+        PixelSearch, X, Y, 1200, 862, 1300, 930, 0x0AA008, 1, Fast RGB
+        If (ErrorLevel = 0){
+            ; click 50/max
+            MouseMove, 1209, 898
+        } Else {
+            ; Check for open 2-10 button
+            PixelSearch, X, Y, 1090, 862, 1173, 930, 0x0AA008, 1, Fast RGB
+            If (ErrorLevel = 0){
+                ; click 2-10
+                MouseMove, 1089, 898
+            } Else {
+                ; Check for open 1 button
+                PixelSearch, X, Y, 860, 862, 1055, 930, 0x0AA008, 1, Fast RGB
+                If (ErrorLevel = 0){
+                    ; click 1/10
+                    MouseMove, 914, 898
+                } Else {
+                    Goto, MysteryBoxClose
+                }
+            }
+        }
         Sleep, 1000
+        ; To test, comment out the following two lines.
         Click
         Sleep, 10000 ; long delay in case 10 or more chests are opened
 
@@ -36,9 +56,13 @@ MysteryBox(){
                 Sleep, 1000
                 Click
                 Sleep, 10000 ; long delay in case 10 or more chests are opened
+            } Else {
+                Goto, MysteryBoxClose
             }
             Sleep, 100 ; Small delay in case there is no button.
         }
+
+        MysteryBoxClose:
         BigClose()
         ; failsafe in case big close opens options
         MouseMove, 59, 181
