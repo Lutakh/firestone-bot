@@ -6,6 +6,7 @@ SetWorkingDir, %A_ScriptDir%
 ; ==============================================================================
 ; CONFIGURATION & GLOBAL VARIABLES
 ; ==============================================================================
+FirestoneBotVersion := "v6.2.1"
 Global SettingsMap := {}
 
 ; --- Common Options ---
@@ -18,9 +19,11 @@ SettingsMap["SellNone"] := ["CommonOptions", 0]
 SettingsMap["ExoticUpgrades"] := ["CommonOptions", 1]
 SettingsMap["BuyEx"] := ["CommonOptions", 1]
 SettingsMap["Chests"] := ["CommonOptions", 0]
-SettingsMap["GearChestExclude"] := ["CommonOptions", "Mythic"]
-SettingsMap["JewelChestExclude"] := ["CommonOptions", "Emerald"]
+SettingsMap["GearChestExclude"] := ["CommonOptions", "Titan"]
+SettingsMap["JewelChestExclude"] := ["CommonOptions", "Platinum"]
+SettingsMap["CelestialChestExclude"] := ["CommonOptions", "Galaxy"]
 SettingsMap["Bless"] := ["CommonOptions", 1]
+SettingsMap["BlessingChests"] := ["CommonOptions", 1]
 SettingsMap["Delay"] := ["CommonOptions", 0]
 SettingsMap["Quests"] := ["CommonOptions", 0]
 SettingsMap["Events"] := ["CommonOptions", 0]
@@ -119,7 +122,7 @@ Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War
 ; ------------------------------------------------------------------------------
 Gui, Tab, 1
     Gui, Font, s18 Bold
-    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT v6.2.1
+    Gui, Add, Text, x20 y50 w920 Center, DEAETH85'S FIRESTONE BOT %FirestoneBotVersion%
     Gui, Font, s10 Norm
 
     ; --- Instructions Group ---
@@ -180,7 +183,7 @@ Gui, Tab, 2
     Gui, Add, Radio, y+10 vSellNone Checked%SellNone%, 4. Sell Nothing
 
     ; --- Other Automation ---
-    Gui, Add, GroupBox, x20 y400 w300 h230, Other Automation
+    Gui, Add, GroupBox, x20 y400 w300 h300, Other Automation
     Gui, Add, Checkbox, xp+15 yp+30 vNoEng Checked%NoEng%, Skip Engineer
     Gui, Add, Checkbox, y+10 vResearch Checked%Research%, Skip Research
     Gui, Add, Checkbox, y+10 vDisableWarning Checked%DisableWarning%, Disable Steam Warning
@@ -195,33 +198,39 @@ Gui, Tab, 2
 
     ; === COLUMN 2 ===
     ; --- Chests & Rewards ---
-    Gui, Add, GroupBox, x335 y70 w300 h160, Chests & Rewards
-    Gui, Add, Checkbox, xp+15 yp+30 vChests Checked%Chests%, Open Chests (General)
-    Gui, Add, Text, y+10, Exclude Gear Chests:
-    Gui, Add, DropDownList, w260 vGearChestExclude, Exclude All|Don't Exclude Any|Epic and Higher|Legendary and Higher|Mythic||
+    Gui, Add, GroupBox, x335 y70 w300 h200, Chests & Rewards
+    Gui, Add, Checkbox, xp+15 yp+20 vChests Checked%Chests%, Open Chests (General)
+    Gui, Add, Text, y+1, Exclude Gear Chests:
+    Gui, Add, DropDownList, w260 vGearChestExclude, Exclude All|Don't Exclude Any|Epic and Higher|Legendary and Higher|Mythic and Higher|Titan
     if (GearChestExclude != "")
         GuiControl, ChooseString, GearChestExclude, %GearChestExclude%
 
-    Gui, Add, Text, y+10, Exclude Jewel Chests:
-    Gui, Add, DropDownList, w260 vJewelChestExclude, Exclude All|Don't Exclude Any|Diamond and Higher||Opal and Higher|Emerald
+    Gui, Add, Text, y+1, Exclude Jewel Chests:
+    Gui, Add, DropDownList, w260 vJewelChestExclude, Exclude All|Don't Exclude Any|Diamond and Higher|Opal and Higher|Emerald and Higher|Platinum
     if (JewelChestExclude != "")
         GuiControl, ChooseString, JewelChestExclude, %JewelChestExclude%
 
+    Gui, Add, Text, y+1, Exclude Celestial Chests:
+    Gui, Add, DropDownList, w260 vCelestialChestExclude, Exclude All|Don't Exclude Any|Solar and Higher|Nebula and Higher|Cosmic and Higher|Galaxy
+    if (CelestialChestExclude != "")
+        GuiControl, ChooseString, CelestialChestExclude, %CelestialChestExclude%
+
     ; --- Oracle ---
-    Gui, Add, GroupBox, x335 y240 w300 h130, Oracle
-    Gui, Add, Checkbox, xp+15 yp+30 vBless Checked%Bless%, Upgrade Blessings
-    Gui, Add, Checkbox, y+10 vDailyOracle Checked%DailyOracle%, Claim Daily Oracle
+    Gui, Add, GroupBox, x335 y270 w300 h120, Oracle
+    Gui, Add, Checkbox, xp+15 yp+30 vBless Checked%Bless% gUpgradeBlessingsToggle, Upgrade Blessings
+    Gui, Add, Checkbox, xp+145 vBlessingChests Checked%BlessingChests%, Open Chests
+    Gui, Add, Checkbox, x350 y+10 vDailyOracle Checked%DailyOracle%, Claim Daily Oracle
     Gui, Add, Checkbox, y+10 vSkipOracle Checked%SkipOracle%, Skip Oracle
 
     ; --- Alchemy ---
-    Gui, Add, GroupBox, x335 y380 w300 h140, Alchemy
+    Gui, Add, GroupBox, x335 y390 w300 h140, Alchemy
     Gui, Add, Checkbox, xp+15 yp+30 vAlch Checked%Alch%, Skip Alchemy
     Gui, Add, Checkbox, y+10 vDragonBlood Checked%DragonBlood%, Don't Use DragonBlood in Alchemy
     Gui, Add, Checkbox, y+10 vDust Checked%Dust%, Don't Use Dust in Alchemy
     Gui, Add, Checkbox, y+10 vCoin Checked%Coin%, Use Exotic Coins in Alchemy
 
 ; --- Hero Upgrades ---
-    Gui, Add, GroupBox, x335 y520 w300 h200, Hero Upgrades
+    Gui, Add, GroupBox, x335 y530 w300 h200, Hero Upgrades
     Gui, Add, Checkbox, xp+15 yp+30 vNoHero Checked%NoHero%, Don't Upgrade Heroes (Master)
     Gui, Add, Checkbox, y+10 vNextMilestone Checked%NextMilestone%, Set upgrade to Next Milestone
     Gui, Add, Text, y+10, Select Upgrades to Perform:
@@ -237,27 +246,27 @@ Gui, Tab, 2
 
     ; === COLUMN 3 ===
     ; --- Daily Routine ---
-    Gui, Add, GroupBox, x650 y70 w290 h220, Daily Routine
+    Gui, Add, GroupBox, x650 y70 w290 h230, Daily Routine
     Gui, Add, Checkbox, xp+15 yp+30 vMail Checked%Mail%, Check Mail
     Gui, Add, Checkbox, y+10 vQuests Checked%Quests%, Claim Quests
     Gui, Add, Checkbox, y+10 vEvents Checked%Events%, Claim Basic Events
     Gui, Add, Checkbox, y+10 vChaos Checked%Chaos%, Participate in Chaos Rift
     Gui, Add, Checkbox, y+10 vShop Checked%Shop%, Free Gift & Check-In
 
-    Gui, Add, Text, y+20, End of Cycle Delay (Sec):
+    Gui, Add, Text, y+15, End of Cycle Delay (Sec):
     Gui, Add, DropDownList, w150 vDelay, 0|30|60||90|120
     if (Delay != "")
         GuiControl, ChooseString, Delay, %Delay%
 
     ; --- Tavern / Scarab ---
-    Gui, Add, GroupBox, x650 y300 w290 h130, Tavern / Scarab
+    Gui, Add, GroupBox, x650 y310 w290 h120, Tavern / Scarab
     Gui, Add, Checkbox, xp+15 yp+30 vToken Checked%Token%, Use Tavern Tokens / Artifacts
     Gui, Add, Checkbox, y+10 vBeer Checked%Beer%, Skip Claiming Beer
     Gui, Add, Checkbox, y+10 vScarab Checked%Scarab%, Skip Using Scarab Token
 
 ; --- Mission Priority ---
     ; Augmentation de la hauteur (h) de 210 à 240 pour inclure la checkbox
-    Gui, Add, GroupBox, x650 y440 w290 h240, Mission Priority Order
+    Gui, Add, GroupBox, x650 y440 w290 h260, Mission Priority Order
     PriorityList := "2 Squad|War|Medium|Short|Leftover"
 
     Gui, Add, Text, xp+10 yp+25, 1st:
@@ -392,7 +401,7 @@ Gui, Tab, 5
     Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
     Gui, Add, Text, x60 y+10 w400,
 
-Gui, Show, w960 h750, Firestone Bot V6.2.0
+Gui, Show, w960 h750, Firestone Bot %FirestoneBotVersion%
 Return
 
 ; ==============================================================================
@@ -411,6 +420,18 @@ ButtonStart:
         SetTimer, MainScript, -100
     } Else {
         MsgBox, 16, Error, The function 'MainScript' was not found.`nPlease ensure you are running 'firestone-bot.ahk' and NOT 'Gui.ahk'.
+    }
+Return
+
+UpgradeBlessingsToggle:
+    Gui, Submit, NoHIde
+
+    If (Bless = 1){
+        ;GuiControl, Enable, BlessingChests
+        ;GuiControl,, BlessingChests, %BlessingChests%
+    } Else {
+        ;GuiControl,, BlessingChests, 0
+        ;GuiControl, Disable, BlessingChests
     }
 Return
 

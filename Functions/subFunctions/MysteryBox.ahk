@@ -11,6 +11,7 @@ MysteryBox(){
         Sleep, 200
     }
     PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0xF78BF1, 2, Fast RGB
+    ;PixelSearch, FoundX, FoundY, 1543, 307, 1887, 905, 0x00421C, 1, Fast RGB
     If (ErrorLevel=0){
         MouseMove, FoundX, FoundY
         Sleep, 1000

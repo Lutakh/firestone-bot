@@ -44,9 +44,13 @@ OpenChests(){
     GuiControlGet, SelectedItem, ,GearChestExclude,
     If (SelectedItem="Don't Exclude Any"){
         Goto, Titan
-    }    
+    }
     GuiControlGet, SelectedItem, ,GearChestExclude,
-    If (SelectedItem="Mythic"){
+    If (SelectedItem="Titan"){
+        Goto, Mythic
+    }
+    GuiControlGet, SelectedItem, ,GearChestExclude,
+    If (SelectedItem="Mythic and Higher"){
         Goto, Legendary
     }
     GuiControlGet, SelectedItem, ,GearChestExclude,
@@ -103,8 +107,12 @@ OpenChests(){
         Goto, Diamond
     }
     GuiControlGet, SelectedItem, ,JewelChestExclude,
-    If (SelectedItem="Emerald"){
+    If (SelectedItem="Emerald and Higher"){
         Goto, Opal
+    }
+    GuiControlGet, SelectedItem, ,JewelChestExclude,
+    If (SelectedItem="Platinum"){
+        Goto, Emerald
     }
     Platinum:
     MsgBox, , Open Chests, Opening Platinum Chests, 1.5
@@ -162,6 +170,10 @@ OpenBlessChests(){
     If (Checked = 1){
         Goto, OpenBlessChestsNoBag
     }
+    GuiControlGet, Checked, , BlessingChests,
+    If (Checked = 0){
+        Return
+    }
     ; open bag
     MouseMove, 1581, 939
     Sleep, 1000
@@ -184,24 +196,54 @@ OpenBlessChests(){
     }
 
     ; look for blessing chests
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Exclude All"){
+        Goto, CloseBag
+    }
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Don't Exclude Any"){
+        Goto, Galaxy
+    }
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Solar and Higher"){
+        Goto, Lunar
+    }
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Nebula and Higher"){
+        Goto, Galaxy
+    }
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Cosmic and Higher"){
+        Goto, Galaxy
+    }
+    GuiControlGet, SelectedItem, ,CelestialChestExclude,
+    If (SelectedItem="Galaxy"){
+        Goto, Cosmic
+    }
+    Galaxy:
     MsgBox, , Open Chests, Opening Galaxy Chests, 1.5
     ;Galaxy()
     OpenChestType("0xFF82FF", 1)
+    Cosmic:
     MsgBox, , Open Chests, Opening Cosmic Chests, 1.5
     ;Cosmic()
     OpenChestType("0xD326C0", 1)
+    Nebula:
     MsgBox, , Open Chests, Opening Nebula Chests, 1.5
     ;Nebula()
     OpenChestType("0x5B1D84", 1)
+    Solar:
     MsgBox, , Open Chests, Opening Solar Chests, 1.5
     ;Solar()
     OpenChestType("0xFEF343", 1)
+    Lunar:
     MsgBox, , Open Chests, Opening Lunar Chests, 1.5
     ;Lunar()
     OpenChestType("0x00F694", 1)
     MsgBox, , Open Chests, Opening Comet Chests, 1.5
     ;Comet()
     OpenChestType("0x9F3C29", 1)
+    CloseBag:
     ; close bag
     MouseMove, 1870, 246
     Sleep, 1000
