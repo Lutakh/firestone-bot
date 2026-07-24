@@ -147,6 +147,7 @@ Gui, Tab, 1
     Gui, Font, Bold
     Gui, Add, Text, y+20 w840, BOT USAGE:
     Gui, Font, Norm
+    Gui, Add, Text, y+5 w840, - Exit Button is Windows Key + ESC.
     Gui, Add, Text, y+5 w840, - Check all tabs and activate ONLY what you need. Deactivate the rest.
     Gui, Add, Text, y+5 w840, - After starting the game, click "Maximize" (Square icon next to X).
     Gui, Add, Text, y+5 w840, - DO NOT move or zoom the map. Leave it as it is on login. If moved, restart game.
