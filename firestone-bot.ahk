@@ -28,6 +28,7 @@
 #Include Functions\subFunctions\MapClose.ahk
 #Include Functions\subFunctions\OpenTown.ahk
 #Include Functions\RestartGameRoutine.ahk
+#Include Functions\ServerSwitcher.ahk
 
 SetWorkingDir %A_ScriptDir%
 #NoEnv
@@ -175,6 +176,7 @@ MainScript(){
     }
     SendHeartbeat("HeroUpgrade", false)
     HeroUpgrade()
+	ServerSwitcher()
     EndingMouseMove:
     SendHeartbeat("Delay ending bot", false)
     GuiControlGet, SelectedItem, ,Delay,

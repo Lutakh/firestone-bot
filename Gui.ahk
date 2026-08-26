@@ -79,6 +79,10 @@ SettingsMap["RestartGameTest"] := ["OtherOptions", 0]
 SettingsMap["RestartGameTime"] := ["OtherOptions", "24"]
 ; --- SettingsNoGui (Maintained for code compatibility) ---
 SettingsMap["DungeonQuest"] := ["SettingsNoGui", 0]
+; --- Server Switching ---
+SettingsMap["CurrentServer"] := ["Servers", "45"]
+SettingsMap["OtherServer"] := ["Servers", "46"]
+
 
 ; --- Account / Discord ---
 SettingsMap["DiscordID"] := ["SettingsNoGui", ""]
@@ -116,7 +120,7 @@ Gui, Font, s10, Segoe UI
 Gui, Color, White
 
 ; Tabs Structure
-Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War Machines|Settings
+Gui, Add, Tab3, x0 y0 w960 h750, Home|General Options|Guild && Personal Tree|War Machines|Settings|Servers
 ; ------------------------------------------------------------------------------
 ; TAB 1: HOME (INSTRUCTIONS & START)
 ; ------------------------------------------------------------------------------
@@ -402,6 +406,34 @@ Gui, Tab, 5
     Gui, Add, Edit, x+10 w250 vDiscordID, %DiscordID%
     Gui, Add, Text, x60 y+10 w400,
 
+; ------------------------------------------------------------------------------
+; TAB 6: SERVERS
+; ------------------------------------------------------------------------------
+Gui, Tab, 6
+	Gui, Font, Bold
+    Gui, Add, Text, x20 y40 w900 h30 Center, SERVER SETTINGS
+    Gui, Font, Norm
+
+    Gui, Add, GroupBox, x40 y80 w880 h250, Server Switching
+
+    Gui, Add, Text, x70 y125 w100, Current Server:
+    Gui, Add, DropDownList, x180 y120 w250 vCurrentServer, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46
+    if (CurrentServer != "")
+        GuiControl, ChooseString, CurrentServer, %CurrentServer%
+
+    Gui, Add, Text, x70 y175 w100, Other Server:
+    Gui, Add, DropDownList, x180 y170 w250 vOtherServer, 1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46
+    if (OtherServer != "")
+        GuiControl, ChooseString, OtherServer, %OtherServer%
+
+    Gui, Add, Text, x470 y120 w380, Current Server is the server Firestone is on now.
+    Gui, Add, Text, x470 y150 w380, Other Server is the server the bot will switch to.
+    Gui, Add, Text, x470 y180 w380, After a successful switch, they are swapped
+    Gui, Add, Text, x470 y205 w380, automatically for the next bot cycle.
+    Gui, Add, Text, x70 y230 w800, Select the two servers you want the bot to alternate between, then click SAVE SETTINGS.
+	Gui, Add, Text, x70 y260 w800, DISCLAIMER: server switcher works for steam users only due to firestone bugs appearing after switching servers multiple times a day.
+	Gui, Add, Text, x70 y290 w800, 			   I found a fix for steam only since i use it, i will expand it later on.
+	
 Gui, Show, w960 h750, Firestone Bot %FirestoneBotVersion%
 Return
 

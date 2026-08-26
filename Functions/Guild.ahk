@@ -80,10 +80,10 @@ ClaimAxes(){
     Sleep, 1000
     Click
     Sleep, 1500
-    PixelSearch, X, Y, 764, 617, 869, 653, 0x1EA569, 3, Fast RGB
+    PixelSearch, X, Y, 750, 700, 800, 800, 0x0AA008, 20, Fast RGB
     If (ErrorLevel = 0){
         SendHeartbeat("ClaimAxe", false, true)
-        MouseMove, 716, 637
+        MouseMove, 785, 730
         Sleep, 1000
         Click
         Sleep, 1500
