@@ -126,3 +126,26 @@ build, 1920x1009 maximized:
 
 Total 2194 traced actions, 600 clicks, no exception, no safety cap hit, game on the main screen
 at the end. Log: `python/captures/live3.log` (not committed).
+
+## 4.6 Resolution run at 1280x720 (2026-09-03)
+
+Window resized with `window_tool --client 1280x720` (canvas scale 0.667, rel_scale 0.714,
+aspect 16:9 so the per-entry anchors are in play). All live on the Epic build:
+
+| Check | Result |
+|---|---|
+| `smoke_test --move 56,777` (mail icon) / `1851,84` (gear) | cursor on the envelope / on the gear (thirds rule gives left-bottom / right-top) |
+| `check_mail` | claim-all and delete probes hit, mail claimed (4 -> 3), dialog closed, back on the main screen |
+| `open_town`, `claim_beer` | town opened, tavern flow ran, back on the town screen |
+| `alchemist` | probes hit (coin experiment collected, blood "running" detected) |
+| `go_map` + `MAP_TROOP_IDLE` | miss, but legitimately: the map showed 0/26 idle troops |
+
+World map anchoring: the purple rift-paw mission icon sits at client (871.5, 426.0) on the
+1920x1009 capture and (576.6, 304.5) on the 1280x720 capture. Centre anchor predicts
+(576.8, 304.0); a top-left anchor would predict (621.9, 304.0). The map is therefore centred
+and scaled with the canvas, and `map_start` now clicks every mission point with an explicit
+centre anchor (`atlas.ANCHOR_CENTER`); the thirds rule would have been 45 px off for points
+near the edges.
+
+Not done: 125 % DPI (needs a change of the Windows display scaling, left to the owner), a
+third window size, the wheel-notch comparison at two sizes, and a full cycle at 1280x720.

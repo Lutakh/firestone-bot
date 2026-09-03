@@ -32,7 +32,9 @@ def map_start(g: Game) -> None:
             if state.was_clicked(x, y):
                 continue
             g.focus()
-            g.click_at(x, y)  # Click %x%, %y%
+            # The world map is centred and scaled with the canvas (measured at 1280x720,
+            # docs/MEASUREMENTS.md 4.6), so every mission point uses the centre anchor.
+            g.click_at(x, y, anchor=atlas.ANCHOR_CENTER)  # Click %x%, %y%
             g.sleep(1000)
             state.mark_clicked(x, y)
             # Check Start Button (Green)

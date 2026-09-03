@@ -12,7 +12,7 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | 4.3 Platform + vision layers | done (2026-09-03) | dpi/window/capture/input/process, atlas/viewport/probes, 23 unit tests, live smoke test OK |
 | 4.4 Feature modules | in progress | see table below |
 | 4.5 Settings, GUI, runner | done (2026-09-03) | dry run of a full cycle OK (434 actions); 3 unattended live cycles OK on the test account (31 min, 2194 actions, 600 clicks, no error, game back on the main screen). AHK-vs-Python side-by-side comparison not done |
-| 4.6 Resolution runs | todo | |
+| 4.6 Resolution runs | partial | 1280x720 live: HUD points, check_mail, town, alchemist OK; world map is centre-anchored (measured) and map_start uses it. 125 % DPI, a third size, wheel test and a full 720p cycle still to do |
 | 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
 | 4.8 Packaging and CI | in progress | `python/firestone-bot.spec` + `.github/workflows/build.yml`; local one-dir build OK (57 MB, 44 s); exe runs from a clean folder with only settings.ini next to it; CI run pending (push blocked by the GitHub credential prompt); SmartScreen documented in python/README.md |
 | 4.9 Linux | todo | |

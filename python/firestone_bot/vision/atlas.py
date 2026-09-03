@@ -24,6 +24,7 @@ Anchor = tuple[float, float]
 
 LEFT, CENTER, RIGHT = 0.0, 0.5, 1.0
 TOP, BOTTOM = 0.0, 1.0
+ANCHOR_CENTER: Anchor = (CENTER, CENTER)  # centred content (dialogs, the world map)
 
 
 def default_anchor(fx: float, fy: float) -> Anchor:
