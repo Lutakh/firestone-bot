@@ -14,7 +14,7 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | 4.5 Settings, GUI, runner | in progress | settings/state/runner/GUI done; dry run of a full cycle OK (434 actions); 3 unattended live cycles running |
 | 4.6 Resolution runs | todo | |
 | 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
-| 4.8 Packaging and CI | todo | |
+| 4.8 Packaging and CI | in progress | `python/firestone-bot.spec` + `.github/workflows/build.yml`; local one-dir build OK (57 MB); CI run and clean-folder test of the ZIP pending (push blocked by the GitHub credential prompt) |
 | 4.9 Linux | todo | |
 | 4.10 Browser | todo | |
 
