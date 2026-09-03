@@ -149,3 +149,13 @@ near the edges.
 
 Not done: 125 % DPI (needs a change of the Windows display scaling, left to the owner), a
 third window size, the wheel-notch comparison at two sizes, and a full cycle at 1280x720.
+
+## 4.7 Steam build (2026-09-03)
+
+`process.kill_game()` closed the Epic build; `process.launch_game("steam")` opened
+`steam://rungameid/1013320`; the process was up after 49 s and the window came up maximized at
+the same client rect (0, 23, 1920, 1009). `detect_platform` returned `steam` from the exe path.
+The RestartGameRoutine wait loop found `RESTART_START_BUTTON` (0x16BC15 in (845,860)-(1080,937))
+on the first check: on this account it was the green "Claim" of the offline-progress dialog,
+which is what the AHK routine clicks too. Captures: `python/captures/steam_boot.png`,
+`steam_after_start.png` (not committed; they show a different account).

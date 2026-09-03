@@ -13,7 +13,7 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | 4.4 Feature modules | in progress | see table below |
 | 4.5 Settings, GUI, runner | done (2026-09-03) | dry run of a full cycle OK (434 actions); 3 unattended live cycles OK on the test account (31 min, 2194 actions, 600 clicks, no error, game back on the main screen). AHK-vs-Python side-by-side comparison not done |
 | 4.6 Resolution runs | partial | 1280x720 live: HUD points, check_mail, town, alchemist OK; world map is centre-anchored (measured) and map_start uses it. 125 % DPI, a third size, wheel test and a full 720p cycle still to do |
-| 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
+| 4.7 Epic / Steam | done (2026-09-03) | every live test above ran on the Epic build. Steam: killed Epic, launched via steam://rungameid/1013320 (process up in 49 s), window 1920x1009 maximized, platform detected by exe path, start-button probe hit and clicked, main_menu + check_mail OK, full dry run OK |
 | 4.8 Packaging and CI | in progress | `python/firestone-bot.spec` + `.github/workflows/build.yml`; local one-dir build OK (57 MB, 44 s); exe runs from a clean folder with only settings.ini next to it; CI run pending (push blocked by the GitHub credential prompt); SmartScreen documented in python/README.md |
 | 4.9 Linux | todo | |
 | 4.10 Browser | todo | |
@@ -34,7 +34,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | ClaimEvents.ahk | claim_events | yes | probe only | | no event red dot at test time |
 | Quests.ahk | quests | yes | yes | | AHK never calls BigClose (brace before it); reproduced |
 | Shop.ahk | shop | yes | yes | | |
-| CheckMail.ahk | check_mail | yes | yes | | claimed + deleted mail |
+| CheckMail.ahk | check_mail | yes | yes | yes | claimed + deleted mail |
 | OpenChests.ahk | open_chests, open_bless_chests | yes | yes | | Goto ladders -> tables; Nebula/Cosmic -> Galaxy kept; "close bag" click can hit the Town icon when the bag is already closed (AHK does the same) |
 | subFunctions/OpenChestType.ahk | open_chest_type | yes | yes | | found-pixel click |
 | subFunctions/OraclesGift.ahk | oracles_gift | yes | probe only | | |
@@ -70,7 +70,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | subFunctions/PTree.ahk | ptree | yes | no | | PTree=0 in test settings; 20 blocks -> table |
 | subFunctions/LiberationInProgressCheck.ahk | liberation_in_progress_check | yes | no | | unbounded wait; SafetyCap optional |
 | subFunctions/FirestoneNew1st.ahk | (not ported) | n/a | | | never called; includes a missing FirestoneClicks.ahk, so it cannot run in AHK either |
-| RestartGameRoutine.ahk | restart_game_routine | yes | no | | kill + store URL relaunch; to test in 4.7 |
+| RestartGameRoutine.ahk | restart_game_routine | yes | partial | yes | kill + Steam URL relaunch + start-button wait exercised step by step (not through the runner's timer) |
 | SendHeartbeat.ahk | heartbeat | yes | no | | opt-in (EnableHeartbeat=1); wired into Game.heartbeat by the runner |
 | subFunctions/GetColor.ahk | (not ported) | n/a | | | returns nothing, never used |
 | MapRedeem.ahk | map_redeem | yes | yes | | ran 340 s incl. claim_campaign + liberation (see below) |
