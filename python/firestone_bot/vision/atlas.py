@@ -84,8 +84,48 @@ IDLE_TROOP = 0x542710  # brown idle-troop marker on the map
 ORANGE_1 = 0xF9AA47
 ORANGE_2 = 0xFCAC47
 
-# --- Points and probes used by the 4.1 cross-check ---------------------------------------
-BIG_CLOSE = Point(1851, 84)  # Functions/subFunctions/BigClose.ahk:5
-MAIL_ICON = Point(56, 777)  # Functions/CheckMail.ahk:8
-MAIL_CLAIM_ALL = Probe(1260, 780, 1334, 835, GREEN_BUTTON, 3, "mail_claim_all")  # CheckMail.ahk:13
-MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # MapStart.ahk:179
+# --- Helpers (BigClose, MainMenu, MapClose) ------------------------------------------------
+BIG_CLOSE = Point(1851, 84)  # BigClose.ahk:5 (dialog X; the settings gear on the main screen)
+MM_SETTINGS_OPEN = Probe(1542, 655, 1654, 687, 0x285483, 3, "mm_settings_open")  # MainMenu.ahk:13
+MM_RATE_POPUP = Probe(1057, 288, 1321, 335, 0x8E4423, 2, "mm_rate_popup")  # MainMenu.ahk:18
+MM_RATE_POPUP_CLOSE = Point(1397, 307)  # MainMenu.ahk:20
+MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
+
+# --- ClaimEvents.ahk ------------------------------------------------------------------------
+EVENTS_RED_DOT = Probe(1719, 170, 1741, 204, RED_DOT, 3, "events_red_dot")  # :7
+EVENTS_ICON = Point(1691, 229)  # :10
+EVENTS_TOP_EVENT = Point(942, 359)  # :15
+EVENTS_CHALLENGES_TAB = Point(1125, 70)  # :20
+EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button)
+    (Probe(1540, 365, 1568, 405, GREEN_BUTTON, 3, "events_claim_1"), Point(1483, 382)),
+    (Probe(1538, 592, 1566, 633, GREEN_BUTTON, 3, "events_claim_2"), Point(1496, 604)),
+    (Probe(1530, 823, 1568, 870, GREEN_BUTTON, 3, "events_claim_3"), Point(1500, 837)),
+)
+
+# --- Quests.ahk -----------------------------------------------------------------------------
+CHARACTER_ICON = Point(90, 112)  # :9
+QUESTS_TAB = Point(1455, 74)  # :14
+QUESTS_DAILY_TAB = Point(765, 155)  # :19
+QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
+QUESTS_CLAIM_READY = Probe(1544, 286, 1606, 334, GREEN_BUTTON, 3, "quests_claim_ready")  # :23
+QUESTS_CLAIM = Point(1503, 309)  # :25
+QUESTS_REWARD_OK = Point(1619, 990)  # :29
+
+# --- Shop.ahk -------------------------------------------------------------------------------
+SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, 3, "shop_red_dot")  # :10
+SHOP_ICON = Point(1857, 583)  # :12
+SHOP_MYSTERY_BOX = Point(591, 857)  # :17
+SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
+SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
+SHOP_CHECKIN_OK = Point(1339, 828)  # :31
+
+# --- CheckMail.ahk --------------------------------------------------------------------------
+MAIL_ICON = Point(56, 777)  # :8
+MAIL_CLAIM_ALL = Probe(1260, 780, 1334, 835, GREEN_BUTTON, 3, "mail_claim_all")  # :13
+MAIL_CLAIM_BUTTON = Point(1215, 808)  # :15
+MAIL_REWARD_OK = Point(1172, 688)  # :20
+MAIL_DELETE_READY = Probe(1533, 904, 1601, 969, 0xE9554E, 3, "mail_delete_ready")  # :26
+MAIL_DELETE_BUTTON = Point(1569, 939)  # :28
+
+# --- MapStart.ahk (partial; the rest comes with the map_start port) -------------------------
+MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
