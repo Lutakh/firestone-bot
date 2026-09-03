@@ -59,3 +59,44 @@ Result: **`REF = (0, 31, 1920, 1009)`** recorded in `vision/atlas.py`.
 
 - Aspect: the client is 1920x1009, not 16:9. Both machines had the same client size, so the
   content layout is identical; only the screen offset differs.
+
+## 4.2 Scaling behaviour
+
+Captures (`docs/captures/main_*.png`, main screen, Epic build): 1920x1009 maximized (reference),
+1600x1000, 1280x720, 960x540, 1280x673 (same aspect as the reference), 1920x1080 fullscreen
+(Alt+Enter). Windows were resized with `tools/window_tool.py`.
+
+Measurement: centre of the gold-coin icon (top right), largest connected component of colour
+0xF6C21D±40 in the top-right region, client pixels:
+
+| Client | Coin centre | Coin width | Canvas scale `min(w/1920, h/1080)` | Right offset / scale | Top offset / scale |
+|---|---|---|---|---|---|
+| 1920x1009 | (1594.5, 47.5) | 40 | 0.934 | 348.5 | 50.9 |
+| 1600x1000 | (1310.0, 42.5) | 35 | 0.833 | 348.0 | 51.0 |
+| 1280x720 | (1047.5, 34.0) | 28 | 0.667 | 348.8 | 51.0 |
+| 960x540 | (786.0, 25.0) | 23 | 0.500 | 348.0 | 50.0 |
+| 1280x673 | (1064.0, 31.5) | 29 | 0.623 | 346.7 | 50.6 |
+| 1920x1080 fullscreen | (1572.0, 51.0) | 43 | 1.000 | 348.0 | 51.0 |
+
+Conclusions:
+
+- **No letterbox.** The UI is a Unity canvas with a 1920x1080 reference and
+  `scale = min(client_w / 1920, client_h / 1080)`; widgets are anchored to the screen edges (the
+  coin keeps a constant 348 canvas px from the right edge and 51 from the top at every size,
+  including the non-16:9 ones). At non-16:9 sizes the extra space goes between the anchored
+  groups, not around the content.
+- The plan's uniform "scale + centre" model is exact only when the live client has the SAME
+  aspect as the reference (1920:1009). Check at 1280x673: coin error 1.0 px. At 16:9 it is wrong:
+  1280x720 gives a 15x21 px error on the coin, fullscreen 1920x1080 a 22x32 px error.
+- Implemented model (`vision/viewport.py`): per-entry anchor `(ax, ay)` in {0, 0.5, 1}; atlas
+  numbers stay AHK screen coordinates on the reference client; mapping is
+  `screen = client.origin + a * client.size + (logical - REF.origin - a * REF.size) / s0 * s`.
+  Default anchor comes from the thirds rule on the point's position (`atlas.default_anchor`);
+  it only matters at non-reference aspects and can be refined per entry when a probe misses
+  (plan 4.6). Unit tests in `tests/test_viewport.py` check the coin positions above.
+- Wheel-notch scrolling at two sizes: NOT measured yet (needs a scrollable list, i.e. clicking
+  into a menu). To be done when the first wheel-using module (`open_chests`) is ported in 4.4.
+- 125 % DPI: deferred to 4.6.
+
+Consequence for users: "maximized on a 1920x1080 monitor" is still the reference setup. Any
+window with aspect 1920:1009 is exact; 16:9 windows/fullscreen depend on the anchor guesses.

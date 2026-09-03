@@ -124,7 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     img = load_png(args.png)
     ref = atlas.REF if args.ref_y is None else replace(atlas.REF, y=args.ref_y)
     vp = Viewport(client, ref)
-    print(f"capture {origin}  client {client}  ref {ref}  scale {vp.scale:.4f}")
+    print(
+        f"capture {origin}  client {client}  ref {ref}  canvas scale {vp.scale:.4f} (rel {vp.rel_scale:.4f})"
+    )
 
     probes: list[Probe] = [parse_probe(s) for s in args.probe]
     points: list[tuple[str, Point]] = [(s, parse_point(s)) for s in args.point]

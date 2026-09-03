@@ -1,9 +1,9 @@
-"""The logical 1920x1080 canvas.
+"""The logical canvas: every coordinate, rectangle and colour from the AHK code, verbatim.
 
-Every coordinate, rectangle and colour from the AHK code is kept verbatim here, expressed in the
-ORIGINAL screen coordinate system (1920x1080 monitor, 100 % DPI, game maximized, Windows 10
-taskbar at the bottom). `REF` is the game client area in that system; the viewport maps it to
-the live client rect at runtime.
+Coordinates are in the ORIGINAL screen coordinate system (1920x1080 monitor, 100 % DPI, game
+maximized, Windows 10 taskbar at the bottom). `REF` is the game client area in that system; the
+viewport maps it to the live client rect at runtime (see vision/viewport.py for the anchor
+model measured in plan step 4.2).
 
 Feature modules add their own tables to this module as they are ported (plan 4.4).
 """
@@ -19,11 +19,35 @@ from firestone_bot.platform.window import Rect
 # machine with a 40 px taskbar, i.e. client top at y=31 (see docs/MEASUREMENTS.md, 4.1).
 REF = Rect(0, 31, 1920, 1009)
 
+# Anchor = (ax, ay), each 0.0 (left/top), 0.5 (centre) or 1.0 (right/bottom).
+Anchor = tuple[float, float]
+
+LEFT, CENTER, RIGHT = 0.0, 0.5, 1.0
+TOP, BOTTOM = 0.0, 1.0
+
+
+def default_anchor(fx: float, fy: float) -> Anchor:
+    """Guess a widget's anchor from its position as a fraction of the client (thirds rule).
+
+    Only matters when the live client aspect differs from REF; refine per entry when a probe
+    misses at 16:9 (plan 4.6).
+    """
+
+    def one(f: float) -> float:
+        if f < 1 / 3:
+            return 0.0
+        if f > 2 / 3:
+            return 1.0
+        return 0.5
+
+    return one(fx), one(fy)
+
 
 @dataclass(frozen=True)
 class Point:
     x: int
     y: int
+    anchor: Anchor | None = None
 
 
 @dataclass(frozen=True)
@@ -37,6 +61,7 @@ class Probe:
     color: int
     variation: int = 3
     name: str = ""
+    anchor: Anchor | None = None
 
     def normalized(self) -> Probe:
         return Probe(
@@ -47,6 +72,7 @@ class Probe:
             self.color,
             self.variation,
             self.name,
+            self.anchor,
         )
 
 

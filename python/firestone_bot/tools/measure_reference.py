@@ -32,8 +32,8 @@ def main() -> int:
         "window_dpi": dpi,
         "window": asdict(win),
         "ref": asdict(REF),
-        "scale": vp.scale,
-        "offset": vp.offset,
+        "canvas_scale": vp.scale,
+        "rel_scale": vp.rel_scale,
         "client_top_delta_vs_ref": win.client.y - REF.y,
     }
     print(json.dumps(out, indent=2))

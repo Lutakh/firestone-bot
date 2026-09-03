@@ -1,0 +1,35 @@
+{
+  "captured_at": "2026-09-03T17:48:28.035950+00:00",
+  "dpi_mode": "per-monitor-v2",
+  "capture_rect": {
+    "x": 8,
+    "y": 31,
+    "w": 1600,
+    "h": 1000
+  },
+  "window": {
+    "handle": 983894,
+    "title": "Firestone",
+    "pid": 17416,
+    "exe": "C:\\Program Files\\Epic Games\\FirestoneOnlineIdleRPG\\Firestone.exe",
+    "outer": {
+      "x": 0,
+      "y": 0,
+      "w": 1616,
+      "h": 1039
+    },
+    "client": {
+      "x": 8,
+      "y": 31,
+      "w": 1600,
+      "h": 1000
+    },
+    "maximized": false,
+    "fullscreen": false
+  },
+  "image_shape": [
+    1000,
+    1600,
+    4
+  ]
+}
