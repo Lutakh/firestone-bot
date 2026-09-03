@@ -137,6 +137,12 @@ class Game:
     def click_point(self, p: Point) -> None:
         self.click_at(p.x, p.y, p.anchor)
 
+    def move_screen(self, sx: int, sy: int) -> None:
+        """MouseMove to a screen pixel (used for PixelSearch hits)."""
+        self._trace(f"move screen ({sx},{sy})")
+        if not self.dry_run:
+            inp.move(sx, sy)
+
     def click_screen(self, sx: int, sy: int) -> None:
         self._trace(f"click screen ({sx},{sy})")
         if not self.dry_run:
