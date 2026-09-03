@@ -10,7 +10,7 @@ progresses. Captures live under `docs/captures/` (PNG, lossless, cropped to the 
 | OS | Windows 11 Pro 10.0.26200 |
 | Monitor | 1 x 1920x1080, primary, DPI 96 (100 %) |
 | Taskbar | bottom, visible, 48 px (working area 1920x1032) |
-| Python | 3.12.10 (winget `Python.Python.3.12`, user scope) in `python/.venv`; 3.13.7 also present |
+| Python | 3.12.10 (winget `Python.Python.3.12`, user scope) in `.venv`; 3.13.7 also present |
 | Game installs | Steam (`C:\Program Files (x86)\Steam\steamapps\common\Firestone`) and Epic (`C:\Program Files\Epic Games\FirestoneOnlineIdleRPG`) |
 | Process name | `Firestone.exe` (same for both stores) |
 | Window title | `Firestone` |
@@ -125,7 +125,7 @@ build, 1920x1009 maximized:
 | 3 | 7 min | |
 
 Total 2194 traced actions, 600 clicks, no exception, no safety cap hit, game on the main screen
-at the end. Log: `python/captures/live3.log` (not committed).
+at the end. Log: `captures/live3.log` (not committed).
 
 ## 4.6 Resolution run at 1280x720 (2026-09-03)
 
@@ -157,5 +157,5 @@ third window size, the wheel-notch comparison at two sizes, and a full cycle at 
 the same client rect (0, 23, 1920, 1009). `detect_platform` returned `steam` from the exe path.
 The RestartGameRoutine wait loop found `RESTART_START_BUTTON` (0x16BC15 in (845,860)-(1080,937))
 on the first check: on this account it was the green "Claim" of the offline-progress dialog,
-which is what the AHK routine clicks too. Captures: `python/captures/steam_boot.png`,
+which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
 `steam_after_start.png` (not committed; they show a different account).

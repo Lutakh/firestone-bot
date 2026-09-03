@@ -31,7 +31,8 @@ def get_unique_id(settings: Settings) -> str:
 def send_heartbeat(
     settings: Settings, msg: str, is_stop: bool = False, important: bool = False
 ) -> None:
-    if not settings.flag("EnableHeartbeat"):
+    # Opt-in only: the toggle must be on AND a Discord ID must be set (owner decision).
+    if not settings.flag("EnableHeartbeat") or not settings.get("DiscordID").strip():
         return
     payload = {
         "client_id": get_unique_id(settings),

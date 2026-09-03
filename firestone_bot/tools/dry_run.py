@@ -1,7 +1,7 @@
 """Run one full cycle with input disabled and sleeps shortened; log every click/probe.
 
     python -m firestone_bot.tools.dry_run
-    python -m firestone_bot.tools.dry_run --settings ../settings.ini --time-scale 0.02
+    python -m firestone_bot.tools.dry_run --settings settings.ini --time-scale 0.02
     python -m firestone_bot.tools.dry_run --live --cycles 3      # REAL input, real timing
 
 The window and captures are real, so probes report what the live screen shows; only the mouse
@@ -26,11 +26,11 @@ def main(argv: list[str] | None = None) -> int:
     from firestone_bot.settings import Settings
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--settings", default="../settings.ini")
+    ap.add_argument("--settings", default="settings.ini")
     ap.add_argument("--time-scale", type=float, default=0.05)
     ap.add_argument("--live", action="store_true", help="real input and real timing")
     ap.add_argument("--cycles", type=int, default=1)
-    ap.add_argument("--state", default="../MapStartState.ini")
+    ap.add_argument("--state", default="MapStartState.ini")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     settings = Settings.load(args.settings)

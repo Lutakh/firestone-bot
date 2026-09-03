@@ -1,8 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+captures/
 settings.ini
-*.bak
-*.bak
-*.bak
-Gui.ahk.bak
 MapStartState.ini
-*.bak
 firestone-bot.log
+*.bak

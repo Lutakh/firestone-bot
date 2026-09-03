@@ -1,5 +1,10 @@
 # Firestone Bot: AHK v1.1 to Python rework plan
 
+> Note (2026-09-03): the port is complete to parity and this branch now holds ONLY the Python
+> project at the repository root (the `python/` prefix in section 3 no longer applies; the AHK
+> sources are in the git history of `main`). Owner decisions taken: one-dir ZIP, heartbeat
+> opt-in and requires a Discord ID, SafetyCap off by default, AHK sources removed.
+
 Status: approved by the repo owner. This branch (`python-rework`) is where the port lives.
 This document is the hand-off between the cloud analysis session (which wrote it) and the
 Claude Code session running on the owner's Windows gaming machine (which executes it).

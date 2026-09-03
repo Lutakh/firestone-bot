@@ -2,7 +2,7 @@
 
     python -m firestone_bot.tools.run_feature check_mail
     python -m firestone_bot.tools.run_feature check_mail --dry-run --fast
-    python -m firestone_bot.tools.run_feature main_menu --settings ../settings.ini
+    python -m firestone_bot.tools.run_feature main_menu --settings settings.ini
 
 Feature names are module names under firestone_bot.features; the function called is the
 module's snake_case function of the same name (or the single public function it defines).
@@ -45,8 +45,8 @@ def main(argv: list[str] | None = None) -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("feature")
-    ap.add_argument("--settings", default="../settings.ini")
-    ap.add_argument("--state", default="../MapStartState.ini")
+    ap.add_argument("--settings", default="settings.ini")
+    ap.add_argument("--state", default="MapStartState.ini")
     ap.add_argument("--dry-run", action="store_true", help="no mouse/keyboard input")
     ap.add_argument("--fast", action="store_true", help="sleeps x0.1 (dry-run only)")
     ap.add_argument("--set", action="append", default=[], help="Name=Value override")

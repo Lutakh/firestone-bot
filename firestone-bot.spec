@@ -18,6 +18,6 @@ exe = EXE(
     name="FirestoneBot",
     console=False,
     upx=False,
-    icon="../Images/logo.ico" if __import__("os").path.exists("../Images/logo.ico") else None,
+    icon=None,
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="FirestoneBot", upx=False)

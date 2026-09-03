@@ -15,9 +15,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e "python[dev]"
-      - run: ruff check python && ruff format --check python
-      - run: pytest -q python/tests
+      - run: pip install -e ".[dev]"
+      - run: ruff check . && ruff format --check .
+      - run: pytest -q tests
 
   build:
     needs: test
@@ -34,18 +34,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e "python[dev]"
+      - run: pip install -e ".[dev]"
       - run: pyinstaller firestone-bot.spec
-        working-directory: python
       - name: Add example settings
-        run: cp settings.ini.example python/dist/FirestoneBot/settings.ini.example
+        run: cp settings.ini.example dist/FirestoneBot/settings.ini.example
         shell: bash
       - name: Archive (Windows)
         if: runner.os == 'Windows'
-        run: Compress-Archive -Path python/dist/FirestoneBot/* -DestinationPath ${{ matrix.archive }}
+        run: Compress-Archive -Path dist/FirestoneBot/* -DestinationPath ${{ matrix.archive }}
       - name: Archive (Linux)
         if: runner.os == 'Linux'
-        run: tar -C python/dist -czf ${{ matrix.archive }} FirestoneBot
+        run: tar -C dist -czf ${{ matrix.archive }} FirestoneBot
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive }}

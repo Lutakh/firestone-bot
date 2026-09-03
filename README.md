@@ -1,106 +1,67 @@
-# Firestone Bot (Deaeth85's Version)
+# Firestone Bot
 
-**Version:** 6.1.0
+Automation bot for Firestone Idle RPG (Steam and Epic builds), written in Python 3.12. It is a
+behaviour-for-behaviour port of the original AutoHotkey bot: same features, same
+`settings.ini`, same screen-reading approach (pixel probes and simulated input, no memory
+reading, no network calls to the game).
 
-An AutoHotkey (AHK) automation script for the game **Firestone**. This bot automates daily routines, missions, upgrades, and various in-game activities to maximize efficiency.
+## Requirements
 
-## ⚠️ Important Requirements & Instructions
+- Windows 10/11, Steam or Epic version of the game.
+- Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar at the
+  bottom, game language English, adventure button style Mobile or PC. The Status panel on the
+  Home tab reports the detected window, client size, scale and aspect. Any window with the
+  reference aspect (1920:1009) maps exactly; 16:9 windows and fullscreen use per-widget anchors
+  and are still being validated.
+- Do not move or zoom the world map.
+- The bot owns mouse and keyboard while it runs: the Unity client reads the real cursor, so
+  the PC cannot be used for something else at the same time (see
+  `docs/PYTHON_REWORK_PLAN.md` section 8 for the planned browser-based alternative).
 
-**Crucial:** For the bot to function correctly, your system and game settings must match the following criteria exactly. These instructions are found on the first tab of the GUI.
+## Install (packaged build)
 
-### System Settings
-* **Platform:** Use the **Steam** or **Epic Games** version.
-    * *Do not use the Browser version (borders break the bot).*
-* **Resolution:** Monitor resolution must be **1920x1080**.
-* **Scaling:** System DPI scaling must be set to **100%**.
-* **Taskbar:** Must be located at the **bottom** and **NOT hidden**.
+Download `FirestoneBot-windows.zip` from the Releases page, unzip anywhere and run
+`FirestoneBot.exe`. Put your existing `settings.ini` next to it (or start from
+`settings.ini.example`). Settings are also editable in the GUI.
 
-### Game Settings
-* **Display:** Resolution set to **1920x1080**.
-* **Window Mode:** **NOT** Fullscreen (Windowed mode is required).
-* **Language:** Game language must be set to **English**.
-* **Adventure Button:** Set style to **Mobile** or **PC** (do NOT use the "New Adventure Style").
-* **Safety:** Activate "Confirmation for purchase with jewels" in settings.
+The executable is not code-signed: Windows SmartScreen shows "Windows protected your PC" the
+first time; click "More info", then "Run anyway".
 
-### Gameplay Usage
-* **Maximize:** After starting the game, click the "Maximise" button (square icon next to the X).
-* **Map:** **DO NOT** move or zoom the campaign map. Leave it exactly as it is upon login. If you move it, restart the game.
-* **Troubleshooting:** If missions are not found, ensure your system fonts are standard (English), as custom fonts can alter sizing and break pixel detection.
+## Run from source
 
----
+```bash
+python -m venv .venv
+.venv\Scripts\pip install -e .[dev]
+.venv\Scripts\python -m firestone_bot
+```
 
-## 🌟 Features
+`settings.ini` and `MapStartState.ini` are read from the current directory (from the exe's
+directory in the packaged build).
 
-### 1. General Configuration
-**Selling & Merchant**
-* **Exotic Merchant:** Auto-open merchant (Master).
-* **Buying:** Auto-buy Exotic Upgrades and Exotic Chests.
-* **Selling Strategies:**
-    * Sell ONLY Exotic Scrolls.
-    * Sell All EXCEPT Gold items.
-    * Sell All Exotic Items.
-    * Sell Nothing.
+## Options added by the port
 
-**Chests & Rewards**
-* **Open Chests:** Automates opening general chests.
-* **Filters:**
-    * **Gear Chests:** Exclude specific rarities (e.g., Mythic, Legendary, Epic, or None).
-    * **Jewel Chests:** Exclude specific rarities (e.g., Diamond, Opal, Emerald).
+- **Heartbeat** (Settings tab): off by default. Sends progress messages to the maintainer's
+  log server only when the toggle is on AND a Discord ID is set.
+- **Safety cap** (Settings tab): 0 by default (identical to the AHK bot). The original has
+  loops that wait forever for a screen change (arena battle, liberation mission, hero
+  upgrades, main-menu finder); a cap of N stops such a loop after N iterations.
+- **Dry run** (Home tab): runs a full cycle with mouse and keyboard disabled and logs every
+  probe and click, to check the setup without touching the game.
 
-**Oracle & Alchemy**
-* **Oracle:** Upgrade Blessings, Claim Daily Oracle, or Skip Oracle entirely.
-* **Alchemy:** Option to skip, prevent using Dust, or use Exotic Coins.
+## Tools
 
-**Other Automation**
-* **Engineer:** Options to skip Engineer
-* **Heroes:** Upgrade Heroes, set upgrade to Next Milestone, and Awaken Heroes.
-* **Research:** Askip research.
-* **Guardian:** Auto-train specific guardians (Vermilion, Grace, Ankaa, Azhar).
-* **Steam:** Disable Steam overlay warnings.
+| Command | Purpose |
+|---|---|
+| `python -m firestone_bot.tools.capture_tool --out captures/x.png` | lossless capture of the game client + metadata |
+| `python -m firestone_bot.tools.measure_reference` | window geometry, canvas scale |
+| `python -m firestone_bot.tools.probe_check captures/x.png` | replay atlas probes on a capture |
+| `python -m firestone_bot.tools.smoke_test --move 56,777` | find window, probe, move the mouse |
+| `python -m firestone_bot.tools.run_feature check_mail [--dry-run --fast]` | run one feature module |
+| `python -m firestone_bot.tools.dry_run [--live --cycles N]` | one full cycle, input disabled (or live) |
+| `python -m firestone_bot.tools.window_tool --client 1280x720` | resize the game window for tests |
 
-### 2. Daily Routine & Activities
-* **Mail:** Auto-check and claim mail.
-* **Events:** Claim basic events.
-* **Chaos Rift:** Participate in Chaos Rift.
-* **Shop:** Claim Free Gift and Check-In.
-* **Tavern:** Use Tavern Tokens/Artifacts and claim Beer.
-* **Scarab:** Use Scarab Tokens.
-* **Cycle Delay:** Configurable delay at the end of every bot cycle (0-120 seconds).
+## Development
 
-### 3. Mission Priority System
-Fully customizable priority order for map missions (1st to 5th priority):
-* **Options:** 2 Squad, War, Medium, Short, Leftover.
-* **Map Reset:** Option to reset map cooldown using gems.
-
-### 4. Guild & Personal Tree
-**Guild Management**
-* Skip Guild functions.
-* Clear Guild Notifications.
-* **Pickaxes:** Claim Pickaxes and spend them on Crystals.
-* **Awaken:** Auto-awaken heroes.
-
-**Personal Tree Upgrades**
-* **Attributes:** Damage, Health, Armor, Energy, Mana, Rage, Miner, Main Attributes.
-* **Specializations:** Battle Cry, Prestigious, Firestone Effect, Raining Gold, Hero Level Up Cost, Guardian, Fist Fight, Precision.
-* **Classes:** Magic Spells, Tank, Damage, Healer.
-
-### 5. War Machines & Battle
-**Battle Types**
-* **PVP:** Complete Arena Battles.
-* **Liberation:** Complete Liberation Missions.
-* **Dungeons:** Complete Dungeon Missions.
-
-**War Machine Upgrades**
-* **Targeting:** Select specific machine to upgrade (e.g., Aegis, Cloudfist, Curator, etc.) or "Don't Upgrade".
-* **Upgrade Mode:** Blueprints Only, Level Only, or Both.
-* **Blueprint Priority:** Focus on Damage, Health, Armor, or combinations thereof.
-* 
----
-
-## 🚀 How to Use
-1.  Download bot in release.
-2.  Ensure your game settings match the **Requirements** section above exactly.
-3.  Run `firestone-bot.exe` 
-4.  Configure your desired settings in the tabs.
-5.  Click **"SAVE SETTINGS"** to store your configuration.
-6.  Click **"START BOT"**.
+`ruff check .`, `pytest -q`, `pyinstaller firestone-bot.spec`. GitHub Actions runs the tests
+and builds the Windows ZIP and Linux tarball on every push; tagged `v*` releases get the
+archives attached. Plan, progress and measurements: `docs/`.
