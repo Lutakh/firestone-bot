@@ -7,19 +7,79 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | Step | Status | Notes |
 |---|---|---|
 | 4.0 Environment setup | done (2026-09-03) | Python 3.12.10 venv, deps installed, capture self-test OK. See MEASUREMENTS.md |
-| 4.1 Reference frame | done (2026-09-03) | REF=(0,31,1920,1009); Win11 client is at y=23, handled by the viewport. Map/mail probes still to confirm |
-| 4.2 Scaling behaviour | done (2026-09-03) | Unity canvas 1920x1080, scale=min(w/1920,h/1080), edge anchors, no letterbox. Anchored viewport implemented. Wheel test deferred to `open_chests` port |
-| 4.3 Platform + vision layers | done (2026-09-03) | `dpi.py`, `window.py` (win32), `capture.py`, `atlas.py`, `viewport.py`, `probes.py`, `input.py` exist with viewport/probe tests; `process.py`, `smoke_test.py`; 17 unit tests; live smoke test OK (mail icon, gear, map troop probe). INI tests come with 4.5 |
-| 4.4 Feature modules | todo | |
-| 4.5 Settings, GUI, runner | todo | |
+| 4.1 Reference frame | done (2026-09-03) | REF=(0,31,1920,1009); Win11 client is at y=23, handled by the viewport. Confirmed by the map troop probe |
+| 4.2 Scaling behaviour | done (2026-09-03) | Unity canvas 1920x1080, scale=min(w/1920,h/1080), edge anchors, no letterbox. Anchored viewport implemented. Wheel test still to do |
+| 4.3 Platform + vision layers | done (2026-09-03) | dpi/window/capture/input/process, atlas/viewport/probes, 23 unit tests, live smoke test OK |
+| 4.4 Feature modules | in progress | see table below |
+| 4.5 Settings, GUI, runner | started | `settings.py` + INI tests done; GUI and runner todo |
 | 4.6 Resolution runs | todo | |
-| 4.7 Epic | todo | Epic build is the one currently installed and running |
+| 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
 | 4.8 Packaging and CI | todo | |
 | 4.9 Linux | todo | |
 | 4.10 Browser | todo | |
 
 ## Feature modules
 
-| Module (AHK file) | Ported | Steam | Epic | Notes |
-|---|---|---|---|---|
-| (none yet) | | | | |
+"Live" = ran alone through `tools/run_feature.py` on the test account (Epic build, 1920x1009
+maximized) and the trace/captures matched the AHK behaviour. "Probe only" = the entry probe
+was checked but the branch behind it was not exercised (nothing to claim at the time).
+
+| AHK file | Python module | Ported | Live (Epic) | Steam | Notes |
+|---|---|---|---|---|---|
+| subFunctions/BigClose.ahk | big_close | yes | yes | | |
+| subFunctions/MainMenu.ahk | main_menu | yes | yes | | Alt+Tab replaced by window activation; SafetyCap optional |
+| subFunctions/OpenTown.ahk | open_town | yes | yes | | |
+| subFunctions/GoMap.ahk | go_map | yes | yes | | |
+| subFunctions/MapClose.ahk | map_close | yes | | | exercised inside map_start |
+| ClaimEvents.ahk | claim_events | yes | probe only | | no event red dot at test time |
+| Quests.ahk | quests | yes | yes | | AHK never calls BigClose (brace before it); reproduced |
+| Shop.ahk | shop | yes | yes | | |
+| CheckMail.ahk | check_mail | yes | yes | | claimed + deleted mail |
+| OpenChests.ahk | open_chests, open_bless_chests | yes | yes | | Goto ladders -> tables; Nebula/Cosmic -> Galaxy kept; "close bag" click can hit the Town icon when the bag is already closed (AHK does the same) |
+| subFunctions/OpenChestType.ahk | open_chest_type | yes | yes | | found-pixel click |
+| subFunctions/OraclesGift.ahk | oracles_gift | yes | probe only | | |
+| subFunctions/MysteryBox.ahk | mystery_box | yes | yes | | opened one box |
+| Guardian.ahk | guardian | yes | yes | | training with GuardianTrain=3; 0x0F40000 literal = RED_DOT |
+| ClaimBeer.ahk | claim_beer | yes | yes | | |
+| subFunctions/UseTavernToken.ahk | use_tavern_token | yes | probe only | | |
+| subFunctions/CraftArtifact.ahk | craft_artifact | yes | probe only | | |
+| subFunctions/ScarabToken.ahk | scarab_token | yes | yes | | |
+| Scarab.ahk | scarab | yes | yes | | |
+| ClaimRituals.ahk | claim_rituals | yes | yes | | one ritual claimed, oracle daily gift claimed |
+| UpgradeBlessings.ahk | upgrade_blessings | yes | probe only | | 9 o'clock y2=5541 typo fixed to 554 |
+| subFunctions/ClickBless.ahk | click_bless | yes | | | |
+| subFunctions/OracleDaily.ahk | oracle_daily | yes | yes | | |
+| ClaimEngineer.ahk | claim_engineer | yes | yes | | tools claimed; WM branch not exercised (UpgradeWM = Don't Upgrade) |
+| subFunctions/WMUpgrade.ahk | wm_upgrade | yes | no | | 13 blocks -> table; unknown WMOptions falls through to the next machine like AHK |
+| subFunctions/WMLevelOnly.ahk | wm_level_only | yes | no | | |
+| subFunctions/WMBlueprintsOnly.ahk | wm_blueprints_only | yes | no | | |
+| ExoticMerchant.ahk | exotic_merchant | yes | yes | | 35-notch scroll ran; nothing to sell |
+| subFunctions/ExoticUpgrades.ahk | exotic_upgrades | yes | no | | ExoticUpgrades=0 in the test settings |
+| subFunctions/BuyExotic.ahk | buy_exotic | yes | yes | | nothing affordable |
+| Arena.ahk | arena | yes | no | | long (5 battles); to run in the full cycle |
+| subFunctions/ArenaBattle.ahk | arena_battle | yes | no | | unbounded wait; SafetyCap optional |
+| Alchemist.ahk | alchemist | yes | yes | | collected 2 experiments, started Dragon Blood |
+| Research.ahk | research (go_research) | yes | yes | | started one node, slot 2 went in progress |
+| subFunctions/ResearchStart.ahk | research_start | yes | yes | | |
+| subFunctions/ResearchSlotTest.ahk | research_slot_test | yes | yes | | |
+| subFunctions/ResearchClicks.ahk | research_clicks | yes | yes | | |
+| subFunctions/ResearchAfterStartTest.ahk | research_after_start_test | yes | no | | not included by any AHK file (dead) |
+| Guild.ahk | guild | yes | yes | | expedition started, pickaxes/crystal probes miss |
+| subFunctions/Awaken.ahk | awaken | yes | yes | | x80 then auto |
+| subFunctions/Chaos.ahk | chaos | yes | yes | | |
+| subFunctions/PTree.ahk | ptree | yes | no | | PTree=0 in test settings; 20 blocks -> table |
+| subFunctions/LiberationMissions.ahk | liberation_missions | yes | no | | called from ClaimCampaign when Liberation=1 |
+| subFunctions/LiberationInProgressCheck.ahk | liberation_in_progress_check | yes | no | | unbounded wait; SafetyCap optional |
+| subFunctions/FirestoneNew1st.ahk | (not ported) | n/a | | | never called; includes a missing FirestoneClicks.ahk, so it cannot run in AHK either |
+| MapRedeem.ahk | map_redeem | yes | | | |
+| subFunctions/MapStart.ahk | map_start | yes | | | MapStartState.ini via state.py; TimeDiff unused in AHK |
+| subFunctions/ClaimCampaign.ahk | claim_campaign | yes | | | |
+| HeroUpgrade.ahk | hero_upgrade | yes | | | unbounded click loops; SafetyCap optional |
+| RestartGameRoutine.ahk | restart_game_routine | yes | no | | kill + store URL relaunch; to test in 4.7 |
+| SendHeartbeat.ahk | heartbeat | yes | no | | opt-in (EnableHeartbeat=1); wired into Game.heartbeat by the runner |
+| subFunctions/GetColor.ahk | (not ported) | n/a | | | returns nothing, never used |
+| firestone-bot.ahk MainScript | runner | todo | | | |
+| Gui.ahk | gui | todo | | | |
+
+Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, `*.bak`,
+`MapStart.ahk.bak`.

@@ -447,5 +447,235 @@ RAST_SLOT2 = Point(1202, 944)  # ResearchAfterStartTest.ahk:8
 RAST_SLOT1 = Point(554, 939)  # :29
 RAST_IN_PROGRESS = Probe(562, 245, 754, 311, 0x8C4221, 10, "rast_in_progress")  # :12
 
-# --- MapStart.ahk (partial; the rest comes with the map_start port) -------------------------
+# --- Guild.ahk ------------------------------------------------------------------------------
+MAIN_GUILD_ICON = Point(1857, 481)  # :12
+GUILD_EXPEDITION_DOT = Probe(
+    450, 410, 380, 490, RED_DOT, 3, "guild_expedition_dot"
+)  # :17 (inverted)
+GUILD_EXPEDITIONS = Point(308, 406)  # :20
+GUILD_EXPEDITION_START = Point(1321, 331)  # :24
+GUILD_PTREE_ENTRY = Point(1560, 366)  # :58
+GUILD_SHOP = Point(639, 263)  # :72
+GUILD_SHOP_SUPPLIES = Point(141, 790)  # :77
+GUILD_AXE_READY = Probe(764, 617, 869, 653, 0x1EA569, 3, "guild_axe_ready")  # :81
+GUILD_AXE_CLAIM = Point(716, 637)  # :84
+GUILD_CRYSTAL = Point(1646, 928)  # :93
+GUILD_CRYSTAL_HIT_READY = Probe(
+    1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit"
+)  # :97 (inverted)
+GUILD_CRYSTAL_HIT = Point(957, 896)  # :100
+GUILD_NOTIF_1 = Point(1056, 487)  # :109
+GUILD_NOTIF_2 = Point(230, 667)  # :114
+
+# --- Awaken.ahk -----------------------------------------------------------------------------
+AWAKEN_GREEN = 0x0A9F05
+AWAKEN_DOT = Probe(1107, 745, 1367, 944, RED_DOT, 3, "awaken_dot")  # :8
+AWAKEN_OPEN = Point(1192, 847)  # :11
+AWAKEN_X1 = Point(1577, 400)  # :39
+AWAKEN_BUTTON_ORANGE = Probe(1600, 566, 1845, 612, 0xF4A044, 1, "awaken_button_orange")  # :43
+AWAKEN_BUTTON_GREEN = Probe(1600, 566, 1845, 612, AWAKEN_GREEN, 1, "awaken_button_green")  # :150
+AWAKEN_BUTTON = Point(1725, 582)  # :152
+AWAKEN_AUTO_READY = Probe(1650, 955, 1900, 1015, AWAKEN_GREEN, 1, "awaken_auto_ready")  # :54
+AWAKEN_AUTO = Point(1774, 993)  # :146
+AWAKEN_MULTIPLIERS = (  # :49-141 x160, x80, x40, x20, x10, x5, x2, x1 (probe, button)
+    (Probe(1825, 632, 1910, 692, AWAKEN_GREEN, 1, "awaken_x160"), Point(1872, 666)),
+    (Probe(1727, 632, 1815, 692, AWAKEN_GREEN, 1, "awaken_x80"), Point(1772, 666)),
+    (Probe(1630, 632, 1716, 692, AWAKEN_GREEN, 1, "awaken_x40"), Point(1679, 666)),
+    (Probe(1535, 632, 1615, 692, AWAKEN_GREEN, 1, "awaken_x20"), Point(1577, 666)),
+    (Probe(1825, 365, 1910, 423, AWAKEN_GREEN, 1, "awaken_x10"), Point(1872, 400)),
+    (Probe(1727, 365, 1815, 423, AWAKEN_GREEN, 1, "awaken_x5"), Point(1772, 400)),
+    (Probe(1630, 365, 1716, 423, AWAKEN_GREEN, 1, "awaken_x2"), Point(1679, 400)),
+    (Probe(1535, 365, 1615, 423, AWAKEN_GREEN, 1, "awaken_x1"), Point(1577, 400)),
+)
+
+# --- Chaos.ahk ------------------------------------------------------------------------------
+CHAOS_DOT = Probe(1525, 695, 1555, 725, RED_DOT, 3, "chaos_dot")  # :8
+CHAOS_OPEN = Point(1410, 625)  # :10
+CHAOS_AUTO = Point(1740, 980)  # :13
+
+# --- PTree.ahk ------------------------------------------------------------------------------
+PTREE_OPEN = Point(1823, 945)  # :8
+PTREE_CONFIRM = Point(960, 680)  # :18
+PTREE_UPGRADE = Point(1760, 561)  # :22 (clicked twice)
+PTREE_NODES = (  # (setting name, node position) in AHK order
+    ("AttDmg", Point(365, 313)),
+    ("AttHp", Point(512, 276)),
+    ("AttArm", Point(687, 367)),
+    ("Energy", Point(353, 492)),
+    ("Mana", Point(511, 442)),
+    ("Rage", Point(687, 534)),
+    ("Miner", Point(858, 199)),
+    ("Battle", Point(1061, 205)),
+    ("MainAtt", Point(957, 365)),
+    ("Prest", Point(963, 536)),
+    ("Fire", Point(860, 696)),
+    ("Gold", Point(1059, 701)),
+    ("Level", Point(849, 866)),
+    ("Guard", Point(1063, 867)),
+    ("Fist", Point(1235, 369)),
+    ("Prec", Point(1399, 276)),
+    ("Magic", Point(1567, 320)),
+    ("Tank", Point(1233, 535)),
+    ("Damage", Point(1404, 440)),
+    ("Heal", Point(1572, 492)),
+)
+
+# --- LiberationMissions.ahk / LiberationInProgressCheck.ahk ---------------------------------
+LIB_DOT = Probe(1873, 920, 1900, 954, RED_DOT, 3, "lib_dot")  # :9
+LIB_OPEN = Point(1800, 982)  # :11
+LIB_TAB = Point(697, 788)  # :19
+LIB_ALREADY_DONE = Probe(1723, 51, 1797, 123, 0xFF4805, 10, "lib_already_done")  # :34
+LIB_MISSIONS_PAGE2 = (  # after 70 wheel-downs: 319, 190, 155, 110, 80 stars
+    Point(1583, 755),
+    Point(1191, 755),
+    Point(791, 755),
+    Point(412, 755),
+    Point(133, 748),
+)
+LIB_MISSIONS_PAGE1 = (  # after 63 wheel-ups: 60, 40, 20, 10, 5 stars
+    Point(1688, 755),
+    Point(1291, 755),
+    Point(900, 755),
+    Point(517, 755),
+    Point(157, 758),
+)
+LIB_DUNGEON = Point(1223, 794)  # :188
+LIB_DUNGEON_120 = Point(1149, 763)  # :194
+LIB_DUNGEON_70 = Point(768, 762)  # :209
+LIB_DONE = Probe(990, 703, 1059, 737, GREEN_BUTTON, 10, "lib_done")  # InProgressCheck:5
+LIB_DONE_CLAIM = Point(967, 744)  # :7
+LIB_HOVER = Point(1650, 500)  # :14
+
+# --- MapRedeem.ahk --------------------------------------------------------------------------
+MR_FREE_RESET = Probe(221, 878, 277, 891, ORANGE_2, 3, "mr_free_reset")  # :13
+MR_FREE_RESET_BUTTON = Point(173, 918)  # :15
+MR_NO_MISSIONS = Probe(117, 249, 208, 334, 0x1452B4, 3, "mr_no_missions")  # :25
+MR_MISSION_DONE = Probe(207, 305, 244, 348, GREEN_BUTTON, 3, "mr_mission_done")  # :33
+MR_FIRST_MISSION = Point(162, 334)  # :35
+MR_DIALOG_OK = Point(971, 628)  # :39
+MR_MORE_THAN_3_MIN = Probe(1427, 730, 1481, 762, 0x916A38, 0, "mr_more_than_3_min")  # :50
+MR_FREE_EARLY = Probe(1427, 730, 1481, 762, ORANGE_1, 10, "mr_free_early")  # :57
+MR_FREE_EARLY_BUTTON = Point(1365, 758)  # :59
+MR_SECOND_MISSION_NOT_DONE = Probe(205, 443, 242, 484, GREEN_BUTTON, 3, "mr_second_not_done")  # :71
+MR_RESET_AVAILABLE = Probe(104, 878, 300, 977, 0xED00EF, 3, "mr_reset_available")  # :92
+MR_RESET_BUTTON = Point(200, 930)  # :102
+MR_RESET_CONFIRM = Point(961, 675)  # :108
+
+# --- ClaimCampaign.ahk ----------------------------------------------------------------------
+CAMPAIGN_ICON = Point(1857, 606)  # :10
+CAMPAIGN_LOCKED = Probe(997, 310, 1305, 461, 0xF4E0C6, 2, "campaign_locked")  # :15
+CAMPAIGN_CLAIM_READY = Probe(187, 926, 246, 990, GREEN_BUTTON, 3, "campaign_claim_ready")  # :21
+CAMPAIGN_CLAIM = Point(165, 977)  # :23
+
+# --- HeroUpgrade.ahk ------------------------------------------------------------------------
+HU_MILESTONE_MARKER = Probe(1500, 975, 1504, 985, IDLE_TROOP, 3, "hu_milestone_marker")  # :55
+HU_MILESTONE_TOGGLE = Point(1599, 951)  # :60
+HERO_UPGRADE_SLOTS = (  # (setting, probe rect, click point) in AHK order
+    ("UpgradeSpecial", (1874, 207, 1889, 249), Point(1670, 205)),
+    ("UpgradeH5", (1868, 880, 1885, 912), Point(1670, 873)),
+    ("UpgradeH4", (1864, 770, 1889, 802), Point(1670, 772)),
+    ("UpgradeH3", (1866, 654, 1889, 693), Point(1670, 650)),
+    ("UpgradeH2", (1866, 545, 1885, 584), Point(1670, 539)),
+    ("UpgradeH1", (1862, 434, 1888, 469), Point(1670, 427)),
+    ("UpgradeGuardian", (1869, 319, 1890, 352), Point(1670, 317)),
+)
+
+# --- RestartGameRoutine.ahk -----------------------------------------------------------------
+RESTART_HOVER = Point(900, 900)  # :56
+RESTART_START_BUTTON = Probe(845, 860, 1080, 937, GREEN_BUTTON_2, 3, "restart_start_button")  # :58
+
+# --- Main loop (firestone-bot.ahk) ------------------------------------------------------------
+END_OF_CYCLE_PARK = Point(947, 755)  # MouseMove before the end-of-cycle delay
+
+# --- MapStart.ahk ---------------------------------------------------------------------------
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
+MS_START_BUTTON = Probe(953, 822, 1205, 898, GREEN_BUTTON, 10, "ms_start_button")  # :170
+MS_START = Point(1084, 865)  # :172
+# World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
+MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
+    "2 Squad": (
+        (384, 1009),  # Pirate Cove
+        (484, 920),  # Dragon Island
+        (543, 1032),  # Hydra
+        (633, 576),  # Dragon's Cave
+        (616, 204),  # Frostfire Gorge
+        (1150, 340),  # Irongard's Harbor
+        (883, 460),  # Lake's Terror
+        (1130, 546),  # Collect The Bounty
+        (836, 1039),  # Open Sea
+        (970, 810),  # Orc Lieutenant
+        (1486, 770),  # Ships On Fire
+        (1255, 853),  # Trade Route
+        (1533, 98),
+        (1608, 119),
+        (1534, 123),
+        (1440, 140),
+        (1207, 32),
+        (1290, 99),
+        (1177, 35),
+        (1104, 43),
+    ),
+    "War": (
+        (672, 423),  # Tipsy Wisp Tavern
+        (720, 675),  # Ambush in the Trees
+        (780, 845),  # Stop The Pirate Raids
+        (812, 637),  # Xandor Dock
+        (849, 794),  # Protect The Fishermen
+        (910, 759),  # Confront The Orcs
+        (929, 609),  # Moonglen's Festival
+        (980, 228),  # North Sea
+        (1017, 426),  # Recruit Soldiers
+        (1055, 780),  # The Pit
+        (1145, 626),  # Protect The Shore
+        (1152, 969),  # Sea Monsters
+        (1224, 312),  # Free The Prisoners
+        (1228, 550),  # Forest Rangers
+        (1252, 392),  # Mission To Bayshire
+        (1326, 798),  # Train Elf Archers
+        (1424, 777),  # Chase the Monster
+        (1452, 498),  # Defend Mythshore
+    ),
+    "Medium": (
+        (463, 433),
+        (460, 670),
+        (502, 330),  # Snow Wolves
+        (581, 295),  # Expose the Spy
+        (671, 755),  # Cursed Bay
+        (705, 592),  # The Lost Chapter
+        (797, 504),  # Visit the Abbey
+        (867, 543),  # Calamindor Ruins
+        (1041, 518),  # Silverwood's Militia
+        (1044, 676),  # The Resistance of Goldeff
+        (1314, 306),  # Firestone Power
+        (1340, 545),  # Explore Hinterlands
+        (1435, 683),  # Library of Talamer
+        (1438, 871),
+        (1442, 418),  # Close The Portal
+        (1481, 261),  # Dreadland Shore
+    ),
+    "Short": (
+        (556, 500),  # Jungle Terror
+        (655, 357),  # The Hombor King
+        (712, 517),
+        (733, 229),  # Dark Cavern
+        (828, 375),  # Riverside
+        (874, 664),  # Escort the Merchants
+        (884, 233),  # Stormspire Accident
+        (1099, 894),  # The Port of Thal Badur
+        (1162, 454),  # Find the Librarian
+        (1224, 463),  # Dark River
+        (1276, 694),  # Border Patrol
+        (1297, 193),  # Search For Survivors
+        (1357, 429),
+        (1364, 646),  # Watchtower
+        (1394, 355),  # Retrieve Water Sample
+        (1460, 580),  # Search The Shipwreck
+    ),
+    "Leftover": (
+        (923, 369),
+        (538, 190),
+        (1221, 467),
+        (742, 389),
+        (967, 547),
+    ),
+}

@@ -67,6 +67,8 @@ class Game:
         self.vp: Viewport | None = None
         self.actions: list[str] = []  # dry-run / debug trace
         self.vars: dict[str, int] = {}  # AHK globals shared between feature functions
+        self.heartbeat_cb: Callable[[str, bool, bool], None] | None = None
+        self.map_state_path = "MapStartState.ini"
 
     # -- window -------------------------------------------------------------------------
     def refresh_window(self) -> WindowInfo:
@@ -105,6 +107,12 @@ class Game:
         log.info(text)
         if self.status_cb:
             self.status_cb(text)
+
+    def heartbeat(self, msg: str, is_stop: bool = False, important: bool = False) -> None:
+        """AHK SendHeartbeat(): forwarded to the heartbeat hook when one is installed."""
+        self._trace(f"heartbeat {msg!r} stop={is_stop} important={important}")
+        if self.heartbeat_cb:
+            self.heartbeat_cb(msg, is_stop, important)
 
     def toast(self, title: str, text: str, seconds: float) -> None:
         """AHK timed MsgBox: shown as a status line, then the same delay."""
