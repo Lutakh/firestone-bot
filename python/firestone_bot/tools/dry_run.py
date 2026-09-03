@@ -2,6 +2,7 @@
 
     python -m firestone_bot.tools.dry_run
     python -m firestone_bot.tools.dry_run --settings ../settings.ini --time-scale 0.02
+    python -m firestone_bot.tools.dry_run --live --cycles 3      # REAL input, real timing
 
 The window and captures are real, so probes report what the live screen shows; only the mouse
 and keyboard are inert. Loops that wait for a screen change (arena, liberation) would never
@@ -27,15 +28,22 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--settings", default="../settings.ini")
     ap.add_argument("--time-scale", type=float, default=0.05)
+    ap.add_argument("--live", action="store_true", help="real input and real timing")
+    ap.add_argument("--cycles", type=int, default=1)
+    ap.add_argument("--state", default="../MapStartState.ini")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     settings = Settings.load(args.settings)
-    if not int(settings.get("SafetyCap") or 0):
-        settings.set("SafetyCap", 3)
-    settings.set("Delay", "0")
-    g = Game(settings, dry_run=True, time_scale=args.time_scale)
+    if args.live:
+        g = Game(settings, dry_run=False)
+    else:
+        if not int(settings.get("SafetyCap") or 0):
+            settings.set("SafetyCap", 3)
+        settings.set("Delay", "0")
+        g = Game(settings, dry_run=True, time_scale=args.time_scale)
+    g.map_state_path = args.state
     runner = Runner(settings, g)
-    runner.max_cycles = 1
+    runner.max_cycles = args.cycles
     try:
         runner.main_script()
     except BotStopped:

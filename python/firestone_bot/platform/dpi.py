@@ -10,14 +10,20 @@ import ctypes
 import sys
 
 _DONE = False
+_MODE = "none"
 
 
 def set_dpi_aware() -> str:
     """Make the process per-monitor DPI aware. Returns the mode that was applied."""
-    global _DONE
+    global _DONE, _MODE
     if _DONE:
-        return "already"
+        return _MODE
     _DONE = True
+    _MODE = _apply()
+    return _MODE
+
+
+def _apply() -> str:
     if sys.platform != "win32":
         return "n/a"
     user32 = ctypes.windll.user32
