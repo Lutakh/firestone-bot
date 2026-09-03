@@ -203,5 +203,249 @@ CELESTIAL_CHEST_START: dict[str, int | None] = {
     "Galaxy": 1,
 }
 
+# --- Town buildings -------------------------------------------------------------------------
+TOWN_MAGIC_QUARTER = Point(658, 284)  # Guardian.ahk:9
+TOWN_TAVERN = Point(719, 957)  # ClaimBeer.ahk:14
+TOWN_ORACLE = Point(1023, 994)  # ClaimRituals.ahk:10
+TOWN_ENGINEER = Point(1230, 820)  # ClaimEngineer.ahk:9
+
+# --- Guardian.ahk ---------------------------------------------------------------------------
+GUARDIAN_EVOLVE_DOT = Probe(1307, 107, 1346, 136, RED_DOT, 3, "guardian_evolve_dot")  # :14
+GUARDIAN_EVOLVE_TAB = Point(1200, 165)  # :17
+GUARDIAN_EVOLVE_BUTTON = Point(1117, 750)  # :21
+GUARDIAN_BACK_TAB = Point(1049, 171)  # :26
+GUARDIAN_TRAIN_READY = Probe(1199, 766, 1257, 810, GREEN_BUTTON, 3, "guardian_train_ready")  # :32
+GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
+
+# --- ClaimBeer.ahk / UseTavernToken.ahk / CraftArtifact.ahk -----------------------------------
+TAVERN_BEER_TAB = Point(773, 500)  # ClaimBeer.ahk:18
+TAVERN_TOKEN_SHOP = Point(1735, 69)  # :23
+TAVERN_BEER_CLAIM_READY = Probe(616, 610, 697, 656, 0xFFBB33, 3, "tavern_beer_claim")  # :27
+TAVERN_BEER_CLAIM = Point(544, 630)  # :29
+TAVERN_USE_TOKEN_READY = Probe(
+    1019, 934, 1050, 991, GREEN_BUTTON, 3, "tavern_use_token"
+)  # UseTavernToken.ahk:8
+TAVERN_USE_TOKEN = Point(962, 958)  # :10
+TAVERN_CARDS = (  # :20-21
+    Point(680, 315),
+    Point(956, 315),
+    Point(1243, 315),
+    Point(680, 715),
+    Point(956, 715),
+    Point(1243, 715),
+)
+TAVERN_DISMISS = Point(1257, 49)  # :36
+CRAFT_ARTIFACT_READY = Probe(
+    305, 517, 356, 558, GREEN_BUTTON, 3, "craft_artifact_ready"
+)  # CraftArtifact.ahk:6
+CRAFT_ARTIFACT = Point(227, 507)  # :8
+
+# --- ScarabToken.ahk / Scarab.ahk -------------------------------------------------------------
+SCARAB_GAME_DOT = Probe(1275, 320, 1310, 360, RED_DOT, 3, "scarab_game_dot")  # ScarabToken.ahk:16
+TAVERN_SCARAB_TAB = Point(1108, 500)  # :19
+SCARAB_TOKEN_DOT = Probe(1860, 667, 1900, 705, RED_DOT, 3, "scarab_token_dot")  # :24
+SCARAB_TOKEN_TAB = Point(1809, 722)  # :26
+SCARAB_TOKEN_CLAIM = Point(685, 763)  # :31
+
+# --- ClaimRituals.ahk -----------------------------------------------------------------------
+RITUALS_DOT = Probe(871, 341, 903, 382, RED_DOT, 3, "rituals_dot")  # :15
+RITUALS_TAB = Point(830, 420)  # :17
+RITUAL_CLAIMS = (  # :22-45
+    (Probe(1259, 463, 1331, 536, GREEN_BUTTON, 3, "ritual_1"), Point(1180, 500)),
+    (Probe(1609, 458, 1677, 514, GREEN_BUTTON, 3, "ritual_2"), Point(1586, 514)),
+    (Probe(1272, 811, 1326, 872, GREEN_BUTTON, 3, "ritual_3"), Point(1170, 837)),
+    (Probe(1619, 805, 1690, 870, GREEN_BUTTON, 3, "ritual_4"), Point(1579, 840)),
+)
+
+# --- UpgradeBlessings.ahk / ClickBless.ahk ----------------------------------------------------
+BLESSINGS_DOT = Probe(865, 506, 904, 547, RED_DOT, 1, "blessings_dot")  # :12
+BLESSINGS_TAB = Point(828, 585)  # :14
+BLESSING_SLOTS = (  # clock positions 12..11 then fate; (red-dot probe, click point)
+    (Probe(1402, 185, 1457, 231, RED_DOT, 1, "bless_12"), Point(1375, 239)),
+    (Probe(1565, 220, 1631, 291, RED_DOT, 1, "bless_1"), Point(1535, 286)),
+    (Probe(1688, 340, 1734, 389, RED_DOT, 1, "bless_2"), Point(1662, 407)),
+    (Probe(1741, 507, 1777, 546, RED_DOT, 1, "bless_3"), Point(1703, 578)),
+    (Probe(1695, 673, 1731, 711, RED_DOT, 1, "bless_4"), Point(1653, 741)),
+    (Probe(1577, 795, 1613, 825, RED_DOT, 1, "bless_5"), Point(1531, 860)),
+    (Probe(1414, 837, 1447, 876, RED_DOT, 1, "bless_6"), Point(1372, 903)),
+    (Probe(1258, 793, 1283, 828, RED_DOT, 1, "bless_7"), Point(1207, 852)),
+    (Probe(1132, 672, 1165, 703, RED_DOT, 1, "bless_8"), Point(1089, 742)),
+    (Probe(1091, 510, 1115, 554, RED_DOT, 1, "bless_9"), Point(1045, 575)),  # AHK y2=5541 typo
+    (Probe(1131, 345, 1165, 377, RED_DOT, 1, "bless_10"), Point(1089, 415)),
+    (Probe(1256, 224, 1277, 261, RED_DOT, 1, "bless_11"), Point(1209, 291)),
+    (Probe(1431, 498, 1465, 531, RED_DOT, 1, "bless_fate"), Point(1370, 572)),
+)
+BLESS_UPGRADE_READY = Probe(
+    1249, 763, 1498, 861, GREEN_BUTTON, 3, "bless_upgrade_ready"
+)  # ClickBless.ahk:6
+BLESS_UPGRADE = Point(1371, 812)  # :8
+BLESS_CLOSE = Point(1661, 229)  # :14
+
+# --- OracleDaily.ahk ------------------------------------------------------------------------
+ORACLE_GIFT_DOT = Probe(859, 684, 901, 740, RED_DOT, 3, "oracle_gift_dot")  # :7
+ORACLE_GIFT_TAB = Point(823, 760)  # :9
+ORACLE_GIFT_CLAIM = Point(711, 791)  # :14
+
+# --- ClaimEngineer.ahk ----------------------------------------------------------------------
+ENGINEER_WM_TAB = Point(964, 507)  # :16
+ENGINEER_TAB = Point(131, 435)  # :22
+ENGINEER_SELECT = Point(610, 540)  # :29
+ENGINEER_TOOLS_READY = Probe(1709, 686, 1747, 733, GREEN_BUTTON, 3, "engineer_tools_ready")  # :35
+ENGINEER_TOOLS_CLAIM = Point(1642, 704)  # :37
+
+# --- WMUpgrade.ahk / WMLevelOnly.ahk / WMBlueprintsOnly.ahk ---------------------------------
+WM_ROSTER = (248, 894, 1878, 1020)  # WMUpgrade.ahk: bottom strip searched for the WM signature
+WAR_MACHINES = (  # label order in WMUpgrade.ahk; signature colour in the roster strip
+    ("Aegis", 0xA49789),
+    ("Cloudfist", 0xF7661C),
+    ("Curator", 0x740D0B),
+    ("Earthshatterer", 0x3B4F98),
+    ("Firecracker", 0xEA4019),
+    ("Fortress", 0x275094),
+    ("Goliath", 0x702815),
+    ("Harvester", 0x010BAF),
+    ("Hunter", 0x6CB932),
+    ("Judgement", 0x971DAB),
+    ("Sentinel", 0xC2EFD9),
+    ("Talos", 0x226B10),
+    ("Thunderclap", 0x3EE0EE),
+)
+WM_LEVEL_DOT = Probe(1358, 103, 1400, 133, RED_DOT, 3, "wm_level_dot")  # WMLevelOnly.ahk:4
+WM_ANVIL_TAB = Point(1337, 170)  # :7
+WM_LEVEL_UPGRADE = Point(1428, 581)  # :12
+WM_BLUEPRINT_TAB = Point(1486, 170)  # WMBlueprintsOnly.ahk:5
+WM_BLUEPRINT_STATS = {  # :45-65 (probe, button)
+    "damage": (Probe(1171, 594, 1225, 644, GREEN_BUTTON, 3, "wm_bp_damage"), Point(1108, 600)),
+    "health": (Probe(1477, 597, 1536, 644, GREEN_BUTTON, 3, "wm_bp_health"), Point(1413, 600)),
+    "armor": (Probe(1786, 596, 1844, 642, GREEN_BUTTON, 3, "wm_bp_armor"), Point(1726, 600)),
+}
+WM_BLUEPRINT_CHOICES = {  # Blueprints setting -> stats in click order
+    "Upgrade All": ("damage", "health", "armor"),
+    "Damage Only": ("damage",),
+    "Health": ("health",),
+    "Armor": ("armor",),
+    "Damage and Health": ("damage", "health"),
+    "Damage and Armor": ("damage", "armor"),
+    "Health and Armor": ("health", "armor"),
+}
+
+# --- ExoticMerchant.ahk / ExoticUpgrades.ahk / BuyExotic.ahk --------------------------------
+TOWN_EXOTIC_MERCHANT = Point(1459, 650)  # ExoticMerchant.ahk:9
+EXOTIC_SCROLLS = (  # :34-55 speed, damage, health
+    (Probe(1026, 596, 1074, 636, GREEN_BUTTON, 3, "sell_scroll_speed"), Point(959, 596)),
+    (Probe(1350, 598, 1401, 634, GREEN_BUTTON, 3, "sell_scroll_damage"), Point(1280, 601)),
+    (Probe(1678, 596, 1724, 635, GREEN_BUTTON, 3, "sell_scroll_health"), Point(1595, 592)),
+)
+EXOTIC_GOLD_TOP = (  # :60-81 midas' touch, pouch of gold, bucket of gold
+    (Probe(1022, 912, 1078, 951, GREEN_BUTTON, 3, "sell_midas"), Point(962, 908)),
+    (Probe(1336, 916, 1399, 956, GREEN_BUTTON, 3, "sell_pouch"), Point(1278, 910)),
+    (Probe(1663, 917, 1720, 950, GREEN_BUTTON, 3, "sell_bucket"), Point(1602, 911)),
+)
+EXOTIC_GOLD_BOTTOM = (  # :88-101 after 35 wheel-downs: crate of gold, barrel of gold
+    (Probe(1026, 298, 1081, 338, GREEN_BUTTON, 3, "sell_crate"), Point(967, 307)),
+    (Probe(1341, 296, 1398, 335, GREEN_BUTTON, 3, "sell_barrel"), Point(1280, 313)),
+)
+EXOTIC_ITEMS_BOTTOM = (  # :104-141 drums of war, dragon armor, guardian's rune, totems
+    (Probe(1678, 298, 1721, 332, GREEN_BUTTON, 3, "sell_drums"), Point(1611, 313)),
+    (Probe(1024, 616, 1078, 648, GREEN_BUTTON, 3, "sell_dragon_armor"), Point(954, 616)),
+    (Probe(1346, 614, 1399, 651, GREEN_BUTTON, 3, "sell_guardian_rune"), Point(1269, 608)),
+    (Probe(1667, 616, 1722, 652, GREEN_BUTTON, 3, "sell_totem_agony"), Point(1591, 610)),
+    (Probe(1030, 930, 1078, 975, GREEN_BUTTON, 3, "sell_totem_annihilation"), Point(951, 934)),
+)
+EXOTIC_UPGRADES_TAB = Point(1282, 173)  # ExoticUpgrades.ahk:4
+EXOTIC_UPGRADES_HOVER = Point(1270, 567)  # :8
+_EXU_ROW1 = (
+    (Probe(1004, 833, 1060, 874, GREEN_BUTTON, 3, "exu_r1s1"), Point(900, 851)),
+    (Probe(1350, 830, 1400, 865, GREEN_BUTTON, 3, "exu_r1s2"), Point(1284, 840)),
+    (Probe(1694, 831, 1741, 872, GREEN_BUTTON, 3, "exu_r1s3"), Point(1626, 836)),
+)
+_EXU_ROWN = (  # rows 2-4 share the same screen positions after scrolling
+    (Probe(999, 907, 1051, 946, GREEN_BUTTON, 3, "exu_rNs1"), Point(932, 919)),
+    (Probe(1353, 905, 1400, 944, GREEN_BUTTON, 3, "exu_rNs2"), Point(1278, 911)),
+    (Probe(1695, 904, 1745, 939, GREEN_BUTTON, 3, "exu_rNs3"), Point(1621, 906)),
+)
+EXOTIC_UPGRADE_ROWS = ((0, _EXU_ROW1), (13, _EXU_ROWN), (15, _EXU_ROWN), (15, _EXU_ROWN))
+EMBLEM_MARKET_TAB = Point(1436, 187)  # BuyExotic.ahk:6
+EMBLEM_CHEST_TABS = (Point(689, 470), Point(695, 622), Point(689, 780))  # gear, wm, oracle
+EMBLEM_BUY_READY = Probe(1211, 579, 1253, 640, GREEN_BUTTON, 3, "emblem_buy_ready")  # :16
+EMBLEM_BUY = Point(1153, 611)  # :18
+
+# --- Arena.ahk / ArenaBattle.ahk ------------------------------------------------------------
+TOWN_BATTLES = Point(362, 204)  # Arena.ahk:9
+ARENA_OF_KINGS = Point(1120, 507)  # :14
+ARENA_OPPONENT_COLUMNS = (700, 954, 1220)  # :19
+ARENA_OPPONENT_Y = 630  # :30
+ARENA_REFRESH = Point(871, 195)  # :25
+ARENA_BUY_MORE = Probe(1243, 669, 1291, 713, GREEN_BUTTON, 1, "arena_buy_more")  # :35
+ARENA_FIGHT = Point(961, 570)  # :41
+ARENA_BATTLE_DONE = Probe(
+    979, 753, 1056, 798, GREEN_BUTTON, 3, "arena_battle_done"
+)  # ArenaBattle.ahk:5
+ARENA_BATTLE_CLAIM = Point(959, 775)  # :7
+
+# --- Alchemist.ahk --------------------------------------------------------------------------
+TOWN_ALCHEMIST = Point(511, 837)  # :8
+
+
+@dataclass(frozen=True)
+class AlchemySlot:
+    name: str
+    not_running: Probe  # yellow marker when the slot is idle
+    complete: Probe  # green "collect"
+    free: Probe  # orange "free to complete"
+    in_progress: Probe  # brown timer: more than 3 minutes remaining
+    collect: Point
+    start: Point
+
+
+ALCHEMY_SLOTS = (
+    AlchemySlot(
+        "Dragon Blood",
+        Probe(928, 519, 948, 535, 0xFFC700, 3, "alch_blood_idle"),
+        Probe(985, 746, 1037, 792, GREEN_BUTTON, 3, "alch_blood_done"),
+        Probe(969, 742, 1026, 756, ORANGE_1, 3, "alch_blood_free"),
+        Probe(1007, 735, 1030, 766, 0x916A38, 3, "alch_blood_running"),
+        Point(949, 777),
+        Point(951, 771),
+    ),
+    AlchemySlot(
+        "Strange Dust",
+        Probe(1274, 515, 1298, 537, 0xFFC700, 3, "alch_dust_idle"),
+        Probe(1336, 748, 1386, 789, GREEN_BUTTON, 3, "alch_dust_done"),
+        Probe(1336, 748, 1386, 789, ORANGE_1, 3, "alch_dust_free"),
+        Probe(1346, 734, 1373, 766, 0x916A38, 3, "alch_dust_running"),
+        Point(1286, 786),
+        Point(1286, 786),
+    ),
+    AlchemySlot(
+        "Exotic Coins",
+        Probe(1622, 518, 1645, 538, 0xFFC700, 3, "alch_coin_idle"),
+        Probe(1679, 748, 1735, 796, GREEN_BUTTON, 3, "alch_coin_done"),
+        Probe(1679, 748, 1735, 796, ORANGE_1, 3, "alch_coin_free"),
+        Probe(1699, 737, 1723, 767, 0x916A38, 3, "alch_coin_running"),
+        Point(1632, 772),
+        Point(1641, 767),
+    ),
+)
+
+# --- Research.ahk and sub-functions -----------------------------------------------------------
+TOWN_LIBRARY = Point(329, 657)  # Research.ahk:12
+RS_FIRESTONE_TREE = Point(1816, 610)  # :18
+RS_NODE_AVAILABLE = 0x0D49DE  # ResearchStart.ahk: blue of an available node (variation 0)
+RS_TREE_HOVER = Point(1429, 944)  # ResearchStart.ahk:5
+RS_START_OR_DISMISS = Point(721, 747)  # ResearchClicks.ahk:6
+RS_SLOT2_LOCKED = Probe(1208, 892, 1264, 931, 0x6F6F6F, 1, "rs_slot2_locked")  # SlotTest:6
+RS_SLOT2_IN_PROGRESS = Probe(1228, 889, 1269, 929, 0x916A37, 3, "rs_slot2_running")  # :13
+RS_SLOT2_FREE = Probe(1234, 912, 1272, 974, ORANGE_1, 3, "rs_slot2_free")  # :20
+RS_SLOT2_DONE = Probe(1234, 912, 1272, 974, GREEN_BUTTON, 3, "rs_slot2_done")  # :31
+RS_SLOT2_CLAIM = Point(1204, 938)  # :22
+RS_SLOT1_IN_PROGRESS = Probe(603, 891, 624, 932, 0x916A37, 3, "rs_slot1_running")  # :48
+RS_SLOT1_FREE = Probe(588, 911, 620, 967, ORANGE_1, 3, "rs_slot1_free")  # :55
+RS_SLOT1_DONE = Probe(588, 911, 620, 967, GREEN_BUTTON, 3, "rs_slot1_done")  # :71
+RS_SLOT1_CLAIM = Point(545, 940)  # :57
+RAST_SLOT2 = Point(1202, 944)  # ResearchAfterStartTest.ahk:8
+RAST_SLOT1 = Point(554, 939)  # :29
+RAST_IN_PROGRESS = Probe(562, 245, 754, 311, 0x8C4221, 10, "rast_in_progress")  # :12
+
 # --- MapStart.ahk (partial; the rest comes with the map_start port) -------------------------
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179

@@ -66,6 +66,7 @@ class Game:
         self.window: WindowInfo | None = None
         self.vp: Viewport | None = None
         self.actions: list[str] = []  # dry-run / debug trace
+        self.vars: dict[str, int] = {}  # AHK globals shared between feature functions
 
     # -- window -------------------------------------------------------------------------
     def refresh_window(self) -> WindowInfo:
