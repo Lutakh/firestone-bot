@@ -30,3 +30,5 @@ target-version = "py312"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# features/*_test.py are ported AHK modules, not tests; they import pynput (needs a display)
+python_files = ["test_*.py"]
