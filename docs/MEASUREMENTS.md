@@ -32,3 +32,30 @@ Game maximized (Epic build running). `capture_tool` reported, DPI mode `per-moni
   measured live, logical frame `REF = (0, 31, 1920, 1009)`) absorbs this. To be confirmed by
   `tools/probe_check.py` in 4.1.
 - Capture of the client rect renders correctly (BGRA from mss, converted to RGB for PNG).
+
+## 4.1 Reference frame
+
+Tools: `python -m firestone_bot.tools.measure_reference`, `python -m firestone_bot.tools.probe_check`.
+Capture: `docs/captures/main_1920x1080_max.png` (+ `.json` sidecar), Epic build, maximized,
+main screen, 2026-09-03.
+
+Result: **`REF = (0, 31, 1920, 1009)`** recorded in `vision/atlas.py`.
+
+- Live client rect on this machine: (0, 23, 1920, 1009); `measure_reference` reports
+  `client_top_delta_vs_ref = -8`, scale 1.0, offset (0, 0).
+- Why y0 = 31 and not 23: the AHK code clicks as low as y = 1039, so on the author's machine the
+  client bottom was at 1040 and the top at 1080 - 40 - 1009 = 31 (Windows 10, 40 px taskbar).
+  On this Windows 11 machine (48 px taskbar) every AHK y is 8 px too low; the viewport maps
+  logical y through `client.y - REF.y`, so it is corrected automatically.
+- Cross-check on the capture. Both candidate y0 values land inside the sprites, 8 px apart, so
+  this check alone cannot discriminate; the structural argument above decides.
+
+| Atlas item | Logical (AHK) | Screen with y0=31 | Colour there | Comment |
+|---|---|---|---|---|
+| `BIG_CLOSE` (1851,84) | settings gear on the main screen | (1851,76) | 0xF5CA89 | on the gear |
+| `MAIL_ICON` (56,777) | mail envelope | (56,769) | 0xFDCD6B | on the envelope |
+| `MAIL_CLAIM_ALL` probe | needs the mail dialog open | | miss (expected) | re-check in 4.4 `check_mail` |
+| `MAP_TROOP_IDLE` probe | needs the map screen | | miss (expected) | re-check in the 4.3 smoke test |
+
+- Aspect: the client is 1920x1009, not 16:9. Both machines had the same client size, so the
+  content layout is identical; only the screen offset differs.

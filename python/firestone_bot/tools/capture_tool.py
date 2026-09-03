@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from dataclasses import asdict
 from datetime import UTC, datetime
 
@@ -20,14 +21,18 @@ DPI_MODE = set_dpi_aware()  # must run before mss / window code is imported
 
 def main(argv: list[str] | None = None) -> int:
     from firestone_bot.platform import capture
-    from firestone_bot.platform.window import Rect, find_game_window, screen_size
+    from firestone_bot.platform.window import Rect, activate, find_game_window, screen_size
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True, help="PNG path")
     ap.add_argument("--full-screen", action="store_true", help="capture the whole primary screen")
+    ap.add_argument("--activate", action="store_true", help="bring the game to the front first")
     args = ap.parse_args(argv)
 
     win = find_game_window()
+    if args.activate:
+        activate(win)
+        time.sleep(0.5)
     rect = win.client
     if args.full_screen:
         sw, sh = screen_size()
