@@ -1,0 +1,23 @@
+# PyInstaller spec: one-dir build, no console, no UPX (plan 4.8).
+#   pyinstaller firestone-bot.spec
+from PyInstaller.utils.hooks import collect_submodules
+
+a = Analysis(
+    ["firestone_bot/__main__.py"],
+    pathex=["."],
+    hiddenimports=collect_submodules("firestone_bot.features")
+    + ["pynput.keyboard._win32", "pynput.mouse._win32", "pynput.keyboard._xorg", "pynput.mouse._xorg"],
+    excludes=["cv2", "matplotlib", "PIL", "pytest"],
+    noarchive=False,
+)
+pyz = PYZ(a.pure)
+exe = EXE(
+    pyz,
+    a.scripts,
+    exclude_binaries=True,
+    name="FirestoneBot",
+    console=False,
+    upx=False,
+    icon="../Images/logo.ico" if __import__("os").path.exists("../Images/logo.ico") else None,
+)
+coll = COLLECT(exe, a.binaries, a.datas, name="FirestoneBot", upx=False)

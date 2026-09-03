@@ -1,0 +1,57 @@
+name: build
+
+on:
+  push:
+    branches: [python-rework, main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e "python[dev]"
+      - run: ruff check python && ruff format --check python
+      - run: pytest -q python
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            archive: FirestoneBot-windows.zip
+          - os: ubuntu-22.04
+            archive: FirestoneBot-linux.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e "python[dev]"
+      - run: pyinstaller firestone-bot.spec
+        working-directory: python
+      - name: Add example settings
+        run: cp settings.ini.example python/dist/FirestoneBot/settings.ini.example
+        shell: bash
+      - name: Archive (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path python/dist/FirestoneBot/* -DestinationPath ${{ matrix.archive }}
+      - name: Archive (Linux)
+        if: runner.os == 'Linux'
+        run: tar -C python/dist -czf ${{ matrix.archive }} FirestoneBot
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.archive }}

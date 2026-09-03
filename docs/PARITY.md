@@ -11,7 +11,7 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | 4.2 Scaling behaviour | done (2026-09-03) | Unity canvas 1920x1080, scale=min(w/1920,h/1080), edge anchors, no letterbox. Anchored viewport implemented. Wheel test still to do |
 | 4.3 Platform + vision layers | done (2026-09-03) | dpi/window/capture/input/process, atlas/viewport/probes, 23 unit tests, live smoke test OK |
 | 4.4 Feature modules | in progress | see table below |
-| 4.5 Settings, GUI, runner | started | `settings.py` + INI tests done; GUI and runner todo |
+| 4.5 Settings, GUI, runner | in progress | settings/state/runner/GUI done; dry run of a full cycle OK (434 actions); 3 unattended live cycles running |
 | 4.6 Resolution runs | todo | |
 | 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
 | 4.8 Packaging and CI | todo | |
@@ -68,18 +68,18 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | subFunctions/Awaken.ahk | awaken | yes | yes | | x80 then auto |
 | subFunctions/Chaos.ahk | chaos | yes | yes | | |
 | subFunctions/PTree.ahk | ptree | yes | no | | PTree=0 in test settings; 20 blocks -> table |
-| subFunctions/LiberationMissions.ahk | liberation_missions | yes | no | | called from ClaimCampaign when Liberation=1 |
 | subFunctions/LiberationInProgressCheck.ahk | liberation_in_progress_check | yes | no | | unbounded wait; SafetyCap optional |
 | subFunctions/FirestoneNew1st.ahk | (not ported) | n/a | | | never called; includes a missing FirestoneClicks.ahk, so it cannot run in AHK either |
-| MapRedeem.ahk | map_redeem | yes | | | |
-| subFunctions/MapStart.ahk | map_start | yes | | | MapStartState.ini via state.py; TimeDiff unused in AHK |
-| subFunctions/ClaimCampaign.ahk | claim_campaign | yes | | | |
-| HeroUpgrade.ahk | hero_upgrade | yes | | | unbounded click loops; SafetyCap optional |
 | RestartGameRoutine.ahk | restart_game_routine | yes | no | | kill + store URL relaunch; to test in 4.7 |
 | SendHeartbeat.ahk | heartbeat | yes | no | | opt-in (EnableHeartbeat=1); wired into Game.heartbeat by the runner |
 | subFunctions/GetColor.ahk | (not ported) | n/a | | | returns nothing, never used |
-| firestone-bot.ahk MainScript | runner | todo | | | |
-| Gui.ahk | gui | todo | | | |
+| MapRedeem.ahk | map_redeem | yes | yes | | ran 340 s incl. claim_campaign + liberation (see below) |
+| subFunctions/MapStart.ahk | map_start | yes | yes | | inside map_redeem; MapStartState.ini via state.py; TimeDiff unused in AHK |
+| subFunctions/ClaimCampaign.ahk | claim_campaign | yes | yes | | |
+| subFunctions/LiberationMissions.ahk | liberation_missions | yes | yes | | all missions + dungeon ran (Liberation=1, DungeonQuest=1) |
+| HeroUpgrade.ahk | hero_upgrade | yes | yes | | Next Milestone mode, 86 actions; unbounded click loops, SafetyCap optional |
+| firestone-bot.ahk MainScript | runner | yes | dry run | | unknown Delay value stops the bot like AHK; unattended live cycles pending |
+| Gui.ahk | gui/main_window | yes | yes | | 5 tabs, same controls; Gui.ahk's "Upgrade FireCracker" / "Health Only" / "Armor Only" never match the code (AHK bug) and are kept so behaviour is identical; extra Status panel, Dry run, Stop, SafetyCap, EnableHeartbeat |
 
 Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, `*.bak`,
 `MapStart.ahk.bak`.
