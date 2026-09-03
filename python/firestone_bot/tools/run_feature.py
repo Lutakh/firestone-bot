@@ -46,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("feature")
     ap.add_argument("--settings", default="../settings.ini")
+    ap.add_argument("--state", default="../MapStartState.ini")
     ap.add_argument("--dry-run", action="store_true", help="no mouse/keyboard input")
     ap.add_argument("--fast", action="store_true", help="sleeps x0.1 (dry-run only)")
     ap.add_argument("--set", action="append", default=[], help="Name=Value override")
@@ -59,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     g = Game(
         settings, dry_run=args.dry_run, time_scale=0.1 if (args.fast and args.dry_run) else 1.0
     )
+    g.map_state_path = args.state
     fn = resolve(args.feature)
     win = g.refresh_window()
     print(f"window client={win.client} scale={g.vp.rel_scale:.4f} dry_run={args.dry_run}")

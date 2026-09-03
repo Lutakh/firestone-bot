@@ -10,8 +10,9 @@ set_dpi_aware()
 
 
 def main() -> int:
-    print("Firestone bot (Python port): GUI not implemented yet. See docs/PYTHON_REWORK_PLAN.md.")
-    return 0
+    from firestone_bot.app import main as app_main
+
+    return app_main()
 
 
 if __name__ == "__main__":

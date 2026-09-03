@@ -300,7 +300,7 @@ WAR_MACHINES = (  # label order in WMUpgrade.ahk; signature colour in the roster
     ("Cloudfist", 0xF7661C),
     ("Curator", 0x740D0B),
     ("Earthshatterer", 0x3B4F98),
-    ("Firecracker", 0xEA4019),
+    ("Firecracker", 0xEA4019),  # Gui.ahk offers "Upgrade FireCracker": never matches, like AHK
     ("Fortress", 0x275094),
     ("Goliath", 0x702815),
     ("Harvester", 0x010BAF),
@@ -322,8 +322,8 @@ WM_BLUEPRINT_STATS = {  # :45-65 (probe, button)
 WM_BLUEPRINT_CHOICES = {  # Blueprints setting -> stats in click order
     "Upgrade All": ("damage", "health", "armor"),
     "Damage Only": ("damage",),
-    "Health": ("health",),
-    "Armor": ("armor",),
+    "Health": ("health",),  # Gui.ahk offers "Health Only" / "Armor Only": never match, so
+    "Armor": ("armor",),  # those choices upgrade all, exactly like the AHK fall-through
     "Damage and Health": ("damage", "health"),
     "Damage and Armor": ("damage", "armor"),
     "Health and Armor": ("health", "armor"),
