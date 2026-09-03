@@ -100,3 +100,15 @@ Conclusions:
 
 Consequence for users: "maximized on a 1920x1080 monitor" is still the reference setup. Any
 window with aspect 1920:1009 is exact; 16:9 windows/fullscreen depend on the anchor guesses.
+
+## 4.3 Live smoke test (2026-09-03)
+
+`python -m firestone_bot.tools.smoke_test --move X,Y`: window found (Epic, client (0,23,1920,1009),
+canvas scale 0.9343, rel_scale 1.0), capture of the client in ~110 ms, pixel_search on a probe
+rect in < 0.2 ms. Mouse moved to `MAIL_ICON` (56,777) -> screen (56,769) and to `BIG_CLOSE`
+(1851,84) -> (1851,76): the cursor cross sits on the envelope and on the gear (checked on
+annotated captures).
+
+Map screen (key `M`, capture `docs/captures/map_1920x1080_max.png`): `MAP_TROOP_IDLE`
+(1175,996)-(1187,1012) 0x542710±10 HITS at screen (1178,988), i.e. inside the 12x16 rect after
+the -8 px shift. This confirms `REF.y = 31`. `BigClose` click at (1851,76) closed the map.
