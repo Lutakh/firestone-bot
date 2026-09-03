@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "firestone-bot"
+version = "0.1.0"
+description = "Python port of the Firestone Idle RPG AutoHotkey bot"
+requires-python = ">=3.12"
+dependencies = [
+    "mss>=9.0,<10",
+    "numpy>=1.26,<3",
+    "pynput>=1.7.7,<2",
+    "psutil>=5.9,<7",
+    "python-xlib>=0.33; sys_platform == 'linux'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6"]
+
+[project.scripts]
+firestone-bot = "firestone_bot.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["firestone_bot*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
