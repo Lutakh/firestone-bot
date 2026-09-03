@@ -11,10 +11,10 @@ Progress of the Python port against the AHK bot. See docs/PYTHON_REWORK_PLAN.md 
 | 4.2 Scaling behaviour | done (2026-09-03) | Unity canvas 1920x1080, scale=min(w/1920,h/1080), edge anchors, no letterbox. Anchored viewport implemented. Wheel test still to do |
 | 4.3 Platform + vision layers | done (2026-09-03) | dpi/window/capture/input/process, atlas/viewport/probes, 23 unit tests, live smoke test OK |
 | 4.4 Feature modules | in progress | see table below |
-| 4.5 Settings, GUI, runner | in progress | settings/state/runner/GUI done; dry run of a full cycle OK (434 actions); 3 unattended live cycles running |
+| 4.5 Settings, GUI, runner | done (2026-09-03) | dry run of a full cycle OK (434 actions); 3 unattended live cycles OK on the test account (31 min, 2194 actions, 600 clicks, no error, game back on the main screen). AHK-vs-Python side-by-side comparison not done |
 | 4.6 Resolution runs | todo | |
 | 4.7 Epic | todo | Epic build is the one currently installed and running; all live tests so far ran on it |
-| 4.8 Packaging and CI | in progress | `python/firestone-bot.spec` + `.github/workflows/build.yml`; local one-dir build OK (57 MB); CI run and clean-folder test of the ZIP pending (push blocked by the GitHub credential prompt) |
+| 4.8 Packaging and CI | in progress | `python/firestone-bot.spec` + `.github/workflows/build.yml`; local one-dir build OK (57 MB, 44 s); exe runs from a clean folder with only settings.ini next to it; CI run pending (push blocked by the GitHub credential prompt); SmartScreen documented in python/README.md |
 | 4.9 Linux | todo | |
 | 4.10 Browser | todo | |
 
@@ -56,8 +56,8 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | ExoticMerchant.ahk | exotic_merchant | yes | yes | | 35-notch scroll ran; nothing to sell |
 | subFunctions/ExoticUpgrades.ahk | exotic_upgrades | yes | no | | ExoticUpgrades=0 in the test settings |
 | subFunctions/BuyExotic.ahk | buy_exotic | yes | yes | | nothing affordable |
-| Arena.ahk | arena | yes | no | | long (5 battles); to run in the full cycle |
-| subFunctions/ArenaBattle.ahk | arena_battle | yes | no | | unbounded wait; SafetyCap optional |
+| Arena.ahk | arena | yes | yes | | ran in cycle 1 of the unattended run (5 battles) |
+| subFunctions/ArenaBattle.ahk | arena_battle | yes | yes | | unbounded wait; SafetyCap optional |
 | Alchemist.ahk | alchemist | yes | yes | | collected 2 experiments, started Dragon Blood |
 | Research.ahk | research (go_research) | yes | yes | | started one node, slot 2 went in progress |
 | subFunctions/ResearchStart.ahk | research_start | yes | yes | | |
@@ -78,7 +78,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | subFunctions/ClaimCampaign.ahk | claim_campaign | yes | yes | | |
 | subFunctions/LiberationMissions.ahk | liberation_missions | yes | yes | | all missions + dungeon ran (Liberation=1, DungeonQuest=1) |
 | HeroUpgrade.ahk | hero_upgrade | yes | yes | | Next Milestone mode, 86 actions; unbounded click loops, SafetyCap optional |
-| firestone-bot.ahk MainScript | runner | yes | dry run | | unknown Delay value stops the bot like AHK; unattended live cycles pending |
+| firestone-bot.ahk MainScript | runner | yes | yes (3 cycles) | | unknown Delay value stops the bot like AHK |
 | Gui.ahk | gui/main_window | yes | yes | | 5 tabs, same controls; Gui.ahk's "Upgrade FireCracker" / "Health Only" / "Armor Only" never match the code (AHK bug) and are kept so behaviour is identical; extra Status panel, Dry run, Stop, SafetyCap, EnableHeartbeat |
 
 Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, `*.bak`,

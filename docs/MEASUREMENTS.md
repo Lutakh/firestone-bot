@@ -112,3 +112,17 @@ annotated captures).
 Map screen (key `M`, capture `docs/captures/map_1920x1080_max.png`): `MAP_TROOP_IDLE`
 (1175,996)-(1187,1012) 0x542710±10 HITS at screen (1178,988), i.e. inside the 12x16 rect after
 the -8 px shift. This confirms `REF.y = 31`. `BigClose` click at (1851,76) closed the map.
+
+## 4.5 Unattended run (2026-09-03)
+
+`python -m firestone_bot.tools.dry_run --live --cycles 3` with the owner's settings.ini, Epic
+build, 1920x1009 maximized:
+
+| Cycle | Duration | Notes |
+|---|---|---|
+| 1 | 15 min | includes the arena (5 battles) |
+| 2 | 8 min | arena skipped (6 h timer) |
+| 3 | 7 min | |
+
+Total 2194 traced actions, 600 clicks, no exception, no safety cap hit, game on the main screen
+at the end. Log: `python/captures/live3.log` (not committed).
