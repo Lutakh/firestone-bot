@@ -184,3 +184,6 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   Purple 0x9C1C9C..0xB53CF7 only exists on the paid coin; the free coin is silver 0xBFC5C5.
   The icon inside the green Play button is at client (905..955, 900..950). The Play button
   turns 0x16BC15 while hovered (the AHK probe 0x0AA008 misses then).
+- Guild shop > Supplies: the "Free pickaxes" card now has a green 0x0AA008 Claim button at
+  client (590,692)-(835,735) -> logical (590,723)-(835,766); the AHK teal probe (0x1EA569 in
+  (764,617)-(869,653)) and click (716,637) point at the "Next free" timer text instead.

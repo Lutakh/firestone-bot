@@ -484,8 +484,11 @@ GUILD_EXPEDITION_START = Point(1321, 331)  # :24
 GUILD_PTREE_ENTRY = Point(1560, 366)  # :58
 GUILD_SHOP = Point(639, 263)  # :72
 GUILD_SHOP_SUPPLIES = Point(141, 790)  # :77
-GUILD_AXE_READY = Probe(764, 617, 869, 653, 0x1EA569, 3, "guild_axe_ready")  # :81
-GUILD_AXE_CLAIM = Point(716, 637)  # :84
+# Guild.ahk:81-84 probed the teal card colour 0x1EA569 in (764,617)-(869,653) and clicked
+# (716,637). Since the 2026 layout the "Free pickaxes" card has its green Claim button at the
+# bottom, logical (590,723)-(835,766) (measured 2026-09-04).
+GUILD_AXE_READY = Probe(620, 730, 800, 760, GREEN_BUTTON, 3, "guild_axe_ready")
+GUILD_AXE_CLAIM = Point(714, 747)
 GUILD_CRYSTAL = Point(1646, 928)  # :93
 GUILD_CRYSTAL_HIT_READY = Probe(
     1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit"
