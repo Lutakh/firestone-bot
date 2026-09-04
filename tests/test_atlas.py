@@ -39,7 +39,7 @@ def test_entries_inside_reference_screen():
             p = it.normalized()
             assert 0 <= p.x1 <= p.x2 < 1920, it
             assert 0 <= p.y1 <= p.y2 < 1080, it
-            assert 0 <= p.color <= 0xFFFFFF and 0 <= p.variation <= 20, it
+            assert 0 <= p.color <= 0xFFFFFF and 0 <= p.variation <= 32, it
 
 
 def test_probe_names_unique():

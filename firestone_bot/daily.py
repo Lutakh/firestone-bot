@@ -11,6 +11,8 @@ counters:
     ArenaDoneDaily=1      the five arena battles were done since the last reset
     MaxChaos=10           chaos rift hits with FREE tokens per game day (0 = no limit)
     ChaosCountDaily=4     hits since the last reset
+    MaxScarab=10          scarab game plays with FREE tokens per game day (0 = no limit)
+    ScarabCountDaily=2    plays since the last reset
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ def mark_daily_reset(settings: Settings) -> None:
     settings.set("ArenaDoneDaily", 0)
     settings.set("ChaosCountDaily", 0)
     settings.set("LastChaosReset", settings.get("LastTokenReset"))
+    settings.set("ScarabCountDaily", 0)
     settings.save()
     log.info("daily reset detected: token and arena counters cleared")
 
@@ -73,4 +76,17 @@ def chaos_left(settings: Settings) -> int | None:
 
 def note_chaos_hit(settings: Settings) -> None:
     settings.set("ChaosCountDaily", _int(settings, "ChaosCountDaily") + 1)
+    settings.save()
+
+
+def scarab_left(settings: Settings) -> int | None:
+    """None = unlimited (MaxScarab is 0), else free-token plays still allowed today."""
+    limit = _int(settings, "MaxScarab")
+    if limit <= 0:
+        return None
+    return max(0, limit - _int(settings, "ScarabCountDaily"))
+
+
+def note_scarab_play(settings: Settings) -> None:
+    settings.set("ScarabCountDaily", _int(settings, "ScarabCountDaily") + 1)
     settings.save()

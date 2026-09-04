@@ -265,6 +265,13 @@ TAVERN_SCARAB_TAB = Point(1108, 500)  # :19
 SCARAB_TOKEN_DOT = Probe(1860, 667, 1900, 705, RED_DOT, 3, "scarab_token_dot")  # :24
 SCARAB_TOKEN_TAB = Point(1809, 722)  # :26
 SCARAB_TOKEN_CLAIM = Point(685, 763)  # :31
+# Rework (2026-09-04): token icon inside the green Play button, client (905..955, 900..950).
+# Paid coin has a purple ring (0x9C1C9C..0xB53CF7), the free coin is silver (0xBFC5C5).
+# hovered Play button is the lighter green 0x16BC15
+SCARAB_PLAY_READY_HOVER = Probe(1019, 934, 1050, 991, GREEN_BUTTON_2, 3, "scarab_play_hover")
+SCARAB_PLAY_PARK = Point(700, 600)  # mouse parking spot away from the button
+SCARAB_PLAY_ICON_PAID = Probe(905, 931, 955, 981, 0xA524A5, 30, "scarab_play_icon_paid")
+SCARAB_PLAY_ICON_FREE = Probe(905, 931, 955, 981, 0xBFC5C5, 18, "scarab_play_icon_free")
 
 # --- ClaimRituals.ahk -----------------------------------------------------------------------
 RITUALS_DOT = Probe(871, 341, 903, 382, RED_DOT, 3, "rituals_dot")  # :15

@@ -259,6 +259,12 @@ class MainWindow:
         self._check(g, "Scarab", "Skip Using Scarab Token")
         f = ttk.Frame(g)
         f.grid(sticky="w", padx=8, pady=2)
+        ttk.Label(f, text="Max scarab plays per day, free tokens only (0 = no limit):").pack(
+            side="left"
+        )
+        ttk.Entry(f, textvariable=self._var("MaxScarab"), width=5).pack(side="left", padx=6)
+        f = ttk.Frame(g)
+        f.grid(sticky="w", padx=8, pady=2)
         ttk.Label(f, text="Max tokens per day (0 = no limit):").pack(side="left")
         ttk.Entry(f, textvariable=self._var("MaxTokens"), width=5).pack(side="left", padx=6)
         self.daily_label = ttk.Label(g, text="")
@@ -384,7 +390,8 @@ class MainWindow:
             pass
         self.daily_label.configure(
             text=f"Today: {self.settings.get('TokenCountDaily') or 0} token(s) used, "
-            f"{self.settings.get('ChaosCountDaily') or 0} chaos hit(s), arena "
+            f"{self.settings.get('ChaosCountDaily') or 0} chaos hit(s), "
+            f"{self.settings.get('ScarabCountDaily') or 0} scarab play(s), arena "
             f"{'done' if self.settings.flag('ArenaDoneDaily') else 'pending'}"
         )
         self.root.after(200, self._poll_status)

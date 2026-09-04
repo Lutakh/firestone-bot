@@ -179,3 +179,8 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   its bell at (1400,95); roster portraits at client x 750/890/1030/1170, y 935, bells at the
   top-right corner (x 805/945/1085/1225, y 878); green "Upgrade" button at client
   (1560,655)-(1785,755), grey when unaffordable. Logical = client y + 31.
+- Tavern > Scarab game: counters top right, free (silver coin with a scarab, client
+  (1365..1420, 15..70)) and paid (gold coin with a purple ring, client (1555..1615, 15..70)).
+  Purple 0x9C1C9C..0xB53CF7 only exists on the paid coin; the free coin is silver 0xBFC5C5.
+  The icon inside the green Play button is at client (905..955, 900..950). The Play button
+  turns 0x16BC15 while hovered (the AHK probe 0x0AA008 misses then).

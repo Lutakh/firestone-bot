@@ -40,6 +40,15 @@ def test_chaos_limit_and_reset(tmp_path):
     assert daily.chaos_left(s) is None
 
 
+def test_scarab_limit_and_reset(tmp_path):
+    s = Settings(path=str(tmp_path / "settings.ini"))
+    assert daily.scarab_left(s) == 10
+    daily.note_scarab_play(s)
+    assert daily.scarab_left(s) == 9
+    daily.mark_daily_reset(s)
+    assert daily.scarab_left(s) == 10
+
+
 def test_guardian_order_parsing():
     from firestone_bot.features.guardian_chaos import guardian_order
 
