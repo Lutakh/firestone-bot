@@ -240,7 +240,11 @@ class MainWindow:
         self._check(g, "Mail", "Check Mail")
         self._check(g, "Quests", "Claim Quests")
         self._check(g, "Events", "Claim Basic Events")
-        self._check(g, "Chaos", "Participate in Chaos Rift")
+        self._check(g, "Chaos", "Participate in Chaos Rift (free tokens only)")
+        f = ttk.Frame(g)
+        f.grid(sticky="w", padx=8, pady=2)
+        ttk.Label(f, text="Max chaos hits per day (0 = no limit):").pack(side="left")
+        ttk.Entry(f, textvariable=self._var("MaxChaos"), width=5).pack(side="left", padx=6)
         self._check(g, "Shop", "Free Gift & Check-In")
         self._combo(g, "Delay", "End of Cycle Delay (Sec):", ["0", "30", "60", "90", "120"])
         g = self._group(tab, "Tavern / Scarab", row=1, column=2)
@@ -373,7 +377,8 @@ class MainWindow:
         except queue.Empty:
             pass
         self.daily_label.configure(
-            text=f"Today: {self.settings.get('TokenCountDaily') or 0} token(s) used, arena "
+            text=f"Today: {self.settings.get('TokenCountDaily') or 0} token(s) used, "
+            f"{self.settings.get('ChaosCountDaily') or 0} chaos hit(s), arena "
             f"{'done' if self.settings.flag('ArenaDoneDaily') else 'pending'}"
         )
         self.root.after(200, self._poll_status)

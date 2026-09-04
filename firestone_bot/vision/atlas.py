@@ -500,7 +500,13 @@ AWAKEN_MULTIPLIERS = (  # :49-141 x160, x80, x40, x20, x10, x5, x2, x1 (probe, b
 # --- Chaos.ahk ------------------------------------------------------------------------------
 CHAOS_DOT = Probe(1525, 695, 1555, 725, RED_DOT, 3, "chaos_dot")  # :8
 CHAOS_OPEN = Point(1410, 625)  # :10
-CHAOS_AUTO = Point(1740, 980)  # :13
+CHAOS_AUTO = Point(1740, 980)  # :13 (Auto/Manual toggle; NOT used by the rework, see chaos.py)
+# Rework (2026-09-04): manual hits with free tokens only. Hit button at client (960,855),
+# token icon inside it at client (905..955, 880..920); colours measured on captures.
+CHAOS_HIT = Point(960, 886)
+CHAOS_HIT_READY = Probe(850, 865, 1070, 905, GREEN_BUTTON, 3, "chaos_hit_ready")
+CHAOS_HIT_ICON_PAID = Probe(905, 911, 955, 951, 0xA54510, 12, "chaos_hit_icon_paid")
+CHAOS_HIT_ICON_FREE = Probe(905, 911, 955, 951, 0x3182C6, 16, "chaos_hit_icon_free")
 
 # --- PTree.ahk ------------------------------------------------------------------------------
 PTREE_OPEN = Point(1823, 945)  # :8

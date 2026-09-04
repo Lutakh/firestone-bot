@@ -26,3 +26,15 @@ def test_bad_values_are_zero():
     s.set("TokenCountDaily", "abc")
     s.set("MaxTokens", "3")
     assert daily.tokens_left(s) == 3
+
+
+def test_chaos_limit_and_reset(tmp_path):
+    s = Settings(path=str(tmp_path / "settings.ini"))
+    assert daily.chaos_left(s) == 10  # default MaxChaos
+    for _ in range(10):
+        daily.note_chaos_hit(s)
+    assert daily.chaos_left(s) == 0
+    daily.mark_daily_reset(s)
+    assert daily.chaos_left(s) == 10 and s.get("LastChaosReset") == s.get("LastTokenReset")
+    s.set("MaxChaos", 0)
+    assert daily.chaos_left(s) is None

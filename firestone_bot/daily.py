@@ -9,6 +9,8 @@ counters:
     TokenCountDaily=3     tokens used since the last detected reset
     LastTokenReset=...    timestamp of the last detected daily reset (AHK A_Now format)
     ArenaDoneDaily=1      the five arena battles were done since the last reset
+    MaxChaos=10           chaos rift hits with FREE tokens per game day (0 = no limit)
+    ChaosCountDaily=4     hits since the last reset
 """
 
 from __future__ import annotations
@@ -33,6 +35,8 @@ def mark_daily_reset(settings: Settings) -> None:
     settings.set("LastTokenReset", ahk_now())
     settings.set("TokenCountDaily", 0)
     settings.set("ArenaDoneDaily", 0)
+    settings.set("ChaosCountDaily", 0)
+    settings.set("LastChaosReset", settings.get("LastTokenReset"))
     settings.save()
     log.info("daily reset detected: token and arena counters cleared")
 
@@ -56,4 +60,17 @@ def arena_done(settings: Settings) -> bool:
 
 def note_arena_done(settings: Settings) -> None:
     settings.set("ArenaDoneDaily", 1)
+    settings.save()
+
+
+def chaos_left(settings: Settings) -> int | None:
+    """None = unlimited (MaxChaos is 0), else free-token hits still allowed today."""
+    limit = _int(settings, "MaxChaos")
+    if limit <= 0:
+        return None
+    return max(0, limit - _int(settings, "ChaosCountDaily"))
+
+
+def note_chaos_hit(settings: Settings) -> None:
+    settings.set("ChaosCountDaily", _int(settings, "ChaosCountDaily") + 1)
     settings.save()
