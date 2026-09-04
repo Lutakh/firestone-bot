@@ -192,6 +192,7 @@ class DashboardView:
         self.meter_tokens = today.add(Meter(today.body, "Tavern tokens"), pady=(2, 6))
         self.meter_chaos = today.add(Meter(today.body, "Chaos hits"), pady=(2, 6))
         self.meter_scarab = today.add(Meter(today.body, "Scarab plays"), pady=(2, 6))
+        self.meter_crystal = today.add(Meter(today.body, "Crystal hits"), pady=(2, 6))
         arena = ctk.CTkFrame(today.body, fg_color="transparent")
         arena.grid_columnconfigure(1, weight=1)
         self.arena_dot = StatusDot(arena, "grey")
@@ -307,6 +308,7 @@ class DashboardView:
         self.meter_tokens.set(daily._int(s, "TokenCountDaily"), daily._int(s, "MaxTokens"))
         self.meter_chaos.set(daily._int(s, "ChaosCountDaily"), daily._int(s, "MaxChaos"))
         self.meter_scarab.set(daily._int(s, "ScarabCountDaily"), daily._int(s, "MaxScarab"))
+        self.meter_crystal.set(daily._int(s, "CrystalCountDaily"), daily._int(s, "MaxCrystals"))
         done = daily.arena_done(s)
         self.arena_dot.set("ok" if done else "grey")
         text = "Done" if done else "Pending"

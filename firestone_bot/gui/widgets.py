@@ -44,17 +44,42 @@ CONTENT_WIDTH = 960  # page content column cap (page_frame); wrap widths derive 
 
 
 def autowrap(frame, labels, offset: int = 0, minimum: int = 120) -> None:
-    """Give `labels` a fixed wraplength derived from the content width cap.
+    """Give `labels` a wraplength fitted to `frame` once it has been laid out.
 
-    A dynamic <Configure> handler here caused an event storm: every wraplength change resized
-    the label, which re-fired <Configure> on the frame and on every customtkinter widget
-    inside it (each one redrawing its canvas). With the content column capped at 960 px a
-    static width is exact for maximised windows and close enough for smaller ones.
+    A permanent <Configure> handler here caused an event storm (every wraplength change
+    resized the label, which re-fired <Configure> on every customtkinter widget inside the
+    frame). Instead the frame width is read a few times after idle until the layout has
+    settled, and again once after each window resize burst.
     """
-    wrap = max(minimum, CONTENT_WIDTH - 48 - offset)
-    for lbl in labels:
-        if lbl.cget("wraplength") != wrap:
-            lbl.configure(wraplength=wrap)
+    state = {"tries": 0, "after": None}
+
+    def apply(width: int) -> None:
+        wrap = max(minimum, width - offset)
+        for lbl in labels:
+            if lbl.cget("wraplength") != wrap:
+                lbl.configure(wraplength=wrap)
+
+    def measure() -> None:
+        state["after"] = None
+        try:
+            width = frame.winfo_width()
+        except tk.TclError:
+            return  # destroyed
+        if width <= 1 and state["tries"] < 10:
+            state["tries"] += 1
+            state["after"] = frame.after(100, measure)
+            return
+        if width > 1:
+            apply(width)
+
+    def on_resize(_event) -> None:
+        # coalesce the burst of <Configure> events of a resize into one measurement
+        if state["after"] is None:
+            state["after"] = frame.after(150, measure)
+
+    frame.after_idle(measure)
+    top = frame.winfo_toplevel()
+    top.bind("<Configure>", on_resize, add="+")
 
 
 # -- base control -------------------------------------------------------------------------------
