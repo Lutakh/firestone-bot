@@ -647,6 +647,7 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (1290, 99),
         (1177, 35),
         (1104, 43),
+        (484, 166),  # Frostfire north-west, "Visit the Northern Tribes" (2 squads, timed; 2026-09-04)
     ),
     "War": (
         (672, 423),  # Tipsy Wisp Tavern
@@ -710,6 +711,5 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (1221, 467),
         (742, 389),
         (967, 547),
-        (484, 166),  # Frostfire, north-west coast (timed mission seen 2026-09-04, not in AHK)
     ),
 }
