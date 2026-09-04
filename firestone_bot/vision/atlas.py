@@ -710,5 +710,6 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (1221, 467),
         (742, 389),
         (967, 547),
+        (484, 166),  # Frostfire, north-west coast (timed mission seen 2026-09-04, not in AHK)
     ),
 }

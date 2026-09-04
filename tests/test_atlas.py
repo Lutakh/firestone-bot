@@ -51,4 +51,4 @@ def test_probe_names_unique():
 
 def test_map_mission_groups_cover_priorities():
     assert set(atlas.MAP_MISSION_GROUPS) == {"2 Squad", "War", "Medium", "Short", "Leftover"}
-    assert sum(len(v) for v in atlas.MAP_MISSION_GROUPS.values()) == 75
+    assert sum(len(v) for v in atlas.MAP_MISSION_GROUPS.values()) == 76
