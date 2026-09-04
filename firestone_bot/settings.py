@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import configparser
 import os
+import shutil
 from dataclasses import dataclass, field
 
 # name -> (section, default). Order matters for writing.
@@ -240,4 +241,9 @@ class Settings:
         tmp = path + ".tmp"
         with open(tmp, "w", encoding=self.encoding, newline="\r\n") as f:
             f.write(data)
+        if os.path.exists(path):
+            try:
+                shutil.copyfile(path, path + ".bak")  # last good copy, for manual recovery
+            except OSError:
+                pass
         os.replace(tmp, path)
