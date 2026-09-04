@@ -193,3 +193,7 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   (3,822 -> 3,994 -> ... 5,435 after 8 books), no confirmation; when unaffordable the button is
   still green and the click opens "You need N more Dark rune" with a green OK at client
   (805,595)-(1100,672). The price button turns 0x16BC15 while hovered.
+- Events (2026-09-04): main-screen Events button client (583,930), bell (609,907); list cards
+  175 px apart starting at client y 263 (bell at (1432,283)), list X at client (1490,50); event
+  page tabs "Events"/"Challenges" (Challenges bell at client (1305,28)), page X at (1715,93);
+  Claim buttons client (1343,329)-(1626,388) and the two rows below, matching the AHK probes.

@@ -92,12 +92,23 @@ MM_RATE_POPUP = Probe(1057, 288, 1321, 335, 0x8E4423, 2, "mm_rate_popup")  # Mai
 MM_RATE_POPUP_CLOSE = Point(1397, 307)  # MainMenu.ahk:20
 MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 
-# --- ClaimEvents.ahk ------------------------------------------------------------------------
-EVENTS_RED_DOT = Probe(1719, 170, 1741, 204, RED_DOT, 3, "events_red_dot")  # :7
-EVENTS_ICON = Point(1691, 229)  # :10
-EVENTS_TOP_EVENT = Point(942, 359)  # :15
+# --- ClaimEvents.ahk (main-screen part re-measured 2026-09-04) -------------------------------
+# AHK looked for the red dot in (1719,170)-(1741,204) and clicked the icon at (1691,229): the
+# Events button is now at the bottom left of the main screen (client (583,930), bell (609,907)).
+EVENTS_BELL = Probe(595, 916, 635, 956, RED_DOT, 3, "events_bell")
+EVENTS_ICON = Point(583, 961)
+# Events list: active cards first, 175 px pitch; bell at the top-right corner of a card.
+EVENTS_CARDS = tuple(Point(960, 359 + i * 175) for i in range(4))
+EVENTS_CARD_BELLS = tuple(
+    Probe(1417, 299 + i * 175, 1447, 329 + i * 175, RED_DOT, 3, f"events_card_bell_{i + 1}")
+    for i in range(4)
+)
+EVENTS_LIST_CLOSE = Point(1490, 81)  # X of the list (client (1490,50))
+EVENTS_TOP_EVENT = EVENTS_CARDS[0]  # :15 (AHK clicked (942,359))
 EVENTS_CHALLENGES_TAB = Point(1125, 70)  # :20
-EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button)
+EVENTS_CHALLENGES_TAB_BELL = Probe(1290, 44, 1320, 74, RED_DOT, 3, "events_tab_bell")
+EVENTS_PAGE_CLOSE = Point(1715, 124)  # X of the event page (client (1715,93))
+EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the 2026 layout
     (Probe(1540, 365, 1568, 405, GREEN_BUTTON, 3, "events_claim_1"), Point(1483, 382)),
     (Probe(1538, 592, 1566, 633, GREEN_BUTTON, 3, "events_claim_2"), Point(1496, 604)),
     (Probe(1530, 823, 1568, 870, GREEN_BUTTON, 3, "events_claim_3"), Point(1500, 837)),

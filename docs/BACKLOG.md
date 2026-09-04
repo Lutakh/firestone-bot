@@ -1,7 +1,5 @@
 # Backlog (owner requests, not yet done)
 
-- Events page: claim rewards of the active events (the AHK `ClaimEvents` only handles the top
-  event's three challenges).
 - Battle Pass: claim available rewards.
 - Robustness against network / server slowness: slow UI, clicks landing on the wrong screen,
   clicks not registered. Ideas: wait-for-probe helpers instead of fixed sleeps at screen
