@@ -43,7 +43,7 @@ def main() -> int:
         os.path.join(ROOT, "build", "work"),
         os.path.join(ROOT, "firestone-bot.spec"),
     ]
-    r = subprocess.run(cmd, cwd=ROOT)
+    r = subprocess.run(cmd, cwd=ROOT, check=False)
     if r.returncode != 0:
         return r.returncode
     src = os.path.join(STAGE, "FirestoneBot")
