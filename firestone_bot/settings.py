@@ -48,6 +48,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "MaxChaos": ("CommonOptions", "10"),
     "ChaosCountDaily": ("CommonOptions", "0"),
     "LastChaosReset": ("CommonOptions", ""),
+    "ChaosGuardianOrder": ("CommonOptions", "1,2,3,4"),
     "UpgradeSpecial": ("HeroOptions", "1"),
     "UpgradeGuardian": ("HeroOptions", "1"),
     "UpgradeH1": ("HeroOptions", "1"),

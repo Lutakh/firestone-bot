@@ -245,6 +245,12 @@ class MainWindow:
         f.grid(sticky="w", padx=8, pady=2)
         ttk.Label(f, text="Max chaos hits per day (0 = no limit):").pack(side="left")
         ttk.Entry(f, textvariable=self._var("MaxChaos"), width=5).pack(side="left", padx=6)
+        f = ttk.Frame(g)
+        f.grid(sticky="w", padx=8, pady=2)
+        ttk.Label(f, text="Guardian upgrade order, chaos tab (e.g. 3,1,2,4):").pack(side="left")
+        ttk.Entry(f, textvariable=self._var("ChaosGuardianOrder"), width=10).pack(
+            side="left", padx=6
+        )
         self._check(g, "Shop", "Free Gift & Check-In")
         self._combo(g, "Delay", "End of Cycle Delay (Sec):", ["0", "30", "60", "90", "120"])
         g = self._group(tab, "Tavern / Scarab", row=1, column=2)

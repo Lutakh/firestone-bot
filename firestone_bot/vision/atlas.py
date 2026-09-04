@@ -223,6 +223,16 @@ GUARDIAN_EVOLVE_BUTTON = Point(1117, 750)  # :21
 GUARDIAN_BACK_TAB = Point(1049, 171)  # :26
 GUARDIAN_TRAIN_READY = Probe(1199, 766, 1257, 810, GREEN_BUTTON, 3, "guardian_train_ready")  # :32
 GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
+# Chaos-rift tab of the guardian screen (Python-only, measured 2026-09-04): third tab, bell on
+# it, bells at the top-right corner of the 4 roster portraits, green Upgrade button.
+GUARDIAN_CHAOS_TAB = Point(1360, 171)
+GUARDIAN_CHAOS_TAB_BELL = Probe(1385, 111, 1415, 141, RED_DOT, 3, "guardian_chaos_tab_bell")
+GUARDIAN_ROSTER = tuple(  # (bell probe, portrait click) for roster positions 1..4
+    (Probe(x - 12, 897, x + 12, 921, RED_DOT, 3, f"guardian_bell_{i}"), Point(x - 55, 966))
+    for i, x in enumerate((805, 945, 1085, 1225), start=1)
+)
+GUARDIAN_CHAOS_UPGRADE_READY = Probe(1580, 691, 1770, 781, GREEN_BUTTON, 3, "guardian_chaos_up")
+GUARDIAN_CHAOS_UPGRADE = Point(1672, 731)
 
 # --- ClaimBeer.ahk / UseTavernToken.ahk / CraftArtifact.ahk -----------------------------------
 TAVERN_BEER_TAB = Point(773, 500)  # ClaimBeer.ahk:18

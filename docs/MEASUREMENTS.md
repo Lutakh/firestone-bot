@@ -175,3 +175,7 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   (905..955, 880..920): probing that area tells which token the next hit would spend. A hit
   greys the button for a 3-4 min animation, but closing the rift (BigClose) and clicking it
   again on the guild screen resolves the battle immediately (tokens and damage updated).
+- Guardian screen (Magic Quarter): tabs at client y ~140, third tab "Chaos rift" at x 1360 with
+  its bell at (1400,95); roster portraits at client x 750/890/1030/1170, y 935, bells at the
+  top-right corner (x 805/945/1085/1225, y 878); green "Upgrade" button at client
+  (1560,655)-(1785,755), grey when unaffordable. Logical = client y + 31.

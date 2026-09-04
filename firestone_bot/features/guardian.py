@@ -6,6 +6,7 @@ AHK colour literal `0x0F40000` (7 digits) is read as 0xF40000; kept as RED_DOT.
 from __future__ import annotations
 
 from firestone_bot.features.big_close import big_close
+from firestone_bot.features.guardian_chaos import upgrade_on_guardian_screen
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 
@@ -47,4 +48,6 @@ def guardian(g: Game) -> None:
         g.sleep(1000)
         g.click()
         g.sleep(1000)
+    # Python-only: spend the chaos-rift currency on the third tab when its bell shows
+    upgrade_on_guardian_screen(g)
     big_close(g)

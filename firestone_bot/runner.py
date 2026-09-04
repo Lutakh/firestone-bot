@@ -23,6 +23,7 @@ from firestone_bot.features import (
     exotic_merchant,
     go_map,
     guardian,
+    guardian_chaos,
     guild,
     hero_upgrade,
     main_menu,
@@ -168,6 +169,9 @@ class Runner:
             big_close.big_close(g)
             if not s.flag("NoGuild"):
                 guild.guild(g)
+                if g.vars.pop("chaos_hits", 0):
+                    # Python-only: spend the chaos-rift rewards on the guardians right away
+                    guardian_chaos.upgrade_after_chaos(g)
             # MapStartUp:
             go_map.go_map(g)
             g.heartbeat("MapRedeem")

@@ -63,3 +63,5 @@ def hit_chaos(g: Game) -> None:
         big_close(g)
         _open_rift(g)
     big_close(g)
+    if hits:
+        g.vars["chaos_hits"] = g.vars.get("chaos_hits", 0) + hits  # runner: guardian upgrades

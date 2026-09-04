@@ -38,3 +38,16 @@ def test_chaos_limit_and_reset(tmp_path):
     assert daily.chaos_left(s) == 10 and s.get("LastChaosReset") == s.get("LastTokenReset")
     s.set("MaxChaos", 0)
     assert daily.chaos_left(s) is None
+
+
+def test_guardian_order_parsing():
+    from firestone_bot.features.guardian_chaos import guardian_order
+
+    class G:
+        settings = Settings()
+
+    g = G()
+    g.settings.set("ChaosGuardianOrder", "3, 1,2;4,3,9")
+    assert guardian_order(g) == [3, 1, 2, 4]
+    g.settings.set("ChaosGuardianOrder", "")
+    assert guardian_order(g) == [1, 2, 3, 4]
