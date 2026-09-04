@@ -12,6 +12,8 @@ from firestone_bot.vision import atlas
 
 
 def guardian(g: Game) -> None:
+    if not g.settings.flag("GuardianVisit"):
+        return
     g.focus()
     # open Magic Quarter
     g.move_to(atlas.TOWN_MAGIC_QUARTER)
@@ -19,7 +21,7 @@ def guardian(g: Game) -> None:
     g.click()
     g.sleep(6500)  # the guardian screen comes up slower at times
     # check for evolve
-    if g.found(atlas.GUARDIAN_EVOLVE_DOT):
+    if g.settings.flag("GuardianEvolve") and g.found(atlas.GUARDIAN_EVOLVE_DOT):
         g.move_to(atlas.GUARDIAN_EVOLVE_TAB)
         g.sleep(1000)
         g.click()
@@ -32,7 +34,7 @@ def guardian(g: Game) -> None:
         g.click()
         g.sleep(1000)
     # check for training
-    if g.found(atlas.GUARDIAN_TRAIN_READY):
+    if g.settings.flag("GuardianTraining") and g.found(atlas.GUARDIAN_TRAIN_READY):
         g.key_down("left")
         g.sleep(2000)
         g.key_up("left")
@@ -49,5 +51,6 @@ def guardian(g: Game) -> None:
         g.click()
         g.sleep(1000)
     # Python-only: spend the chaos-rift currency on the third tab when its bell shows
-    upgrade_on_guardian_screen(g)
+    if g.settings.flag("GuardianChaosUpgrades"):
+        upgrade_on_guardian_screen(g)
     big_close(g)

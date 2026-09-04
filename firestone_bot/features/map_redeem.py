@@ -107,4 +107,5 @@ def map_redeem(g: Game) -> None:
                     break
                 continue  # Goto, Troops
         break
-    claim_campaign(g)
+    if g.settings.flag("Campaign"):
+        claim_campaign(g)

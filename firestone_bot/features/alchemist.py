@@ -16,7 +16,8 @@ def alchemist(g: Game) -> None:
     g.click()
     g.sleep(1500)
     # collect completed experiments (only when the slot is running)
-    for slot in atlas.ALCHEMY_SLOTS:
+    collect = g.settings.flag("AlchCollect")
+    for slot in atlas.ALCHEMY_SLOTS if collect else ():
         if g.found(slot.not_running):
             g.toast("Alchemy Status", f"{slot.name} alchemy is not running", 1.5)
         elif g.found(slot.complete):
@@ -25,7 +26,7 @@ def alchemist(g: Game) -> None:
             g.click()
             g.sleep(1000)
     # free to complete
-    for slot in atlas.ALCHEMY_SLOTS:
+    for slot in atlas.ALCHEMY_SLOTS if collect else ():
         if g.found(slot.free):
             g.move_to(slot.collect)
             g.toast("Alchemy Status", f"{slot.name} experiment is free to complete", 1.5)

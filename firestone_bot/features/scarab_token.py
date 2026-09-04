@@ -8,6 +8,8 @@ from firestone_bot.vision import atlas
 
 
 def scarab_token(g: Game) -> None:
+    if not g.settings.flag("ScarabTokenClaim"):
+        return
     g.toast("Scarab's Token", "Claiming Scarab's Token", 2)
     g.focus()
     # open Tavern

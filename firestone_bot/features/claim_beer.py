@@ -52,7 +52,7 @@ def claim_beer(g: Game) -> None:
     g.sleep(1000)
     g.click()
     g.sleep(1000)
-    if g.found(atlas.TAVERN_BEER_CLAIM_READY):
+    if g.settings.flag("TavernBeerTokens") and g.found(atlas.TAVERN_BEER_CLAIM_READY):
         g.move_to(atlas.TAVERN_BEER_CLAIM)
         g.sleep(1000)
         g.click()
@@ -63,6 +63,6 @@ def claim_beer(g: Game) -> None:
         if daily.tokens_left(g.settings) == 0:
             g.status("Tavern: daily token limit already reached, skipping tokens")
         else:
-            if play_tokens(g):
+            if play_tokens(g) and g.settings.flag("CraftArtifact"):
                 craft_artifact(g)
     big_close(g)

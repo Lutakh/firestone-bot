@@ -17,12 +17,14 @@ def build(parent, ctx: PageContext):
     )
 
     card = place_card(Card(content, ctx, "Claims"))
-    for key in ("Events", "Quests", "Mail", "Shop"):
+    for key in ("Events", "Quests", "Mail", "MailDelete", "Shop"):
         card.option(key)
 
     chests = place_card(Card(content, ctx, "Chests (bag)", master="Chests"))
     for key in ("GearChestExclude", "JewelChestExclude", "CelestialChestExclude"):
         chests.option(key)
+    chests.option("OracleGifts")
+    chests.option("MysteryBoxes")
     blessing = chests.option("BlessingChests", always_enabled=True)
 
     def grey_blessing(*_):

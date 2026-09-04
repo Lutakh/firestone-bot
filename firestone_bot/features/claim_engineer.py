@@ -35,7 +35,7 @@ def claim_engineer(g: Game) -> None:
         g.click()
         g.sleep(1500)
     # ClaimTools:
-    if g.found(atlas.ENGINEER_TOOLS_READY):
+    if g.settings.flag("EngineerTools") and g.found(atlas.ENGINEER_TOOLS_READY):
         g.move_to(atlas.ENGINEER_TOOLS_CLAIM)
         g.sleep(1000)
         g.click()

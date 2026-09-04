@@ -172,13 +172,14 @@ class Runner:
             big_close.big_close(g)
             if not s.flag("NoGuild"):
                 guild.guild(g)
-                if g.vars.pop("chaos_hits", 0):
+                if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
                     # Python-only: spend the chaos-rift rewards on the guardians right away
                     guardian_chaos.upgrade_after_chaos(g)
             # MapStartUp:
-            go_map.go_map(g)
-            g.heartbeat("MapRedeem")
-            map_redeem.map_redeem(g)
+            if s.flag("MapMissions"):
+                go_map.go_map(g)
+                g.heartbeat("MapRedeem")
+                map_redeem.map_redeem(g)
             # UpgradeHero:
             if not s.flag("NoHero"):
                 g.heartbeat("HeroUpgrade")

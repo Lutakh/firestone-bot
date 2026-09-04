@@ -19,7 +19,7 @@ def guild(g: Game) -> None:
     g.click()
     g.sleep(1500)
     # check if expeditions are ready
-    if g.found(atlas.GUILD_EXPEDITION_DOT):
+    if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
         g.heartbeat("Guild expedition start", important=True)
         g.move_to(atlas.GUILD_EXPEDITIONS)
         g.sleep(1000)

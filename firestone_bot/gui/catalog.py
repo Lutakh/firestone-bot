@@ -309,6 +309,56 @@ OPTIONS: dict[str, Option] = {
     "MaxChaos": Option(
         "Chaos hits per day", "Free-token hits only.", "num", zero_means="0 = no limit"
     ),
+    # --- per-action switches (section [Actions], Python-only, default ON) ---
+    "GuardianVisit": Option(
+        "Visit the guardians (Magic quarter)",
+        "Master switch of the guardian visit: evolve, training and chaos-rift upgrades below.",
+        "switch",
+    ),
+    "GuardianEvolve": Option("Evolve the guardian", "When the evolve tab shows its dot.", "switch"),
+    "GuardianTraining": Option(
+        "Train the guardian", "Uses the training level chosen below.", "switch"
+    ),
+    "GuardianChaosUpgrades": Option(
+        "Spend chaos-rift rewards on the guardians",
+        "Third tab of the guardian screen, in the order below; also right after the chaos hits.",
+        "switch",
+    ),
+    "TavernBeerTokens": Option(
+        "Buy tavern tokens with beer",
+        "Clicks the token shop's beer offer when affordable.",
+        "switch",
+    ),
+    "CraftArtifact": Option(
+        "Craft an artifact", "After the tavern tokens, when the craft button is green.", "switch"
+    ),
+    "ScarabTokenClaim": Option(
+        "Claim the Pharaoh's token", "Scarab game notification in the tavern.", "switch"
+    ),
+    "Rituals": Option("Claim the rituals", "Oracle rituals tab when its dot shows.", "switch"),
+    "EngineerTools": Option(
+        "Claim the engineer's tools", "Green claim button at the engineer.", "switch"
+    ),
+    "AlchCollect": Option(
+        "Collect finished experiments",
+        "Collects completed and free-to-complete experiments before starting new ones.",
+        "switch",
+    ),
+    "GuildExpedition": Option(
+        "Start the guild expedition",
+        "When the expeditions dot shows on the guild screen.",
+        "switch",
+    ),
+    "MapMissions": Option(
+        "Run the map missions",
+        "Master switch of the whole map visit: mission claims, troop dispatch (priority order "
+        "below), campaign and liberation.",
+        "switch",
+    ),
+    "Campaign": Option("Claim the campaign", "Campaign rewards after the map missions.", "switch"),
+    "MailDelete": Option("Delete read mail", "After claiming the attachments.", "switch"),
+    "OracleGifts": Option("Open Oracle's gifts", "From the bag, after the chests.", "switch"),
+    "MysteryBoxes": Option("Open mystery boxes", "From the bag, after the chests.", "switch"),
     "ChaosBooks": Option(
         "Buy the chaos rift books",
         "Once a day, after the hits: opens the rift Shop when it shows a notification and buys "

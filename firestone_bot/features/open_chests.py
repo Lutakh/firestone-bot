@@ -50,10 +50,12 @@ def open_chests(g: Game) -> None:
     # JewelChests:
     _open_group(g, atlas.JEWEL_CHESTS, atlas.JEWEL_CHEST_START.get(g.settings.JewelChestExclude, 0))
     # Gifts:
-    g.toast("Open Chests", "Opening Oracle Gifts", 1.5)
-    oracles_gift(g)
-    g.toast("Open Chests", "Opening Mystery Boxes", 1.5)
-    mystery_box(g)
+    if g.settings.flag("OracleGifts"):
+        g.toast("Open Chests", "Opening Oracle Gifts", 1.5)
+        oracles_gift(g)
+    if g.settings.flag("MysteryBoxes"):
+        g.toast("Open Chests", "Opening Mystery Boxes", 1.5)
+        mystery_box(g)
     if g.settings.flag("Bless"):
         open_bless_chests(g)
     else:

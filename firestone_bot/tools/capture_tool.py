@@ -21,7 +21,13 @@ DPI_MODE = set_dpi_aware()  # must run before mss / window code is imported
 
 def main(argv: list[str] | None = None) -> int:
     from firestone_bot.platform import capture
-    from firestone_bot.platform.window import Rect, activate, find_game_window, screen_size
+    from firestone_bot.platform.window import (
+        GameWindowNotFound,
+        Rect,
+        activate,
+        find_game_window,
+        screen_size,
+    )
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True, help="PNG path")
@@ -29,14 +35,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--activate", action="store_true", help="bring the game to the front first")
     args = ap.parse_args(argv)
 
-    win = find_game_window()
-    if args.activate:
+    win = None
+    try:
+        win = find_game_window()
+    except GameWindowNotFound:
+        if not args.full_screen:
+            raise
+    if args.activate and win is not None:
         activate(win)
         time.sleep(0.5)
-    rect = win.client
     if args.full_screen:
         sw, sh = screen_size()
         rect = Rect(0, 0, sw, sh)
+    else:
+        rect = win.client
     img = capture.grab(rect)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     capture.save_png(img, args.out)
@@ -44,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         "captured_at": datetime.now(UTC).isoformat(),
         "dpi_mode": DPI_MODE,
         "capture_rect": asdict(rect),
-        "window": asdict(win),
+        "window": asdict(win) if win is not None else None,
         "image_shape": list(img.shape),
     }
     with open(os.path.splitext(args.out)[0] + ".json", "w", encoding="utf-8") as f:

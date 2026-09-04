@@ -34,8 +34,11 @@ def build(parent, ctx: PageContext):
     )
     s = ctx.settings
 
-    guardian = place_card(Card(content, ctx, "Guardian"))
+    guardian = place_card(Card(content, ctx, "Guardian", master="GuardianVisit"))
+    guardian.option("GuardianEvolve")
+    guardian.option("GuardianTraining")
     guardian.option("GuardianTrain")
+    guardian.option("GuardianChaosUpgrades")
     opt = OPTIONS["ChaosGuardianOrder"]
     guardian.row(
         opt.label,
@@ -45,12 +48,14 @@ def build(parent, ctx: PageContext):
         ),
     )
 
-    tavern = place_card(Card(content, ctx, "Tavern"))
+    tavern = place_card(Card(content, ctx, "Tavern", master="Beer"))
+    tavern.option("TavernBeerTokens")
     tavern.option("Token")
     tokens = tavern.option("MaxTokens")
-    tavern.option("Beer")
-    tavern.option("Scarab")
-    scarab = tavern.option("MaxScarab")
+    tavern.option("CraftArtifact")
+    tavern.option("ScarabTokenClaim", always_enabled=True)
+    tavern.option("Scarab", always_enabled=True)
+    scarab = tavern.option("MaxScarab", always_enabled=True)
 
     def tick_tavern():
         tokens.control.set_live(f"used today: {daily._int(s, 'TokenCountDaily')}")
@@ -60,11 +65,12 @@ def build(parent, ctx: PageContext):
     ctx.register_tick(tick_tavern)
 
     oracle = place_card(Card(content, ctx, "Oracle", master="SkipOracle"))
+    oracle.option("Rituals")
     oracle.option("Bless")
     oracle.option("DailyOracle")
 
-    engineer = place_card(Card(content, ctx, "Engineer"))
-    engineer.option("NoEng")
+    engineer = place_card(Card(content, ctx, "Engineer", master="NoEng"))
+    engineer.option("EngineerTools")
     link = LinkButton(engineer.body, "War machine upgrades…", lambda: ctx.show_page("missions"))
     engineer.add(link, always_enabled=True, pady=(0, 2))
 
@@ -94,6 +100,7 @@ def build(parent, ctx: PageContext):
     ctx.register_tick(tick_arena)
 
     alch = place_card(Card(content, ctx, "Alchemist", master="Alch"))
+    alch.option("AlchCollect")
     alch.option("DragonBlood")
     alch.option("Dust")
     alch.option("Coin")

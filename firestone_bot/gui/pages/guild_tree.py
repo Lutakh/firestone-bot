@@ -16,7 +16,7 @@ def build(parent, ctx: PageContext):
     s = ctx.settings
 
     guild = place_card(Card(content, ctx, "Guild", master="NoGuild"))
-    for key in ("GNotif", "Pickaxes", "Crystal", "Awaken", "Chaos"):
+    for key in ("GuildExpedition", "GNotif", "Pickaxes", "Crystal", "Awaken", "Chaos"):
         guild.option(key)
     chaos = guild.option("MaxChaos")
     guild.option("ChaosBooks")

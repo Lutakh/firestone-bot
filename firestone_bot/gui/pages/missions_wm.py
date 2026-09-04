@@ -17,8 +17,8 @@ def build(parent, ctx: PageContext):
         Card(
             content,
             ctx,
-            "Mission priority",
-            subtitle="Order in which the map's mission categories are filled.",
+            "Map missions",
+            master="MapMissions",
         )
     )
     holder: dict[str, OrderedList] = {}
@@ -42,7 +42,7 @@ def build(parent, ctx: PageContext):
     )
     prio.option("MapReset")
 
-    campaign = place_card(Card(content, ctx, "Campaign"))
+    campaign = place_card(Card(content, ctx, "Campaign", master="Campaign"))
     campaign.option("Liberation")
     campaign.option("DungeonQuest")
 

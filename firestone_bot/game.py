@@ -85,6 +85,9 @@ class Game:
             return
         if not self.dry_run:
             activate(win)
+            if win.client.w == 0:  # was minimised: read the restored client rect
+                self.sleep(500)
+                self.refresh_window()
 
     def _viewport(self) -> Viewport:
         if self.vp is None:

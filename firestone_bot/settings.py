@@ -127,6 +127,24 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
 # Python-only additions (never written unless changed from default).
 EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "SafetyCap": ("PythonOptions", "0"),  # optional cap on unbounded loops (plan 3.2)
+    # Per-action switches (owner request 2026-09-04): one ON/OFF per bot action that had none
+    # in the AHK settings. Default ON = the AHK behaviour.
+    "GuardianVisit": ("Actions", "1"),
+    "GuardianEvolve": ("Actions", "1"),
+    "GuardianTraining": ("Actions", "1"),
+    "GuardianChaosUpgrades": ("Actions", "1"),
+    "TavernBeerTokens": ("Actions", "1"),
+    "CraftArtifact": ("Actions", "1"),
+    "ScarabTokenClaim": ("Actions", "1"),
+    "Rituals": ("Actions", "1"),
+    "EngineerTools": ("Actions", "1"),
+    "AlchCollect": ("Actions", "1"),
+    "GuildExpedition": ("Actions", "1"),
+    "MapMissions": ("Actions", "1"),
+    "Campaign": ("Actions", "1"),
+    "MailDelete": ("Actions", "1"),
+    "OracleGifts": ("Actions", "1"),
+    "MysteryBoxes": ("Actions", "1"),
 }
 
 ENCODINGS = ("utf-16", "utf-8-sig")

@@ -26,7 +26,7 @@ def check_mail(g: Game) -> None:
         g.click()
         g.sleep(1000)
     # delete mail if any there
-    if g.found(atlas.MAIL_DELETE_READY):
+    if g.settings.flag("MailDelete") and g.found(atlas.MAIL_DELETE_READY):
         g.move_to(atlas.MAIL_DELETE_BUTTON)
         g.sleep(1000)
         g.click()

@@ -65,6 +65,10 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 - **Unknown values** found in `settings.ini` (a legacy `GuardianTrain=Vermilion`, an
   unexpected chest rarity, an invalid priority order) are shown as `(unknown) value` with a
   warning and are never rewritten until you pick something else.
+- **Per-action switches**: every action the bot performs has its own switch (section
+  `[Actions]` of `settings.ini`, all ON by default): guardian visit/evolve/training/chaos
+  upgrades, beer tokens, artifact, Pharaoh's token, rituals, engineer tools, alchemy collection,
+  guild expedition, map missions, campaign, mail deletion, Oracle's gifts, mystery boxes.
 - **Dry run** (sidebar or Dashboard) runs one full cycle with mouse and keyboard disabled and
   logs every probe and click, to check the setup without touching the game.
 - **Safety cap** (Advanced): 0 by default (identical to the AHK bot). The original has loops

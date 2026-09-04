@@ -122,13 +122,20 @@ if sys.platform == "win32":
             return True
 
         user32.EnumWindows(cb, 0)
-        # Prefer the largest client area (Unity may own small helper windows).
+        # Prefer the largest client area (Unity may own small helper windows). A minimised
+        # window reports an empty client rect; keep it as a fallback so activate() can restore
+        # it (callers re-read the rect afterwards).
         best: WindowInfo | None = None
+        iconic: WindowInfo | None = None
         for h in found:
             i = _info(h)
             area = i.client.w * i.client.h
             if area > 0 and (best is None or area > best.client.w * best.client.h):
                 best = i
+            elif user32.IsIconic(h) and iconic is None:
+                iconic = i
+        if best is None:
+            best = iconic
         if best is None:
             raise GameWindowNotFound("Firestone process found but no visible window")
         return best

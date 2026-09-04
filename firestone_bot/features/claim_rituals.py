@@ -17,7 +17,7 @@ def claim_rituals(g: Game) -> None:
     g.click()
     g.sleep(1500)
     # open Rituals tab in Oracle if ready
-    if g.found(atlas.RITUALS_DOT):
+    if g.settings.flag("Rituals") and g.found(atlas.RITUALS_DOT):
         g.move_to(atlas.RITUALS_TAB)
         g.sleep(1000)
         g.click()

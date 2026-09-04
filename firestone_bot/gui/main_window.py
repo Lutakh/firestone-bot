@@ -617,6 +617,24 @@ class MainWindow:
         except Exception:
             log.exception("cannot write gui_state.json")
 
+    def _prebuild_pages(self) -> None:
+        """Build one not-yet-built page per idle slot so navigation is instant later."""
+        if self._closed:
+            return
+        for name in PAGE_ORDER:
+            if name not in self.pages:
+                try:
+                    page = build(name, self.content, self.ctx)
+                except Exception:
+                    log.exception("prebuilding page %r failed", name)
+                    return
+                page.grid(row=0, column=0, sticky="nsew")
+                page.grid_remove()
+                self.pages[name] = page
+                self.root.after(200, self._prebuild_pages)
+                return
+
     def run(self) -> None:
         self.root.after(300, self.refresh_status)
+        self.root.after(1200, self._prebuild_pages)
         self.root.mainloop()
