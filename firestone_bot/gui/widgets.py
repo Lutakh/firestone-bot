@@ -40,16 +40,21 @@ def bind_linux_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
     scrollable.bind_all("<Button-5>", scroll, add="+")
 
 
+CONTENT_WIDTH = 960  # page content column cap (page_frame); wrap widths derive from it
+
+
 def autowrap(frame, labels, offset: int = 0, minimum: int = 120) -> None:
-    """Keep the wraplength of `labels` equal to the frame width minus `offset`."""
+    """Give `labels` a fixed wraplength derived from the content width cap.
 
-    def on_configure(event):
-        wrap = max(minimum, event.width - offset)
-        for lbl in labels:
-            if lbl.cget("wraplength") != wrap:
-                lbl.configure(wraplength=wrap)
-
-    frame.bind("<Configure>", on_configure, add="+")
+    A dynamic <Configure> handler here caused an event storm: every wraplength change resized
+    the label, which re-fired <Configure> on the frame and on every customtkinter widget
+    inside it (each one redrawing its canvas). With the content column capped at 960 px a
+    static width is exact for maximised windows and close enough for smaller ones.
+    """
+    wrap = max(minimum, CONTENT_WIDTH - 48 - offset)
+    for lbl in labels:
+        if lbl.cget("wraplength") != wrap:
+            lbl.configure(wraplength=wrap)
 
 
 # -- base control -------------------------------------------------------------------------------
@@ -658,13 +663,8 @@ class OptionRow:
         w.pack(side="left")
         self.control_widget = w
 
-        def wrap_help(event, holder=holder):
-            # the help line takes what the control leaves (the label column has weight 1)
-            wrap = max(160, min(HELP_WRAP, event.width - holder.winfo_reqwidth() - 32))
-            if self.help.cget("wraplength") != wrap:
-                self.help.configure(wraplength=wrap)
-
-        self.widget.bind("<Configure>", wrap_help, add="+")
+        # The help line keeps its static HELP_WRAP: a per-row <Configure> handler adjusting it
+        # re-fired layout events for the whole page (see autowrap).
         if isinstance(self.control, Control):
             self.control.note_cb = self.set_note
             if self.control.note:
@@ -840,9 +840,15 @@ def page_frame(parent, scrollable: bool = True):
     content.grid(row=0, column=0, sticky="nsew", padx=(24, 12), pady=(16, 24))
     page.grid_rowconfigure(0, weight=1)
 
+    state = {"wide": None}
+
     def cap(event):
-        if event.width > 960 + 48:
-            page.grid_columnconfigure(0, weight=0, minsize=960)
+        wide = event.width > CONTENT_WIDTH + 48
+        if wide == state["wide"]:
+            return  # reconfiguring the grid on every event re-fires <Configure> on every child
+        state["wide"] = wide
+        if wide:
+            page.grid_columnconfigure(0, weight=0, minsize=CONTENT_WIDTH)
             page.grid_columnconfigure(1, weight=1)
         else:
             page.grid_columnconfigure(0, weight=1, minsize=0)
