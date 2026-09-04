@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import time
 
+from firestone_bot.features.game_launch import wait_for_start_button
 from firestone_bot.game import Game
 from firestone_bot.platform import process
-from firestone_bot.vision import atlas
 
 
 class PlatformUnknown(RuntimeError):
@@ -38,19 +38,7 @@ def restart_game_routine(g: Game) -> None:
         if platform == "steam":
             g.heartbeat("Game Restarted via Steam, waiting for pixel...", important=True)
         # 4. wait up to 5 minutes for the start button
-        start = time.monotonic()
-        pixel_found = False
-        while time.monotonic() - start < 300:
-            g.focus()  # WinActivate / WinWaitActive / ControlFocus
-            g.sleep(500)
-            g.move_to(atlas.RESTART_HOVER)
-            g.sleep(1000)
-            if g.window is not None and g.found(atlas.RESTART_START_BUTTON):
-                g.click()
-                g.sleep(1000)
-                pixel_found = True
-                break
-            g.sleep(5000)
+        pixel_found = wait_for_start_button(g, 300)
         # 5. resume or retry
         if pixel_found:
             g.heartbeat("Pixel found. Resuming bot.", important=True)

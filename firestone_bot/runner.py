@@ -21,6 +21,7 @@ from firestone_bot.features import (
     claim_events,
     claim_rituals,
     exotic_merchant,
+    game_launch,
     go_map,
     guardian,
     guardian_chaos,
@@ -104,6 +105,10 @@ class Runner:
                 g.heartbeat("Initiating 24h Game Restart", important=True)
                 restart_game_routine.restart_game_routine(g)
                 last_restart = _ms()
+            # Python-only: launch the game if it is closed, restore it if minimised
+            if not game_launch.ensure_game_running(g):
+                g.status("The game could not be started; stopping")
+                return
             g.focus()
             # do main screen sections
             g.heartbeat("Starting Bot", important=True)

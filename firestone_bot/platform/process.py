@@ -76,3 +76,51 @@ def wait_for_game(timeout: float = 120.0, poll: float = 1.0) -> psutil.Process |
             return p
         time.sleep(poll)
     return None
+
+
+EPIC_DEFAULT_EXE = r"C:\Program Files\Epic Games\FirestoneOnlineIdleRPG\Firestone.exe"
+
+
+def _steam_library_paths() -> list[str]:
+    """Steam library roots from libraryfolders.vdf (Windows default install)."""
+    import re
+
+    roots = []
+    for base in (r"C:\Program Files (x86)\Steam", r"C:\Program Files\Steam"):
+        vdf = os.path.join(base, "steamapps", "libraryfolders.vdf")
+        if os.path.exists(vdf):
+            roots.append(base)
+            try:
+                with open(vdf, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except OSError:
+                continue
+            roots += [p.replace("\\\\", "\\") for p in re.findall(r'"path"\s+"([^"]+)"', text)]
+    return roots
+
+
+def installed_platforms() -> list[str]:
+    """Stores with a Firestone install on this machine (Windows paths), e.g. ['epic', 'steam']."""
+    found = []
+    if os.path.exists(EPIC_DEFAULT_EXE):
+        found.append("epic")
+    for root in _steam_library_paths():
+        if os.path.exists(os.path.join(root, "steamapps", "common", "Firestone", "Firestone.exe")):
+            found.append("steam")
+            break
+    return found
+
+
+def choose_platform(setting: str, last: str = "") -> str | None:
+    """Platform to launch: the GamePlatform setting, else the running game's store, else the
+    platform used last, else the first install found."""
+    setting = (setting or "auto").strip().lower()
+    if setting in ("steam", "epic"):
+        return setting
+    running = detect_platform()
+    if running in ("steam", "epic"):
+        return running
+    installed = installed_platforms()
+    if last in installed:
+        return last
+    return installed[0] if installed else None

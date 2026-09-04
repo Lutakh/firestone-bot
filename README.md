@@ -65,6 +65,9 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 - **Unknown values** found in `settings.ini` (a legacy `GuardianTrain=Vermilion`, an
   unexpected chest rarity, an invalid priority order) are shown as `(unknown) value` with a
   warning and are never rewritten until you pick something else.
+- **Game launch**: START (and every cycle start) launches the game through Steam or Epic when
+  it is not running (Advanced > Game launch, auto-detected by default) and restores it when it
+  is minimised; the Dashboard check does the same instead of reporting an error.
 - **Daily limits** (Town / Guild pages): tavern tokens, chaos hits, scarab plays and arcane
   crystal hits per game day (defaults 12 / 10 / 10 / 5, 0 = no limit); each is done in one
   visit and then skipped until the daily shop's free box is claimable again.

@@ -125,17 +125,52 @@ class App:
 
     def self_test(self) -> dict[str, str]:
         from firestone_bot.platform import capture, process
-        from firestone_bot.platform.window import GameWindowNotFound, find_game_window
+        from firestone_bot.platform.window import GameWindowNotFound, activate, find_game_window
         from firestone_bot.vision.viewport import Viewport
 
         out = {"dpi": self.dpi_mode}
         try:
             win = find_game_window()
-        except GameWindowNotFound as e:
-            out.update(window=f"not found ({e})", platform="-", client="-", scale="-", capture="-")
+        except GameWindowNotFound:
+            if process.find_game_process() is None:
+                installs = ", ".join(process.installed_platforms()) or "none found"
+                out.update(
+                    window=f"game not running (installs: {installs}); START launches it",
+                    platform="-",
+                    client="-",
+                    scale="-",
+                    capture="-",
+                )
+            else:
+                out.update(
+                    window="game starting (no window yet)",
+                    platform="-",
+                    client="-",
+                    scale="-",
+                    capture="-",
+                )
+            return out
+        restored = False
+        if win.client.w == 0:  # minimised: bring it back to run the checks
+            activate(win)
+            time.sleep(0.6)
+            win = find_game_window()
+            restored = True
+        if win.client.w == 0 or win.client.h == 0:
+            out.update(
+                window="game window minimised and could not be restored",
+                platform=process.detect_platform(win.exe),
+                client="-",
+                scale="-",
+                capture="-",
+            )
             return out
         vp = Viewport(win.client)
-        out["window"] = f"'{win.title}' pid {win.pid}" + (" maximized" if win.maximized else "")
+        out["window"] = (
+            f"'{win.title}' pid {win.pid}"
+            + (" maximized" if win.maximized else "")
+            + (" (restored from minimised)" if restored else "")
+        )
         out["platform"] = process.detect_platform(win.exe)
         out["client"] = f"{win.client.w}x{win.client.h} at ({win.client.x},{win.client.y})"
         aspect_ok = abs(win.client.w / win.client.h - 1920 / 1009) < 0.01

@@ -31,6 +31,9 @@ def build(parent, ctx: PageContext):
     )
     cycle.option("SafetyCap")
 
+    launch = place_card(Card(content, ctx, "Game launch"))
+    launch.option("GamePlatform")
+
     restart = place_card(Card(content, ctx, "Game restart", master="RestartGame"))
     restart.option("RestartGameTime")
     restart.option("RestartGameTest")

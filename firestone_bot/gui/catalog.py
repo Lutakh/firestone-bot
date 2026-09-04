@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from firestone_bot.runner import END_OF_CYCLE_DELAYS
-from firestone_bot.settings import SETTINGS_MAP
+from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP
 
 GEAR_CHOICES = [
     "Exclude All",
@@ -117,6 +117,7 @@ READ_ONLY_KEYS = {
     "LastChaosReset",
     "ChaosBooksDaily",
     "CrystalCountDaily",
+    "LastPlatform",
     "ScarabCountDaily",
     "ClientID",
 }
@@ -449,6 +450,15 @@ OPTIONS: dict[str, Option] = {
         tuple(DELAY_CHOICES),
         DELAY_DISPLAY,
     ),
+    "GamePlatform": Option(
+        "Store used to launch the game",
+        "When the game is not running at START (or at a cycle start) the bot launches it "
+        "through this store and waits for the start button. Auto = the store seen last, else "
+        "whichever install exists.",
+        "choice",
+        ("auto", "steam", "epic"),
+        {"auto": "Auto", "steam": "Steam", "epic": "Epic Games"},
+    ),
     "SafetyCap": Option(
         "Safety cap on unbounded loops",
         "Some loops wait forever for a screen change (arena, liberation, hero upgrades, "
@@ -487,6 +497,7 @@ READ_ONLY_LABELS = {
     "TokenCountDaily": "Tokens used today",
     "ChaosCountDaily": "Chaos hits today",
     "CrystalCountDaily": "Crystal hits today",
+    "LastPlatform": "Store seen last",
     "ScarabCountDaily": "Scarab plays today",
     "ArenaDoneDaily": "Arena done today",
     "LastTokenReset": "Last reset (tokens)",
@@ -494,7 +505,7 @@ READ_ONLY_LABELS = {
     "ClientID": "Client ID",
 }
 
-ALL_KEYS = set(SETTINGS_MAP) | {"SafetyCap"}
+ALL_KEYS = set(SETTINGS_MAP) | set(EXTRA_SETTINGS)
 
 
 # -- validators and formatters -----------------------------------------------------------------
