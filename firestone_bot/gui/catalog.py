@@ -80,7 +80,7 @@ DELAY_DISPLAY = {
 RESTART_HOURS = ["6", "12", "18", "24"]
 RESTART_DISPLAY = {h: f"{h} h" for h in RESTART_HOURS}
 GUARDIAN_LEVELS = ["1", "2", "3", "4"]
-GUARDIAN_DISPLAY = {"1": "Guardian 1", "2": "Guardian 2", "3": "Guardian 3", "4": "Guardian 4"}" for n in GUARDIAN_LEVELS}
+GUARDIAN_DISPLAY = {n: f"Guardian {n}" for n in GUARDIAN_LEVELS}
 CHAOS_GUARDIAN_CHOICES = ["1", "2", "3", "4"]
 SELL_KEYS = ["SellScrolls", "SellNoGold", "SellAll", "SellNone"]
 # features/exotic_merchant.py checks the flags in this order when several are set.
