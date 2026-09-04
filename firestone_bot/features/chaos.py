@@ -1,10 +1,14 @@
 """Chaos rift from the guild screen (Python rework of subFunctions/Chaos.ahk).
 
 The AHK bot switched the rift to Auto, which spends every available token, including the
-paid ones (orange medallion, second counter top right). The rework only hits manually while
-the icon shown inside the green "Hit" button is the FREE token (blue moon, first counter,
-10 per day, refilled about an hour after the daily reset), and stops after MaxChaos hits per
-game day (ChaosCountDaily, cleared by the daily reset). The Auto/Manual toggle is never touched.
+paid ones (orange medallion, second counter top right). The rework only hits while the icon
+shown inside the green "Hit" button is the FREE token (blue moon, first counter, 10 per day,
+refilled about an hour after the daily reset), and stops after MaxChaos hits per game day
+(ChaosCountDaily, cleared by the daily reset). The Auto/Manual toggle is never touched.
+
+A hit starts a 3-4 minute battle animation during which the button is grey, but leaving the
+rift and reopening it resolves the battle at once (measured 2026-09-04), so the loop closes
+and reopens the rift between hits instead of waiting.
 """
 
 from __future__ import annotations
@@ -24,15 +28,9 @@ def _hit_button_token(g: Game) -> str:
     return "none"
 
 
-def _wait_hit_button(g: Game, timeout_ms: int = 30000) -> bool:
-    """Wait for the green Hit button to be back after a hit animation."""
-    waited = 0
-    while waited < timeout_ms:
-        if g.found(atlas.CHAOS_HIT_READY):
-            return True
-        g.sleep(1000)
-        waited += 1000
-    return False
+def _open_rift(g: Game) -> None:
+    g.click_point(atlas.CHAOS_OPEN)  # MouseClick, Left, x, y, 1, 0
+    g.sleep(2000)
 
 
 def hit_chaos(g: Game) -> None:
@@ -40,16 +38,15 @@ def hit_chaos(g: Game) -> None:
     # Check for Chaos notification on guild screen
     if not g.found(atlas.CHAOS_DOT):
         return
-    g.click_point(atlas.CHAOS_OPEN)  # MouseClick, Left, x, y, 1, 0
-    g.sleep(1500)
+    _open_rift(g)
     hits = 0
     while True:
         left = daily.chaos_left(g.settings)
         if left == 0:
             g.status(f"Chaos rift: daily limit reached ({g.settings.MaxChaos}), leaving")
             break
-        if not _wait_hit_button(g):
-            g.status("Chaos rift: Hit button not found, leaving")
+        if not g.found(atlas.CHAOS_HIT_READY):
+            g.status("Chaos rift: Hit button not ready, leaving")
             break
         token = _hit_button_token(g)
         if token != "free":
@@ -58,8 +55,11 @@ def hit_chaos(g: Game) -> None:
         g.move_to(atlas.CHAOS_HIT)
         g.sleep(1000)
         g.click()
-        g.sleep(3000)
+        g.sleep(1500)
         daily.note_chaos_hit(g.settings)
         hits += 1
         g.status(f"Chaos rift: hit {hits} ({g.settings.ChaosCountDaily} today)")
+        # leave and come back: the battle resolves and the button is green again
+        big_close(g)
+        _open_rift(g)
     big_close(g)

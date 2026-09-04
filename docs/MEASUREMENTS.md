@@ -169,3 +169,9 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   right after the 10:00 reset on 2026-09-04); once claimed the card moves to the END of the row
   ("Claimed" text) and a paid deal takes the first slot. Claiming shows no pop-up; the box goes
   to the bag. The main-screen shop red dot was present after the reset (check-in pending).
+- Guild > Chaos rift: two token counters top right, free (blue moon + cyan orb, 0x3182C6 /
+  0x3969AD, client (1370..1430, 10..60)) and paid (orange medallion 0xA54510 / 0xB53400,
+  client (1555..1615, 10..60)). The same icon is drawn inside the green Hit button, client
+  (905..955, 880..920): probing that area tells which token the next hit would spend. A hit
+  greys the button for a 3-4 min animation, but closing the rift (BigClose) and clicking it
+  again on the guild screen resolves the battle immediately (tokens and damage updated).

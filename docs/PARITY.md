@@ -93,3 +93,4 @@ Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, 
 | Daily reset detection | `daily.py`, `shop.py` | free box claimable = new game day; shop is visited every cycle (when its red dot shows) regardless of the Shop setting |
 | Tavern token limit | `MaxTokens` (GUI: Tavern group), `TokenCountDaily` | 0 = unlimited; counters persisted in settings.ini, cleared at the detected reset |
 | Arena once per day | `ArenaDoneDaily` | set after the 5 battles (or the "buy more" pop-up); the 6 h timer still applies too |
+| Chaos rift with free tokens only | `features/chaos.py`, `MaxChaos`/`ChaosCountDaily` | AHK toggled Auto (spends paid orange tokens too). Rework hits manually only while the Hit button shows the blue free-token icon, closes/reopens the rift between hits (resolves the 3-4 min battle instantly), max MaxChaos per game day (GUI: Daily Routine group) |
