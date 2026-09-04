@@ -8,30 +8,46 @@ from __future__ import annotations
 
 import time
 
-from pynput.keyboard import Controller as _KeyboardController
-from pynput.keyboard import Key
-from pynput.mouse import Button
-from pynput.mouse import Controller as _MouseController
+# pynput opens the display / installs hooks at import time, so it is imported on first use:
+# importing the feature modules (tests, headless CI) must not need a display.
+_mouse = None
+_keyboard = None
+_KEYS: dict[str, object] = {}
+_Button = None
 
-_mouse = _MouseController()
-_keyboard = _KeyboardController()
 
-KEYS = {
-    "alt": Key.alt,
-    "enter": Key.enter,
-    "tab": Key.tab,
-    "left": Key.left,
-    "right": Key.right,
-    "esc": Key.esc,
-}
+def _ensure() -> None:
+    global _mouse, _keyboard, _Button
+    if _mouse is not None:
+        return
+    from pynput.keyboard import Controller as KeyboardController
+    from pynput.keyboard import Key
+    from pynput.mouse import Button
+    from pynput.mouse import Controller as MouseController
+
+    _mouse = MouseController()
+    _keyboard = KeyboardController()
+    _Button = Button
+    _KEYS.update(
+        {
+            "alt": Key.alt,
+            "enter": Key.enter,
+            "tab": Key.tab,
+            "left": Key.left,
+            "right": Key.right,
+            "esc": Key.esc,
+        }
+    )
 
 
 def move(x: int, y: int) -> None:
+    _ensure()
     _mouse.position = (x, y)
 
 
 def click(button: str = "left") -> None:
-    _mouse.click(Button.left if button == "left" else Button.right)
+    _ensure()
+    _mouse.click(_Button.left if button == "left" else _Button.right)
 
 
 def click_at(x: int, y: int) -> None:
@@ -41,6 +57,7 @@ def click_at(x: int, y: int) -> None:
 
 def wheel(notches: int, interval: float = 0.2) -> None:
     """Scroll `notches` wheel clicks (negative = down, like AHK WheelDown), `interval` apart."""
+    _ensure()
     step = 1 if notches > 0 else -1
     for _ in range(abs(notches)):
         _mouse.scroll(0, step)
@@ -48,7 +65,8 @@ def wheel(notches: int, interval: float = 0.2) -> None:
 
 
 def _key(name: str):
-    return KEYS.get(name.lower(), name)
+    _ensure()
+    return _KEYS.get(name.lower(), name)
 
 
 def key(name: str) -> None:

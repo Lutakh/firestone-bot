@@ -81,6 +81,7 @@ class MainWindow:
         self.settings = settings
         self.on_start, self.on_stop, self.on_dry_run = on_start, on_stop, on_dry_run
         self.on_self_test, self.on_exit = on_self_test, on_exit
+        self.on_env_restored = None  # set by the app: raise the window after a restore
         self.is_running = is_running
         self.base_dir = base_dir or os.getcwd()
         self.state_path = os.path.join(self.base_dir, "gui_state.json")
@@ -473,7 +474,9 @@ class MainWindow:
         )
 
     # -- self-test ------------------------------------------------------------------------------
-    def refresh_status(self) -> None:
+    def refresh_status(self, manual: bool = True) -> None:
+        """Environment check. Manual (F5 / button) checks may restore a minimised game and
+        then raise this window; the 30 s auto-refresh only reports."""
         if self._selftest_inflight or self._closed:
             return
         self._selftest_inflight = True
@@ -485,13 +488,16 @@ class MainWindow:
 
         def worker():
             try:
-                result = self.on_self_test()
+                try:
+                    result = self.on_self_test(restore=manual)
+                except TypeError:  # older callbacks without the keyword
+                    result = self.on_self_test()
             except Exception as e:
                 log.exception("self-test failed")
                 result = {"window": f"self-test failed: {e}"}
             finally:
                 capture.close()  # per-thread mss instance: 2 GDI objects per thread otherwise
-            self.ui_queue.put(("selftest", (gen, result)))
+            self.ui_queue.put(("selftest", (gen, result, manual)))
 
         threading.Thread(target=worker, name="gui-selftest", daemon=True).start()
 
@@ -505,7 +511,7 @@ class MainWindow:
         return f"Last checked {stamp} · {mode}"
 
     def _apply_selftest(self, payload) -> None:
-        gen, result = payload
+        gen, result, manual = payload
         self._selftest_outstanding = max(0, self._selftest_outstanding - 1)
         if gen != self._selftest_gen:
             log.info("self-test worker %d answered late; ignored", gen)
@@ -514,6 +520,8 @@ class MainWindow:
         self._last_selftest = time.time()
         self._last_env = dict(result)
         self.dash.env_result(result, self._env_footer())
+        if manual and "restored" in result.get("window", "") and self.on_env_restored:
+            self.on_env_restored()
 
     # -- main-thread loop -----------------------------------------------------------------------
     def _tick(self) -> None:
@@ -581,7 +589,7 @@ class MainWindow:
                 and not self._was_running
                 and time.time() - self._last_selftest >= SELFTEST_PERIOD
             ):
-                self.refresh_status()
+                self.refresh_status(manual=False)
             elif self._last_selftest:
                 self.dash.set_env_footer(self._env_footer())
 

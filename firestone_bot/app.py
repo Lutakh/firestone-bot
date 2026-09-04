@@ -75,6 +75,7 @@ class App:
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)
         self.runner.on_finished = lambda: self.window.root.after(600, self.present)
+        self.window.on_env_restored = self._raise_window
         self._install_hotkey()
         self.window.root.after(100, self.present)
 
@@ -151,7 +152,7 @@ class App:
         if self._hotkey_listener:
             self._hotkey_listener.stop()
 
-    def self_test(self) -> dict[str, str]:
+    def self_test(self, restore: bool = False) -> dict[str, str]:
         from firestone_bot.platform import capture, process
         from firestone_bot.platform.window import GameWindowNotFound, activate, find_game_window
         from firestone_bot.vision.viewport import Viewport
@@ -179,14 +180,16 @@ class App:
                 )
             return out
         restored = False
-        if win.client.w == 0:  # minimised: bring it back to run the checks
+        if win.client.w == 0 and restore:  # minimised: bring it back to run the checks
             activate(win)
             time.sleep(0.6)
             win = find_game_window()
             restored = True
         if win.client.w == 0 or win.client.h == 0:
             out.update(
-                window="game window minimised and could not be restored",
+                window="game window minimised (Re-check restores it; START does too)"
+                if not restore
+                else "game window minimised and could not be restored",
                 platform=process.detect_platform(win.exe),
                 client="-",
                 scale="-",
