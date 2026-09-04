@@ -42,8 +42,16 @@ class App:
             on_dry_run=self.dry_run,
             on_self_test=self.self_test,
             on_exit=self.exit,
+            is_running=lambda: self.runner.running,
+            base_dir=self.base,
         )
         self._hotkey_listener = None
+        self._exit_heartbeat: threading.Thread | None = None
+        # Screenshot / test helpers: open the GUI on a given page or appearance.
+        if page := os.environ.get("FIRESTONE_GUI_PAGE"):
+            self.window.show_page(page)
+        if look := os.environ.get("FIRESTONE_GUI_APPEARANCE"):
+            self.window.set_appearance(look)
 
     # -- callbacks --------------------------------------------------------------------------
     def _status(self, text: str) -> None:
@@ -68,8 +76,19 @@ class App:
         self.window.set_bot_state("stopping...")
 
     def exit(self) -> None:
-        self.game.heartbeat("Exit Bot", is_stop=True, important=True)
+        """Called on the Tk thread from the window's exit path, before settings are flushed:
+        stop the runner and wait briefly so the bot thread's own settings.save() is over."""
         self.runner.stop()
+        # Blocking urlopen (10 s timeout): keep it off the UI thread, joined after mainloop.
+        self._exit_heartbeat = threading.Thread(
+            target=lambda: self.game.heartbeat("Exit Bot", is_stop=True, important=True),
+            name="exit-heartbeat",
+            daemon=True,
+        )
+        self._exit_heartbeat.start()
+        t = self.runner.thread
+        if t and t.is_alive():
+            t.join(timeout=3)
         if self._hotkey_listener:
             self._hotkey_listener.stop()
 
@@ -114,7 +133,7 @@ class App:
                 or keyboard.Key.cmd_l in pressed
                 or keyboard.Key.cmd_r in pressed
             ):
-                self.window.root.after(0, self.window._exit)
+                self.window.request_exit()
 
         def on_release(key):
             pressed.discard(key)
@@ -125,10 +144,9 @@ class App:
 
     def run(self) -> None:
         self._install_hotkey()
-        threading.Thread(
-            target=lambda: self.window.root.after(0, self.window._self_test), daemon=True
-        ).start()
         self.window.run()
+        if self._exit_heartbeat is not None:
+            self._exit_heartbeat.join(timeout=2)
 
 
 def main() -> int:

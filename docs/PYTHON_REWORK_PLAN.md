@@ -94,7 +94,7 @@ Same features, same behaviour, same settings, new runtime:
 | Platform | Steam, Epic (tier 1). Browser (tier 2, after tier 1 is validated) |
 | Distribution | One ZIP per OS built by GitHub Actions: `FirestoneBot.exe` + `_internal/` (PyInstaller onedir). No Python, no pip, no installer. Linux: tar.gz + optional AppImage |
 | Settings | `settings.ini` and `MapStartState.ini` read/written with the SAME sections and keys, UTF-16 or UTF-8 accepted, so existing users just copy their files |
-| GUI | Same 5 tabs and controls (Home, General Options, Guild & Personal Tree, War Machines, Settings) plus a Status panel on Home |
+| GUI | Same settings and variable names as Gui.ahk, regrouped in a customtkinter window (7 pages: Dashboard, Main screen, Town, Guild & Tree, Missions & WM, Advanced, Help), auto-save, live environment check and daily counters on the Dashboard (2026-09-04; the first port had the 5 AHK tabs in tkinter/ttk) |
 | Not in scope | New features, smarter logic, removing delays. Behaviour parity first |
 
 ## 3. Architecture
@@ -107,7 +107,8 @@ python/                       (new; the AHK files stay untouched at the repo roo
     app.py                    wires settings, GUI, runner
     settings.py               INI compatibility layer (same sections/keys as Gui.ahk SettingsMap)
     state.py                  MapStartState.ini
-    gui/                      tkinter/ttk (stdlib, smallest bundle). Same tabs/controls/variable names
+    gui/                      customtkinter 5.2.2: main_window (sidebar, status strip, queue polling),
+                              binding (auto-save), catalog (labels/help/choices per key), widgets, pages/
     runner.py                 main cycle = literal port of MainScript() incl. arena 6 h timer,
                               restart timer, end-of-cycle delay, stop event, Win+Esc hotkey
     platform/
@@ -241,9 +242,12 @@ notes.
 
 ### 4.5 Settings, GUI, runner
 
-`settings.py` (read the owner's existing `settings.ini` unchanged), tkinter GUI with the 5 tabs
-and Status panel (window found, platform, client rect, scale, DPI OK, session type, capture
-self-test, input self-test, Dry-run button, Start/Stop), `runner.py` with the exact main loop.
+`settings.py` (read the owner's existing `settings.ini` unchanged), GUI with a Status panel
+(window found, platform, client rect, scale, DPI OK, session type, capture self-test, input
+self-test, Dry-run button, Start/Stop), `runner.py` with the exact main loop. The GUI was first
+a tkinter/ttk copy of the 5 AHK tabs, then redesigned (2026-09-04) as a customtkinter window
+with seven pages and auto-save; every `SETTINGS_MAP` key is still exposed (coverage enforced by
+`tests/test_gui_catalog.py` and `tests/test_gui_window.py`).
 Run 3 complete cycles unattended on the test account. Then run the AHK bot and the Python bot
 on the same screens to compare behaviour where useful.
 
@@ -305,7 +309,10 @@ Kongregate and CrazyGames in Chrome/Edge and Firefox. Then evaluate section 8.
 - `python-xlib` (Linux only)
 - `opencv-python-headless` (only when templates/anchors are introduced in 4.10; not needed for
   tier 1)
-- `tkinter` (stdlib) for the GUI
+- `customtkinter>=5.2.2,<6` for the GUI (on top of stdlib tkinter; pure Python, theme JSON and
+  fonts collected by `collect_data_files` in the PyInstaller spec; `CTkImage` is never used so
+  Pillow stays excluded). 6.0 is a fresh major rewrite; the API used here is identical, so the
+  pin can move later
 - Dev: `pytest`, `ruff`, `pyinstaller`
 - Do NOT use `pyautogui` (unmaintained, VK-only key injection, needs scrot on Linux).
 

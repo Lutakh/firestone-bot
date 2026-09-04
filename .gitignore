@@ -9,3 +9,4 @@ settings.ini
 MapStartState.ini
 firestone-bot.log
 *.bak
+gui_state.json

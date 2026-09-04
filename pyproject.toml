@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Python port of the Firestone Idle RPG AutoHotkey bot"
 requires-python = ">=3.12"
 dependencies = [
+    "customtkinter>=5.2.2,<6",
     "mss>=9.0,<10",
     "numpy>=1.26,<3",
     "pynput>=1.7.7,<2",

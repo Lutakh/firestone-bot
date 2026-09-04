@@ -1,90 +1,68 @@
-"""tkinter/ttk settings window: the five tabs of Gui.ahk plus a Status panel on Home.
+"""customtkinter main window: sidebar, page area, status strip.
 
-Every control is bound to a tk variable whose trace writes straight into the live Settings
-object, so feature modules see changes immediately (AHK GuiControlGet semantics).
+Threading contract: only the main thread touches Tk. Worker threads (bot, self-test, hotkey
+listener, logging) put messages on `ui_queue`; `_tick` drains it every 150 ms.
 """
 
 from __future__ import annotations
 
+import json
+import logging
+import os
 import queue
+import re
+import subprocess
+import sys
+import threading
+import time
 import tkinter as tk
+from collections import deque
 from collections.abc import Callable
-from tkinter import messagebox, ttk
+from tkinter import messagebox
+
+import customtkinter as ctk
 
 from firestone_bot import __version__
+from firestone_bot.gui import theme
+from firestone_bot.gui.binding import Binder
+from firestone_bot.gui.context import PageContext
+from firestone_bot.gui.logging_bridge import QueueLogHandler
+from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
+from firestone_bot.gui.widgets import StatePill, StatusDot
+from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
-GEAR_CHOICES = [
-    "Exclude All",
-    "Don't Exclude Any",
-    "Epic and Higher",
-    "Legendary and Higher",
-    "Mythic and Higher",
-    "Titan",
-]
-JEWEL_CHOICES = [
-    "Exclude All",
-    "Don't Exclude Any",
-    "Diamond and Higher",
-    "Opal and Higher",
-    "Emerald and Higher",
-    "Platinum",
-]
-CELESTIAL_CHOICES = [
-    "Exclude All",
-    "Don't Exclude Any",
-    "Solar and Higher",
-    "Nebula and Higher",
-    "Cosmic and Higher",
-    "Galaxy",
-]
-PRIORITY_CHOICES = ["2 Squad", "War", "Medium", "Short", "Leftover"]
-WM_CHOICES = ["Don't Upgrade WM's"] + [
-    f"Upgrade {n}"
-    for n in (
-        "Aegis",
-        "Cloudfist",
-        "Curator",
-        "Earthshatterer",
-        "FireCracker",  # sic, as in Gui.ahk
-        "Fortress",
-        "Goliath",
-        "Harvester",
-        "Hunter",
-        "Judgement",
-        "Sentinel",
-        "Talos",
-        "Thunderclap",
-    )
-]
-WM_MODE_CHOICES = ["Blueprints Only", "Level Only", "Level and Blueprints"]
-BLUEPRINT_CHOICES = [
-    "Upgrade All",
-    "Damage Only",
-    "Health Only",
-    "Armor Only",
-    "Damage and Health",
-    "Damage and Armor",
-    "Health and Armor",
-]
+log = logging.getLogger("firestone_bot.gui")
 
-HOME_TEXT = """SYSTEM & GAME SETTINGS:
-- Use the Steam or Epic version (the browser version is not supported yet).
-- Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar at the
-  bottom. Other window sizes with the same aspect are supported; see the Status panel.
-- Game Settings (top right): NOT fullscreen. Game language: English.
+DEFAULT_GEOMETRY = "1180x760"
+MIN_SIZE = (980, 640)
+SIDEBAR_WIDTH = 200
+SELFTEST_PERIOD = 30.0
+SELFTEST_TIMEOUT = 10.0
+APPEARANCES = ["System", "Light", "Dark"]
 
-GAMEPLAY SETTINGS:
-- Adventure button style: Mobile or PC (NOT the new Adventure style).
-- Activate "Confirmation for purchase with jewels" (safety).
+# bot state -> (pill text, colour kind)
+STATES = {
+    "idle": ("Idle", "grey"),
+    "stopped": ("Stopped", "grey"),
+    "running": ("Running", "ok"),
+    "dry": ("Dry run (no input)", "info"),
+    "stopping": ("Stopping…", "warn"),
+    "crashed": ("Crashed - see log", "err"),
+    "delay": ("Stopped - Delay setting not recognised", "warn"),
+}
+# final status lines of Runner._run / main_script -> bot state
+TERMINAL_STATES = {"Crashed, see log": "crashed", "Stopped": "stopped"}
+SAVE_KINDS = {"unsaved": "muted", "deferred": "info", "saved": "ok", "error": "err"}
 
-BOT USAGE:
-- Exit hotkey: Windows key + Esc.
-- Check all tabs and activate ONLY what you need.
-- DO NOT move or zoom the map. Leave it as it is on login. If moved, restart the game.
 
-TROUBLESHOOTING:
-- If missions are not found: make sure the system language and fonts are English."""
+def _load_state(path: str) -> dict:
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 class MainWindow:
@@ -97,307 +75,548 @@ class MainWindow:
         on_dry_run: Callable[[], None],
         on_self_test: Callable[[], dict[str, str]],
         on_exit: Callable[[], None],
+        is_running: Callable[[], bool] = lambda: False,
+        base_dir: str | None = None,
     ) -> None:
         self.settings = settings
         self.on_start, self.on_stop, self.on_dry_run = on_start, on_stop, on_dry_run
         self.on_self_test, self.on_exit = on_self_test, on_exit
-        self.vars: dict[str, tk.StringVar] = {}
-        self.status_queue: queue.Queue[str] = queue.Queue()
+        self.is_running = is_running
+        self.base_dir = base_dir or os.getcwd()
+        self.state_path = os.path.join(self.base_dir, "gui_state.json")
+        self.gui_state = _load_state(self.state_path)
+        self.ui_queue: queue.Queue[tuple[str, object]] = queue.Queue()
+        self._closed = False
 
-        self.root = tk.Tk()
-        self.root.title(f"Firestone Bot {__version__} (Python)")
-        self.root.geometry("980x780")
-        self.root.protocol("WM_DELETE_WINDOW", self._exit)
-        nb = ttk.Notebook(self.root)
-        nb.pack(fill="both", expand=True)
-        self._build_home(nb)
-        self._build_general(nb)
-        self._build_guild(nb)
-        self._build_war_machines(nb)
-        self._build_settings_tab(nb)
-        self.root.after(200, self._poll_status)
-
-    # -- variable binding ---------------------------------------------------------------
-    def _var(self, name: str) -> tk.StringVar:
-        if name not in self.vars:
-            v = tk.StringVar(value=self.settings.get(name))
-            v.trace_add("write", lambda *_: self.settings.set(name, v.get()))
-            self.vars[name] = v
-        return self.vars[name]
-
-    def _check(self, parent, name: str, text: str, **grid) -> ttk.Checkbutton:
-        cb = ttk.Checkbutton(parent, text=text, variable=self._var(name), onvalue="1", offvalue="0")
-        cb.grid(sticky="w", padx=8, pady=2, **grid)
-        return cb
-
-    def _combo(self, parent, name: str, label: str, values: list[str], **grid) -> None:
-        f = ttk.Frame(parent)
-        f.grid(sticky="w", padx=8, pady=2, **grid)
-        ttk.Label(f, text=label).pack(side="left")
-        ttk.Combobox(
-            f, textvariable=self._var(name), values=values, state="readonly", width=28
-        ).pack(side="left", padx=6)
-
-    def _group(self, parent, text: str, **grid) -> ttk.LabelFrame:
-        g = ttk.LabelFrame(parent, text=text)
-        g.grid(sticky="nsew", padx=8, pady=6, **grid)
-        return g
-
-    # -- tabs -----------------------------------------------------------------------------
-    def _build_home(self, nb: ttk.Notebook) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text="Home")
-        ttk.Label(tab, text=f"FIRESTONE BOT {__version__}", font=("Segoe UI", 16, "bold")).pack(
-            pady=8
+        appearance = str(self.gui_state.get("appearance") or "system")
+        ctk.set_appearance_mode(appearance)
+        ctk.set_default_color_theme("dark-blue")
+        self.root = ctk.CTk()
+        self.root.report_callback_exception = lambda exc, val, tb: log.error(
+            "Tk callback failed", exc_info=(exc, val, tb)
         )
-        txt = tk.Text(tab, height=17, wrap="word", font=("Segoe UI", 9))
-        txt.insert("1.0", HOME_TEXT)
-        txt.configure(state="disabled")
-        txt.pack(fill="x", padx=16)
+        self.root.title(f"Firestone Bot {__version__}")
+        self.root.minsize(*MIN_SIZE)
+        self.root.geometry(self._initial_geometry())
+        self.root.protocol("WM_DELETE_WINDOW", self.request_exit)
 
-        status = ttk.LabelFrame(tab, text="Status")
-        status.pack(fill="x", padx=16, pady=8)
-        self.status_labels: dict[str, ttk.Label] = {}
-        for i, key in enumerate(
-            ("window", "platform", "client", "scale", "dpi", "capture", "input", "bot")
-        ):
-            ttk.Label(status, text=key.capitalize() + ":").grid(
-                row=i // 2, column=(i % 2) * 2, sticky="e", padx=6
+        self.binder = Binder(settings, self.root, self._on_save_state, is_running)
+        self.binder.on_save_error = self._save_error_dialog
+        self.log_handler = QueueLogHandler(self.ui_queue)
+        logging.getLogger("firestone_bot").addHandler(self.log_handler)
+
+        self.appearance_var = tk.StringVar(value=appearance.capitalize())
+        self.appearance_var.trace_add("write", lambda *_: self._apply_appearance())
+
+        # runtime model
+        self.bot_state = "idle"
+        self.activity_text = "Idle"
+        self.cycle: int | None = None
+        self._was_running = False
+        self._selftest_inflight = False
+        self._selftest_started = 0.0
+        self._selftest_gen = 0  # a late result from an older (timed-out) worker is ignored
+        self._selftest_outstanding = 0  # workers started and not yet returned
+        self._last_selftest = 0.0
+        self._recent_logs: deque[str] = deque(maxlen=50)
+        self._last_env: dict[str, str] | None = None
+        self._last_poll = 0.0
+        self._last_second = 0.0
+        self._tick_fns: list[Callable[[], None]] = []
+
+        self.ctx = PageContext(
+            settings=settings,
+            binder=self.binder,
+            callbacks={
+                "start": self._start,
+                "dry_run": self._dry_run,
+                "stop": self._stop,
+                "is_running": self.is_running,
+                "save_now": self.save_now,
+                "reload": self._reload,
+                "open_log": self.open_log,
+                "open_folder": self.open_folder,
+                "refresh_status": self.refresh_status,
+                "exit": self.request_exit,
+            },
+            show_page=self.show_page,
+            base_dir=self.base_dir,
+            register_tick=self._tick_fns.append,
+            root=self.root,
+            window=self,
+            extras={
+                "appearance_var": self.appearance_var,
+                "settings_existed": os.path.exists(settings.path),
+            },
+        )
+
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+        self._build_sidebar()
+        self.content = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
+        self.content.grid(row=0, column=1, sticky="nsew")
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(0, weight=1)
+        self._build_status_strip()
+
+        self.pages: dict[str, ctk.CTkBaseClass] = {}
+        self.current_page: str | None = None
+        self.show_page("dashboard")  # eager: the window pushes state into it
+        self.dash = self.ctx.extras["dashboard"]
+        last = str(self.gui_state.get("page") or "")
+        if last in PAGE_ORDER and last != "dashboard":
+            self.show_page(last)
+        self._bind_keys()
+        self._update_bot_widgets()
+        self.root.after(150, self._tick)
+
+    # -- construction -------------------------------------------------------------------------
+    def _initial_geometry(self) -> str:
+        geo = str(self.gui_state.get("geometry") or "")
+        m = re.fullmatch(r"(\d+)x(\d+)([+-]\d+)([+-]\d+)", geo)
+        if m:
+            w, h, x, y = int(m[1]), int(m[2]), int(m[3]), int(m[4])
+            sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+            if w >= MIN_SIZE[0] and h >= MIN_SIZE[1] and 0 <= x < sw - 100 and 0 <= y < sh - 100:
+                return geo
+        return DEFAULT_GEOMETRY
+
+    def _build_sidebar(self) -> None:
+        side = ctk.CTkFrame(self.root, corner_radius=0, width=SIDEBAR_WIDTH)
+        side.grid(row=0, column=0, sticky="nsew")
+        side.grid_propagate(False)
+        side.grid_columnconfigure(0, weight=1)
+        side.grid_rowconfigure(1, weight=1)
+        head = ctk.CTkFrame(side, fg_color="transparent")
+        head.grid(row=0, column=0, sticky="ew", padx=16, pady=(18, 10))
+        ctk.CTkLabel(head, text="Firestone Bot", anchor="w", font=theme.font(18, "bold")).pack(
+            anchor="w"
+        )
+        ctk.CTkLabel(
+            head, text=f"v{__version__}", anchor="w", text_color=theme.MUTED, font=theme.font(11)
+        ).pack(anchor="w")
+
+        nav = ctk.CTkFrame(side, fg_color="transparent")
+        nav.grid(row=1, column=0, sticky="new", padx=10)
+        self.nav_buttons: dict[str, ctk.CTkButton] = {}
+        for name in PAGE_ORDER:
+            b = ctk.CTkButton(
+                nav,
+                text=PAGE_TITLES[name],
+                command=lambda n=name: self.show_page(n),
+                fg_color="transparent",
+                text_color=("gray10", "gray90"),
+                hover_color=("gray80", "gray28"),
+                anchor="w",
+                height=34,
+                font=theme.font(13),
             )
-            lbl = ttk.Label(status, text="-", width=48)
-            lbl.grid(row=i // 2, column=(i % 2) * 2 + 1, sticky="w")
-            self.status_labels[key] = lbl
-        self.activity = ttk.Label(tab, text="Idle", relief="sunken", anchor="w")
-        self.activity.pack(fill="x", padx=16)
+            b.pack(fill="x", pady=2)
+            self.nav_buttons[name] = b
 
-        btns = ttk.Frame(tab)
-        btns.pack(pady=12)
-        ttk.Button(btns, text="SELF-TEST", command=self._self_test).grid(row=0, column=0, padx=6)
-        ttk.Button(btns, text="DRY RUN (no input)", command=self.on_dry_run).grid(
-            row=0, column=1, padx=6
+        bottom = ctk.CTkFrame(side, fg_color="transparent")
+        bottom.grid(row=2, column=0, sticky="sew", padx=16, pady=(8, 14))
+        self.start_btn = ctk.CTkButton(
+            bottom,
+            text="START",
+            command=self._start,
+            fg_color=theme.OK,
+            hover_color=("#177a42", "#2fb86c"),
+            height=40,
+            font=theme.font(14, "bold"),
         )
-        ttk.Button(btns, text="SAVE SETTINGS", command=self._save).grid(row=0, column=2, padx=6)
-        ttk.Button(btns, text="START BOT", command=self.on_start).grid(row=0, column=3, padx=6)
-        ttk.Button(btns, text="STOP BOT", command=self.on_stop).grid(row=0, column=4, padx=6)
-        ttk.Button(btns, text="EXIT", command=self._exit).grid(row=0, column=5, padx=6)
+        self.start_btn.pack(fill="x", pady=(0, 6))
+        self.dry_btn = ctk.CTkButton(
+            bottom,
+            text="DRY RUN",
+            command=self._dry_run,
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray10", "gray90"),
+            height=34,
+            font=theme.font(13, "bold"),
+        )
+        self.dry_btn.pack(fill="x", pady=(0, 6))
+        self.stop_btn = ctk.CTkButton(
+            bottom,
+            text="STOP",
+            command=self._stop,
+            fg_color=theme.ERR,
+            hover_color=("#96261c", "#e05252"),
+            height=34,
+            font=theme.font(13, "bold"),
+        )
+        self.stop_btn.pack(fill="x", pady=(0, 10))
+        self.pill = StatePill(bottom)
+        self.pill.widget.pack(pady=(0, 10))
+        ctk.CTkSegmentedButton(
+            bottom, values=APPEARANCES, variable=self.appearance_var, font=theme.font(11), height=26
+        ).pack(fill="x", pady=(0, 8))
+        ctk.CTkButton(
+            bottom,
+            text="Exit",
+            command=self.request_exit,
+            fg_color="transparent",
+            text_color=theme.MUTED,
+            hover_color=("gray80", "gray28"),
+            height=28,
+            font=theme.font(12),
+        ).pack(fill="x")
 
-    def _build_general(self, nb: ttk.Notebook) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text="General Options")
-        for c in range(3):
-            tab.columnconfigure(c, weight=1)
+    def _build_status_strip(self) -> None:
+        strip = ctk.CTkFrame(self.root, corner_radius=0, height=28)
+        strip.grid(row=1, column=0, columnspan=2, sticky="ew")
+        strip.grid_propagate(False)
+        strip.grid_columnconfigure(1, weight=1)
+        self.strip_dot = StatusDot(strip, "grey")
+        self.strip_dot.widget.grid(row=0, column=0, padx=(12, 0), pady=2)
+        self.strip_text = ctk.CTkLabel(strip, text="Idle", anchor="w", font=theme.font(11))
+        self.strip_text.grid(row=0, column=1, sticky="ew", padx=(4, 12))
+        self.save_label = ctk.CTkLabel(
+            strip, text="", anchor="e", text_color=theme.MUTED, font=theme.font(11)
+        )
+        self.save_label.grid(row=0, column=2, sticky="e", padx=12)
+        ctk.CTkLabel(
+            strip, text="Win+Esc exits", anchor="e", text_color=theme.MUTED, font=theme.font(11)
+        ).grid(row=0, column=3, sticky="e", padx=(0, 12))
 
-        g = self._group(tab, "Selling & Exotic Merchant", row=0, column=0)
-        self._check(g, "SellEx", "Open Exotic Merchant (Master)")
-        self._check(g, "ExoticUpgrades", "Buy Exotic Upgrades")
-        self._check(g, "BuyEx", "Buy Exotic Chests")
-        ttk.Label(g, text="Selling Strategy:").grid(sticky="w", padx=8, pady=(8, 2))
-        self.sell_mode = tk.StringVar(value=self._current_sell_mode())
-        for name, text in (
-            ("SellScrolls", "1. Sell ONLY Exotic Scrolls"),
-            ("SellNoGold", "2. Sell All But Gold Items"),
-            ("SellAll", "3. Sell All Exotic Items"),
-            ("SellNone", "4. Sell Nothing"),
-        ):
-            ttk.Radiobutton(g, text=text, value=name, variable=self.sell_mode).grid(
-                sticky="w", padx=8, pady=2
+    def _bind_keys(self) -> None:
+        for i, name in enumerate(PAGE_ORDER, start=1):
+            self.root.bind_all(f"<Control-Key-{i}>", lambda _e, n=name: self.show_page(n))
+        self.root.bind_all("<Control-s>", lambda _e: self.save_now())
+        self.root.bind_all("<F5>", lambda _e: self.refresh_status())
+        self.root.bind_all("<Control-q>", lambda _e: self.request_exit())
+
+    # -- pages --------------------------------------------------------------------------------
+    def show_page(self, name: str) -> None:
+        if name not in PAGE_ORDER:
+            log.warning("unknown page %r", name)
+            return
+        if name not in self.pages:
+            try:
+                page = build(name, self.content, self.ctx)
+            except Exception as e:
+                log.exception("building page %r failed", name)
+                messagebox.showerror(
+                    "Page failed",
+                    f"The {PAGE_TITLES[name]} page could not be built:\n{e}\n\n"
+                    "See firestone-bot.log.",
+                    parent=self.root,
+                )
+                return
+            page.grid(row=0, column=0, sticky="nsew")
+            page.grid_remove()
+            self.pages[name] = page
+        if self.current_page and self.current_page != name:
+            self.pages[self.current_page].grid_remove()
+        self.pages[name].grid()
+        self.current_page = name
+        for n, b in self.nav_buttons.items():
+            active = n == name
+            b.configure(
+                fg_color=("#3a7ebf", "#1f538d") if active else "transparent",
+                text_color="white" if active else ("gray10", "gray90"),
+                font=theme.font(13, "bold" if active else "normal"),
             )
-        self.sell_mode.trace_add("write", lambda *_: self._apply_sell_mode())
 
-        g = self._group(tab, "Other Automation", row=1, column=0)
-        self._check(g, "NoEng", "Skip Engineer")
-        self._check(g, "Research", "Skip Research")
-        self._check(g, "DisableWarning", "Disable Steam Warning")
-        self._check(g, "RestartGame", "Restart Game")
-        self._check(g, "RestartGameTest", "Try the game restart at the beginning")
-        self._combo(g, "RestartGameTime", "Restart Game Every X Hours:", ["6", "12", "18", "24"])
-        self._combo(g, "GuardianTrain", "Train Guardian:", ["1", "2", "3", "4"])
+    # -- appearance ---------------------------------------------------------------------------
+    def _apply_appearance(self) -> None:
+        mode = self.appearance_var.get().lower()
+        if mode in ("system", "light", "dark"):
+            ctk.set_appearance_mode(mode)
+            self.gui_state["appearance"] = mode
 
-        g = self._group(tab, "Chests & Rewards", row=0, column=1)
-        self._check(g, "Chests", "Open Chests (General)")
-        self._combo(g, "GearChestExclude", "Exclude Gear Chests:", GEAR_CHOICES)
-        self._combo(g, "JewelChestExclude", "Exclude Jewel Chests:", JEWEL_CHOICES)
-        self._combo(g, "CelestialChestExclude", "Exclude Celestial Chests:", CELESTIAL_CHOICES)
-        g = self._group(tab, "Oracle", row=1, column=1)
-        self._check(g, "Bless", "Upgrade Blessings")
-        self._check(g, "BlessingChests", "Open Chests")
-        self._check(g, "DailyOracle", "Claim Daily Oracle")
-        self._check(g, "SkipOracle", "Skip Oracle")
-        g = self._group(tab, "Alchemy", row=2, column=1)
-        self._check(g, "Alch", "Skip Alchemy")
-        self._check(g, "DragonBlood", "Don't Use DragonBlood in Alchemy")
-        self._check(g, "Dust", "Don't Use Dust in Alchemy")
-        self._check(g, "Coin", "Use Exotic Coins in Alchemy")
-        g = self._group(tab, "Hero Upgrades", row=3, column=1)
-        self._check(g, "NoHero", "Don't Upgrade Heroes (Master)")
-        self._check(g, "NextMilestone", "Set upgrade to Next Milestone")
-        self._check(g, "UpgradeSpecial", "Special Upgrade")
-        self._check(g, "UpgradeGuardian", "Guardian")
-        for i in range(1, 6):
-            self._check(g, f"UpgradeH{i}", f"Hero {i}")
+    def set_appearance(self, mode: str) -> None:
+        if mode.lower() in ("system", "light", "dark"):
+            self.appearance_var.set(mode.capitalize())
 
-        g = self._group(tab, "Daily Routine", row=0, column=2)
-        self._check(g, "Mail", "Check Mail")
-        self._check(g, "Quests", "Claim Quests")
-        self._check(g, "Events", "Claim Basic Events")
-        self._check(g, "Chaos", "Participate in Chaos Rift (free tokens only)")
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=2)
-        ttk.Label(f, text="Max chaos hits per day (0 = no limit):").pack(side="left")
-        ttk.Entry(f, textvariable=self._var("MaxChaos"), width=5).pack(side="left", padx=6)
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=2)
-        ttk.Label(f, text="Guardian upgrade order, chaos tab (e.g. 3,1,2,4):").pack(side="left")
-        ttk.Entry(f, textvariable=self._var("ChaosGuardianOrder"), width=10).pack(
-            side="left", padx=6
-        )
-        self._check(g, "Shop", "Free Gift & Check-In")
-        self._combo(g, "Delay", "End of Cycle Delay (Sec):", ["0", "30", "60", "90", "120"])
-        g = self._group(tab, "Tavern / Scarab", row=1, column=2)
-        self._check(g, "Token", "Use Tavern Tokens / Artifacts")
-        self._check(g, "Beer", "Skip Claiming Beer")
-        self._check(g, "Scarab", "Skip Using Scarab Token")
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=2)
-        ttk.Label(f, text="Max scarab plays per day, free tokens only (0 = no limit):").pack(
-            side="left"
-        )
-        ttk.Entry(f, textvariable=self._var("MaxScarab"), width=5).pack(side="left", padx=6)
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=2)
-        ttk.Label(f, text="Max tokens per day (0 = no limit):").pack(side="left")
-        ttk.Entry(f, textvariable=self._var("MaxTokens"), width=5).pack(side="left", padx=6)
-        self.daily_label = ttk.Label(g, text="")
-        self.daily_label.grid(sticky="w", padx=8, pady=2)
-        g = self._group(tab, "Mission Priority Order", row=2, column=2, rowspan=2)
-        for i, label in enumerate(("1st:", "2nd:", "3rd:", "4th:", "5th:"), start=1):
-            self._combo(g, f"Priority{i}", label, PRIORITY_CHOICES)
-        self._check(g, "MapReset", "Reset map cooldown with gems")
+    # -- commands -----------------------------------------------------------------------------
+    def _start(self) -> None:
+        if self.is_running():
+            return
+        self.binder.flush()
+        env = self._last_env or {}
+        self.dash.window_banner.set_visible(env.get("window", "").startswith("not found"))
+        self.on_start()
 
-    def _build_guild(self, nb: ttk.Notebook) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text="Guild & Personal Tree")
-        for c in range(3):
-            tab.columnconfigure(c, weight=1)
-        g = self._group(tab, "Guild Options", row=0, column=0, columnspan=3)
-        self._check(g, "NoGuild", "Skip Guild Functions", row=0, column=0)
-        self._check(g, "GNotif", "Clear Guild Notifications", row=1, column=0)
-        self._check(g, "Pickaxes", "Skip Claiming Pickaxes", row=0, column=1)
-        self._check(g, "Crystal", "Spend Pickaxes (Crystal)", row=1, column=1)
-        self._check(g, "Awaken", "Awaken Heroes", row=0, column=2)
-        self._check(
-            tab, "PTree", "> ENABLE PERSONAL TREE UPGRADES <", row=1, column=0, columnspan=3
-        )
-        g = self._group(tab, "Attributes & Heroes", row=2, column=0)
-        for name, text in (
-            ("AttDmg", "Attribute Damage"),
-            ("AttHp", "Attribute Health"),
-            ("AttArm", "Attribute Armor"),
-            ("Energy", "Energy Heroes"),
-            ("Mana", "Mana Heroes"),
-            ("Rage", "Rage Heroes"),
-            ("Miner", "Miner"),
-            ("MainAtt", "All Main Attributes"),
+    def _dry_run(self) -> None:
+        if self.is_running():
+            return
+        self.binder.flush()
+        self.on_dry_run()
+
+    def _stop(self) -> None:
+        self.on_stop()
+
+    def save_now(self) -> None:
+        self.binder.touch()
+        self.binder.flush()
+
+    def _reload(self) -> None:
+        if self.binder.dirty and not messagebox.askyesno(
+            "Reload settings", "Discard unsaved changes and reload settings.ini?", parent=self.root
         ):
-            self._check(g, name, text)
-        g = self._group(tab, "Specializations", row=2, column=1)
-        for name, text in (
-            ("Battle", "Battle Cry"),
-            ("Prest", "Prestigious"),
-            ("Fire", "Firestone Effect"),
-            ("Gold", "Raining Gold"),
-            ("Level", "Hero Level Up Cost"),
-            ("Guard", "Guardian"),
-            ("Fist", "Fist Fight"),
-            ("Prec", "Precision"),
-        ):
-            self._check(g, name, text)
-        g = self._group(tab, "Classes", row=2, column=2)
-        for name, text in (
-            ("Magic", "Magic Spells"),
-            ("Tank", "Tank Specialization"),
-            ("Damage", "Damage Specialization"),
-            ("Heal", "Healer Specialization"),
-        ):
-            self._check(g, name, text)
-
-    def _build_war_machines(self, nb: ttk.Notebook) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text="War Machines")
-        g = self._group(tab, "Battle & Miscellaneous", row=0, column=0)
-        self._check(g, "PVP", "Complete Arena Battles", row=0, column=0)
-        self._check(g, "Liberation", "Complete Liberation Missions", row=0, column=1)
-        self._check(g, "DungeonQuest", "Complete Dungeon Missions", row=0, column=2)
-        g = self._group(tab, "War Machines & Talents", row=1, column=0)
-        self._combo(g, "UpgradeWM", "War Machine to Upgrade:", WM_CHOICES)
-        self._combo(g, "WMOptions", "Upgrade Mode:", WM_MODE_CHOICES)
-        self._combo(g, "Blueprints", "Blueprint Priority:", BLUEPRINT_CHOICES)
-        self._combo(g, "Talents450", "Talent Options (Legacy):", [self.settings.get("Talents450")])
-        self._combo(g, "Talents800", "", [self.settings.get("Talents800")])
-
-    def _build_settings_tab(self, nb: ttk.Notebook) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text="Settings")
-        g = self._group(tab, "Discord Configuration", row=0, column=0)
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=8)
-        ttk.Label(f, text="Discord ID:").pack(side="left")
-        ttk.Entry(f, textvariable=self._var("DiscordID"), width=32).pack(side="left", padx=6)
-        g = self._group(tab, "Python port options", row=1, column=0)
-        self._check(g, "EnableHeartbeat", "Send heartbeats to the log server (opt-in)")
-        f = ttk.Frame(g)
-        f.grid(sticky="w", padx=8, pady=4)
-        ttk.Label(f, text="Safety cap on unbounded loops (0 = off, AHK behaviour):").pack(
-            side="left"
-        )
-        ttk.Entry(f, textvariable=self._var("SafetyCap"), width=6).pack(side="left", padx=6)
-
-    # -- sell mode radios (four AHK 1/0 variables) --------------------------------------
-    def _current_sell_mode(self) -> str:
-        for name in ("SellScrolls", "SellNoGold", "SellAll", "SellNone"):
-            if self.settings.flag(name):
-                return name
-        return ""
-
-    def _apply_sell_mode(self) -> None:
-        chosen = self.sell_mode.get()
-        for name in ("SellScrolls", "SellNoGold", "SellAll", "SellNone"):
-            self.settings.set(name, name == chosen)
-
-    # -- actions ----------------------------------------------------------------------------
-    def _save(self) -> None:
-        self.settings.save()
-        messagebox.showinfo("Saved", "Settings have been saved successfully!")
-
-    def _self_test(self) -> None:
-        for key, value in self.on_self_test().items():
-            if key in self.status_labels:
-                self.status_labels[key].configure(text=value)
-
-    def _exit(self) -> None:
-        self.on_exit()
-        self.root.destroy()
-
-    # -- status from the worker thread ----------------------------------------------------
-    def post_status(self, text: str) -> None:
-        self.status_queue.put(text)
-
-    def _poll_status(self) -> None:
+            return
         try:
-            while True:
-                self.activity.configure(text=self.status_queue.get_nowait())
-        except queue.Empty:
-            pass
-        self.daily_label.configure(
-            text=f"Today: {self.settings.get('TokenCountDaily') or 0} token(s) used, "
-            f"{self.settings.get('ChaosCountDaily') or 0} chaos hit(s), "
-            f"{self.settings.get('ScarabCountDaily') or 0} scarab play(s), arena "
-            f"{'done' if self.settings.flag('ArenaDoneDaily') else 'pending'}"
-        )
-        self.root.after(200, self._poll_status)
+            self.binder.reload()
+        except Exception as e:
+            log.exception("reload failed")
+            messagebox.showerror("Reload failed", str(e), parent=self.root)
 
+    def open_log(self) -> None:
+        self._open(os.path.join(self.base_dir, "firestone-bot.log"))
+
+    def open_folder(self) -> None:
+        self._open(self.base_dir)
+
+    @staticmethod
+    def _open(path: str) -> None:
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(path)
+            else:
+                subprocess.Popen(["xdg-open", path])
+        except Exception:
+            log.exception("cannot open %s", path)
+
+    # -- thread-safe entry points ---------------------------------------------------------------
+    def post_status(self, text: str) -> None:
+        self.ui_queue.put(("activity", text))
+
+    def request_exit(self) -> None:
+        if threading.current_thread() is threading.main_thread():
+            self._do_exit()  # the close button must not depend on the tick loop
+        else:
+            self.ui_queue.put(("exit", None))
+
+    _exit = request_exit
+
+    # -- bot state ------------------------------------------------------------------------------
     def set_bot_state(self, text: str) -> None:
-        self.status_labels["bot"].configure(text=text)
+        mapping = {"running": "running", "dry run (no input)": "dry", "stopping...": "stopping"}
+        self.bot_state = mapping.get(text, self.bot_state)
+        if self.bot_state in ("running", "dry"):
+            self.cycle = None
+            self._was_running = True  # so a thread that dies at once is seen as a transition
+            # forget the previous run's final line ("Crashed, see log" must not outlive it)
+            self.activity_text = "Starting…"
+            if hasattr(self, "dash"):
+                self.dash.set_activity(self.activity_text)
+        self._update_bot_widgets()
+
+    def _update_bot_widgets(self) -> None:
+        running = self.is_running()
+        text, kind = STATES[self.bot_state]
+        self.pill.set(text, kind)
+        if hasattr(self, "dash"):
+            self.dash.set_state(text, kind, self.cycle)
+        start = dry = not running and self.bot_state not in ("running", "dry", "stopping")
+        stop = running and self.bot_state != "stopping"
+        for b, on in ((self.start_btn, start), (self.dry_btn, dry), (self.stop_btn, stop)):
+            state = "normal" if on else "disabled"
+            if b.cget("state") != state:
+                b.configure(state=state)
+        if hasattr(self, "dash"):
+            self.dash.set_buttons(start, dry, stop)
+        self.strip_dot.set(kind)
+        activity = self.activity_text
+        strip = text if activity in ("", "Idle", text) else f"{text} · {activity}"
+        if self.strip_text.cget("text") != strip:
+            self.strip_text.configure(text=strip)
+
+    def _on_activity(self, text: str) -> None:
+        self.activity_text = text
+        m = re.match(r"Cycle (\d+) done", text)
+        if m:
+            self.cycle = int(m[1])
+        self.dash.set_activity(text)
+        if text not in self._recent_logs:
+            # Game.status() also logs, so the line normally arrives via the logging bridge;
+            # a bare post_status() is mirrored here so the Activity log stays complete.
+            self.dash.append_log(text)
+        if not self.is_running() and self.bot_state in ("running", "dry", "stopping"):
+            terminal = TERMINAL_STATES.get(text)
+            if terminal is None and text.startswith("Delay setting"):
+                terminal = "delay"
+            if terminal:
+                self._was_running = False
+                self._on_running_changed(False)
+                return
+        self._update_bot_widgets()
+
+    def _on_running_changed(self, running: bool) -> None:
+        if running:
+            if self.bot_state not in ("running", "dry", "stopping"):
+                self.bot_state = "running"
+        else:
+            if self.activity_text == "Crashed, see log":
+                self.bot_state = "crashed"
+            elif self.activity_text.startswith("Delay setting"):
+                self.bot_state = "delay"
+            else:
+                self.bot_state = "stopped"
+            self.binder.flush()
+            self._last_selftest = 0.0  # re-check the game window soon
+        self._update_bot_widgets()
+
+    # -- save indicator -----------------------------------------------------------------------
+    def _on_save_state(self, kind: str, text: str) -> None:
+        prefix = {"saved": "● ", "deferred": "● ", "error": "! ", "unsaved": "○ "}.get(kind, "")
+        self.save_label.configure(text=prefix + text, text_color=theme.colour(SAVE_KINDS[kind]))
+
+    def _save_error_dialog(self, error: str) -> None:
+        messagebox.showerror(
+            "Save failed",
+            f"settings.ini could not be written:\n{error}\n\nChanges stay active in memory and "
+            "the save is retried on the next change.",
+            parent=self.root,
+        )
+
+    # -- self-test ------------------------------------------------------------------------------
+    def refresh_status(self) -> None:
+        if self._selftest_inflight or self._closed:
+            return
+        self._selftest_inflight = True
+        self._selftest_started = time.monotonic()
+        self._selftest_gen += 1
+        self._selftest_outstanding += 1
+        gen = self._selftest_gen
+        self.dash.env_checking()
+
+        def worker():
+            try:
+                result = self.on_self_test()
+            except Exception as e:
+                log.exception("self-test failed")
+                result = {"window": f"self-test failed: {e}"}
+            finally:
+                capture.close()  # per-thread mss instance: 2 GDI objects per thread otherwise
+            self.ui_queue.put(("selftest", (gen, result)))
+
+        threading.Thread(target=worker, name="gui-selftest", daemon=True).start()
+
+    def _env_footer(self) -> str:
+        stamp = time.strftime("%H:%M:%S", time.localtime(self._last_selftest))
+        mode = (
+            "paused while the bot runs"
+            if self.is_running()
+            else "auto-refresh every 30 s while idle"
+        )
+        return f"Last checked {stamp} · {mode}"
+
+    def _apply_selftest(self, payload) -> None:
+        gen, result = payload
+        self._selftest_outstanding = max(0, self._selftest_outstanding - 1)
+        if gen != self._selftest_gen:
+            log.info("self-test worker %d answered late; ignored", gen)
+            return
+        self._selftest_inflight = False
+        self._last_selftest = time.time()
+        self._last_env = dict(result)
+        self.dash.env_result(result, self._env_footer())
+
+    # -- main-thread loop -----------------------------------------------------------------------
+    def _tick(self) -> None:
+        if self._closed:
+            return
+        try:
+            if self._drain_queue():
+                return  # exit requested: the window is gone
+            self._poll()
+        except Exception:
+            log.exception("ui tick failed")
+        finally:
+            if not self._closed:
+                self.root.after(150, self._tick)
+
+    def _drain_queue(self) -> bool:
+        """Handle every queued message; True when the exit message was processed."""
+        while True:
+            try:
+                kind, payload = self.ui_queue.get_nowait()
+            except queue.Empty:
+                return False
+            try:
+                if kind == "activity":
+                    self._on_activity(str(payload))
+                elif kind == "log":
+                    line = str(payload)
+                    self._recent_logs.append(line)
+                    self.dash.append_log(line)
+                elif kind == "selftest":
+                    self._apply_selftest(payload)
+                elif kind == "exit":
+                    self._do_exit()
+                    return True
+            except Exception:
+                log.exception("ui message %r failed", kind)
+
+    def _poll(self) -> None:
+        now = time.monotonic()
+        if now - self._last_poll >= 0.5:
+            self._last_poll = now
+            running = self.is_running()
+            stuck = not running and self.bot_state in ("running", "dry", "stopping")
+            if running != self._was_running or stuck:
+                # `stuck`: the thread died before the first poll saw it alive
+                self._was_running = running
+                self._on_running_changed(running)
+        if now - self._last_second >= 1.0:
+            self._last_second = now
+            for fn in self._tick_fns:
+                try:
+                    fn()
+                except Exception:
+                    log.exception("tick callback failed")
+            if self._selftest_inflight and now - self._selftest_started > SELFTEST_TIMEOUT:
+                # The worker is still blocked (find_game_window / grab): its late answer will
+                # be ignored. F5 may start a fresh one; auto-refresh waits for it to return.
+                self._selftest_inflight = False
+                self._last_selftest = time.time()
+                log.warning("self-test did not answer within %.0f s", SELFTEST_TIMEOUT)
+                self.dash.env_timeout()
+            elif (
+                not self._selftest_inflight
+                and not self._selftest_outstanding
+                and not self._was_running
+                and time.time() - self._last_selftest >= SELFTEST_PERIOD
+            ):
+                self.refresh_status()
+            elif self._last_selftest:
+                self.dash.set_env_footer(self._env_footer())
+
+    # -- exit -------------------------------------------------------------------------------------
+    def _do_exit(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            self.on_exit()  # stops the runner and waits for it: no concurrent settings.save()
+        except Exception:
+            log.exception("on_exit failed")
+        try:
+            self.binder.flush(force=True)
+        except Exception:
+            log.exception("flush on exit failed")
+        logging.getLogger("firestone_bot").removeHandler(self.log_handler)
+        self._write_state()
+        try:
+            self.root.destroy()
+        except tk.TclError:
+            pass
+
+    def _write_state(self) -> None:
+        try:
+            self.gui_state.update(
+                geometry=self.root.geometry(),
+                page=self.current_page or "dashboard",
+                appearance=self.appearance_var.get().lower(),
+            )
+            with open(self.state_path, "w", encoding="utf-8") as f:
+                json.dump(self.gui_state, f, indent=2)
+        except Exception:
+            log.exception("cannot write gui_state.json")
 
     def run(self) -> None:
+        self.root.after(300, self.refresh_status)
         self.root.mainloop()

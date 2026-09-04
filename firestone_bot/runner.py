@@ -39,6 +39,7 @@ from firestone_bot.features import (
 )
 from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.game import BotStopped, Game
+from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas
 
@@ -87,6 +88,8 @@ class Runner:
         except Exception:
             log.exception("cycle crashed")
             self.g.status("Crashed, see log")
+        finally:
+            capture.close()  # per-thread mss instance (GDI objects)
 
     # -- MainScript() -----------------------------------------------------------------------
     def main_script(self) -> None:

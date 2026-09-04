@@ -211,5 +211,8 @@ class Settings:
             lines.append(f"[{section}]")
             lines.extend(f"{k}={v}" for k, v in cp.items(section))
         data = "\n".join(lines) + "\n"
-        with open(path, "w", encoding=self.encoding, newline="\r\n") as f:
+        # Write-then-rename: a reader (or a crash mid-write) never sees a torn settings.ini.
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding=self.encoding, newline="\r\n") as f:
             f.write(data)
+        os.replace(tmp, path)
