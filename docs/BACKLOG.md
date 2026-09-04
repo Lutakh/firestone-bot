@@ -23,3 +23,11 @@
   miss; measure per-module durations in the log to find the slow spots; skip modules whose
   entry probe already says there is nothing to do; keep the AHK timing available as a fallback
   "safe mode" setting.
+- Chaos rift: buy the books when their notification (bell/red dot) shows on the rift screen.
+- Per-action switches: every single action the bot performs (each claim, hit, purchase, upgrade,
+  ...) must have its own ON/OFF option in the GUI, so the user decides action by action what the
+  bot does. Today several actions are grouped under one setting (e.g. the whole tavern visit,
+  the whole guild visit).
+- Support the game's new interface style (the "new Adventure style" button layout that the AHK
+  bot required to be OFF): measure the new positions/colours and make the atlas cover both
+  styles, or detect which style is active.
