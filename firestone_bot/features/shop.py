@@ -1,9 +1,10 @@
 """Daily shop: free mystery box (detects the daily reset) and the daily check-in.
 
 Port of Functions/Shop.ahk, reworked for the current shop layout (2026-09): the free mystery
-box is the LAST card of the horizontally scrolling "Daily deals" row, so the row is scrolled to
-the end before probing its green "Claim" button. The AHK click at (591,857) now lands on a
-paid deal and was removed.
+box is the FIRST card of the horizontally scrolling "Daily deals" row while it is claimable
+(it moves to the end once claimed), so the row is scrolled back to its start before probing
+the green "Claim" button. The AHK click at (591,857) would land on a paid deal once the box
+has been claimed, so the click is now guarded by the probe.
 
 The runner calls this every cycle regardless of the Shop setting so the daily reset is always
 detected; the check-in part still depends on the Shop setting.
@@ -15,33 +16,31 @@ from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
+from firestone_bot.state import hours_since
 from firestone_bot.vision import atlas
 
 
 def claim_free_mystery_box(g: Game) -> bool:
-    """Scroll the daily deals to the end and claim the free box. True when it was claimable
-    (= the game day has just reset)."""
+    """Scroll the daily deals back to the start and claim the free box. True when it was
+    claimable (= the game day has just reset)."""
     g.move_to(atlas.SHOP_DEALS_HOVER)
     g.sleep(500)
-    g.wheel(-30)
+    g.wheel(30)
     g.sleep(1000)
     if not g.found(atlas.SHOP_MYSTERY_CLAIM_READY):
         return False
     g.move_to(atlas.SHOP_MYSTERY_CLAIM)
     g.sleep(1000)
     g.click()
-    g.sleep(2000)
-    # reward pop-up: click away from it
-    g.move_to(atlas.SHOP_REWARD_DISMISS)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.sleep(2000)  # the box goes to the bag (opened later by open_chests), no pop-up
     return True
 
 
 def shop(g: Game) -> None:
     g.focus()
-    if not g.found(atlas.SHOP_RED_DOT):
+    # The red dot is the cheap trigger; near the expected reset time (23 h after the last
+    # detected one, or never detected) the shop is opened anyway so the reset is not missed.
+    if not g.found(atlas.SHOP_RED_DOT) and 0 < hours_since(g.settings.LastTokenReset) < 23:
         return
     g.move_to(atlas.SHOP_ICON)
     g.sleep(1000)

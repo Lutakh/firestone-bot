@@ -164,7 +164,8 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
 
 - Tavern > Beer tab > token shop: the "1500 beer" buy button is green 0x0AA008, bbox client
   (407,580)-(652,623), i.e. logical (407,611)-(652,654). The AHK click (544,630) is still on it.
-- Shop > Daily deals: horizontal card row (paid deals first), the free "Mystery box" card is
-  last and only fully visible after ~30 wheel-down notches with the mouse over the row; its
-  status button sits at client (1655,815) -> logical (1655,846) ("Claimed" text when done,
-  green button when claimable; the green state is checked at the daily reset).
+- Shop > Daily deals: horizontal card row. While the free "Mystery box" is claimable it is the
+  FIRST card (green button, client (466,781)-(711,821) -> logical (466,812)-(711,852), observed
+  right after the 10:00 reset on 2026-09-04); once claimed the card moves to the END of the row
+  ("Claimed" text) and a paid deal takes the first slot. Claiming shows no pop-up; the box goes
+  to the bag. The main-screen shop red dot was present after the reset (check-in pending).

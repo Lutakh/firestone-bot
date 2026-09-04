@@ -115,13 +115,13 @@ QUESTS_REWARD_OK = Point(1619, 990)  # :29
 # --- Shop.ahk -------------------------------------------------------------------------------
 SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, 3, "shop_red_dot")  # :10
 SHOP_ICON = Point(1857, 583)  # :12
-# Shop.ahk:17 clicked the mystery box at (591,857); since the 2026 shop layout that spot is a
-# paid deal. The free box is the last card of the scrolling "Daily deals" row (measured
-# 2026-09-04, docs/MEASUREMENTS.md).
+# Shop.ahk:17 clicked the mystery box at (591,857). In the 2026 shop the "Daily deals" row
+# scrolls horizontally: the free mystery box is the FIRST card while claimable (green button
+# at logical (466,812)-(711,852), measured 2026-09-04 right after the reset) and moves to the
+# end of the row once claimed, where a paid deal takes its place.
 SHOP_DEALS_HOVER = Point(1100, 600)
-SHOP_MYSTERY_CLAIM_READY = Probe(1560, 821, 1750, 871, GREEN_BUTTON, 3, "shop_mystery_claim")
-SHOP_MYSTERY_CLAIM = Point(1655, 846)
-SHOP_REWARD_DISMISS = Point(960, 950)
+SHOP_MYSTERY_CLAIM_READY = Probe(490, 818, 690, 846, GREEN_BUTTON, 3, "shop_mystery_claim")
+SHOP_MYSTERY_CLAIM = Point(588, 832)
 SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
 SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
 SHOP_CHECKIN_OK = Point(1339, 828)  # :31
