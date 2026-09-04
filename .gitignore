@@ -10,3 +10,5 @@ MapStartState.ini
 firestone-bot.log
 *.bak
 gui_state.json
+dist_next/
+build_next/
