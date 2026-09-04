@@ -34,6 +34,8 @@ def _open_rift(g: Game) -> None:
 
 
 def hit_chaos(g: Game) -> None:
+    if daily.chaos_left(g.settings) == 0:
+        return  # limit reached for today: the rift is not opened again until the reset
     g.focus()
     # Check for Chaos notification on guild screen
     if not g.found(atlas.CHAOS_DOT):

@@ -1,8 +1,9 @@
-"""Port of Functions/ClaimBeer.ahk: tavern beer -> tokens, then tavern token and artifact.
+"""Port of Functions/ClaimBeer.ahk: tavern beer -> tokens, then tavern tokens and artifact.
 
-Python-only addition: the daily token limit (MaxTokens setting, see daily.py). One cycle uses
-at most one token, like the AHK bot; the limit only stops the bot once TokenCountDaily reaches
-MaxTokens, until the next daily reset.
+Python-only addition: the tavern tokens are played in ONE visit, up to the MaxTokens daily
+limit (or until the Play button is no longer green), and the token part is skipped for the
+rest of the game day once the limit is reached (see daily.py). The AHK bot played one token
+per cycle. The beer -> token purchase itself is kept every cycle, as in AHK.
 """
 
 from __future__ import annotations
@@ -13,6 +14,23 @@ from firestone_bot.features.craft_artifact import craft_artifact
 from firestone_bot.features.use_tavern_token import use_token
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
+
+MAX_PLAYS_PER_VISIT = 60  # safety when MaxTokens is 0 (unlimited)
+
+
+def play_tokens(g: Game) -> int:
+    """Tavern screen must be open. Plays tokens until the daily limit or no green button."""
+    plays = 0
+    while plays < MAX_PLAYS_PER_VISIT:
+        if daily.tokens_left(g.settings) == 0:
+            g.status(f"Tavern: daily token limit reached ({g.settings.MaxTokens})")
+            break
+        if not use_token(g):
+            break
+        daily.note_token_used(g.settings)
+        plays += 1
+        g.status(f"Tavern: token {plays} used ({g.settings.TokenCountDaily} today)")
+    return plays
 
 
 def claim_beer(g: Game) -> None:
@@ -42,12 +60,9 @@ def claim_beer(g: Game) -> None:
     big_close(g)
     # check if Use Tavern Token is checked
     if g.settings.flag("Token"):
-        left = daily.tokens_left(g.settings)
-        if left == 0:
-            g.status(f"Tavern: daily token limit reached ({g.settings.MaxTokens}), skipping")
+        if daily.tokens_left(g.settings) == 0:
+            g.status("Tavern: daily token limit already reached, skipping tokens")
         else:
-            if use_token(g):
-                daily.note_token_used(g.settings)
-                g.status(f"Tavern: token used ({g.settings.TokenCountDaily} today)")
-            craft_artifact(g)
+            if play_tokens(g):
+                craft_artifact(g)
     big_close(g)
