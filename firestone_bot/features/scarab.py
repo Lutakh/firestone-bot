@@ -10,10 +10,36 @@ not visited again until the next reset.
 
 from __future__ import annotations
 
+import numpy as np
+
 from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
+from firestone_bot.platform import capture
+from firestone_bot.platform.window import Rect
 from firestone_bot.vision import atlas
+
+
+def _counter_image(g: Game) -> np.ndarray:
+    """Pixels of the free-token counter; a play changes the digits."""
+    x1, y1, x2, y2 = atlas.SCARAB_FREE_COUNTER
+    sx1, sy1 = g.vp.to_screen(x1, y1)
+    sx2, sy2 = g.vp.to_screen(x2, y2)
+    return capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3].copy()
+
+
+def _wait_counter_change(g: Game, before: np.ndarray, timeout_ms: int = 15000) -> bool:
+    waited = 0
+    while waited < timeout_ms:
+        g.sleep(1000)
+        waited += 1000
+        after = _counter_image(g)
+        if (
+            after.shape == before.shape
+            and np.abs(after.astype(int) - before.astype(int)).max() > 40
+        ):
+            return True
+    return False
 
 
 def _play_button_token(g: Game) -> str:
@@ -49,11 +75,16 @@ def play_scarab(g: Game) -> int:
         if token != "free":
             g.status(f"Scarab: no free token in the Play button ({token}), leaving")
             break
+        before = _counter_image(g)
         g.move_to(atlas.TAVERN_USE_TOKEN)
         g.sleep(1000)
         g.click()
+        g.sleep(500)  # let Unity process the click before the pointer leaves the button
         g.move_to(atlas.SCARAB_PLAY_PARK)  # leave the button so the hover colour goes away
-        g.sleep(3000)
+        if not _wait_counter_change(g, before):
+            g.status("Scarab: the free-token counter did not change, leaving")
+            break
+        g.sleep(2000)  # let the reels settle before the next play
         daily.note_scarab_play(g.settings)
         plays += 1
         g.status(f"Scarab: play {plays} ({g.settings.ScarabCountDaily} today)")
