@@ -18,11 +18,13 @@ def build(parent, ctx: PageContext):
     guild = place_card(Card(content, ctx, "Guild", master="NoGuild"))
     for key in ("GuildExpedition", "GNotif", "Pickaxes", "Crystal", "Awaken", "Chaos"):
         guild.option(key)
+    crystal = guild.option("MaxCrystals")
     chaos = guild.option("MaxChaos")
     guild.option("ChaosBooks")
 
     def tick_chaos():
         chaos.control.set_live(f"hits today: {daily._int(s, 'ChaosCountDaily')}")
+        crystal.control.set_live(f"hits today: {daily._int(s, 'CrystalCountDaily')}")
 
     tick_chaos()
     ctx.register_tick(tick_chaos)

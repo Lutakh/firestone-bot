@@ -3,7 +3,7 @@
 from firestone_bot.settings import Settings
 
 SAMPLE = (
-    "[CommonOptions]\nToken=1\nMail=0\nGearChestExclude=Epic and Higher\nCrystalCountDaily=15\n"
+    "[CommonOptions]\nToken=1\nMail=0\nGearChestExclude=Epic and Higher\nLastCrystalReset=20260502115838\n"
     "[QoL/RareOptions]\nBeer=1\n[SettingsNoGui]\nEnableHeartbeat=0\n"
 )
 
@@ -23,13 +23,13 @@ def _roundtrip(tmp_path, encoding):
     assert s.encoding == encoding
     assert s.flag("Token") and not s.flag("Mail") and s.flag("Beer")
     assert s.GearChestExclude == "Epic and Higher"
-    assert s.extra["CommonOptions"]["CrystalCountDaily"] == "15"
+    assert s.extra["CommonOptions"]["LastCrystalReset"] == "20260502115838"
     s.set("Mail", True)
     s.save()
     raw = p.read_bytes()
     s2 = Settings.load(str(p))
     assert s2.flag("Mail") and s2.flag("Token")
-    assert s2.extra["CommonOptions"]["CrystalCountDaily"] == "15"
+    assert s2.extra["CommonOptions"]["LastCrystalReset"] == "20260502115838"
     return raw
 
 

@@ -505,6 +505,8 @@ GUILD_CRYSTAL_HIT_READY = Probe(
     1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit"
 )  # :97 (inverted)
 GUILD_CRYSTAL_HIT = Point(957, 896)  # :100
+GUILD_CRYSTAL_PARK = Point(300, 950)  # mouse parking spot away from the hit button
+GUILD_PICKAXE_COUNTER = (1590, 51, 1710, 91)  # logical rect of the pickaxe counter digits
 GUILD_NOTIF_1 = Point(1056, 487)  # :109
 GUILD_NOTIF_2 = Point(230, 667)  # :114
 

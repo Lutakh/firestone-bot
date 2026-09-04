@@ -23,9 +23,17 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import numpy as np
+
 from firestone_bot.platform import capture
 from firestone_bot.platform import input as inp
-from firestone_bot.platform.window import GameWindowNotFound, WindowInfo, activate, find_game_window
+from firestone_bot.platform.window import (
+    GameWindowNotFound,
+    Rect,
+    WindowInfo,
+    activate,
+    find_game_window,
+)
 from firestone_bot.settings import Settings
 from firestone_bot.vision.atlas import Point, Probe
 from firestone_bot.vision.probes import pixel_search_in
@@ -202,3 +210,25 @@ class Game:
 
     def found(self, p: Probe, variation: int | None = None) -> bool:
         return self.search(p, variation) is not None
+
+    def region_image(self, rect: tuple[int, int, int, int]) -> np.ndarray:
+        """BGR pixels of a logical rect (x1, y1, x2, y2), e.g. a counter's digits."""
+        vp = self._viewport()
+        sx1, sy1 = vp.to_screen(rect[0], rect[1])
+        sx2, sy2 = vp.to_screen(rect[2], rect[3])
+        return capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3].copy()
+
+    def wait_region_change(
+        self, rect: tuple[int, int, int, int], before: np.ndarray, timeout_ms: int = 15000
+    ) -> bool:
+        """Poll a logical rect until enough pixels differ from `before` (digits redrawn)."""
+        waited = 0
+        while waited < timeout_ms:
+            self.sleep(1000)
+            waited += 1000
+            after = self.region_image(rect)
+            if after.shape == before.shape:
+                changed = (np.abs(after.astype(int) - before.astype(int)) > 60).any(axis=2).sum()
+                if changed > 40:
+                    return True
+        return False

@@ -60,3 +60,12 @@ def test_guardian_order_parsing():
     assert guardian_order(g) == [3, 1, 2, 4]
     g.settings.set("ChaosGuardianOrder", "")
     assert guardian_order(g) == [1, 2, 3, 4]
+
+
+def test_crystal_limit_and_reset(tmp_path):
+    s = Settings(path=str(tmp_path / "settings.ini"))
+    assert daily.crystal_left(s) == 5
+    daily.note_crystal_hit(s)
+    assert daily.crystal_left(s) == 4
+    daily.mark_daily_reset(s)
+    assert daily.crystal_left(s) == 5

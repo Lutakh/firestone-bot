@@ -67,7 +67,7 @@ def build(parent, ctx: PageContext):
     look.note("Colours only; the bot's screen reading is unaffected. Stored in gui_state.json.")
 
     counters = place_card(Card(content, ctx, "Daily counters (read-only)"))
-    for key in ("TokenCountDaily", "ChaosCountDaily", "ScarabCountDaily"):
+    for key in ("TokenCountDaily", "ChaosCountDaily", "ScarabCountDaily", "CrystalCountDaily"):
         counters.add(
             ReadOnlyValue(counters.body, ctx, READ_ONLY_LABELS[key], lambda k=key: s.get(k) or "0")
         )

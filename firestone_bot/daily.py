@@ -13,6 +13,8 @@ counters:
     ChaosCountDaily=4     hits since the last reset
     MaxScarab=10          scarab game plays with FREE tokens per game day (0 = no limit)
     ScarabCountDaily=2    plays since the last reset
+    MaxCrystals=5         pickaxe hits on the guild's arcane crystal per game day (0 = no limit)
+    CrystalCountDaily=3   hits since the last reset
 """
 
 from __future__ import annotations
@@ -41,6 +43,7 @@ def mark_daily_reset(settings: Settings) -> None:
     settings.set("LastChaosReset", settings.get("LastTokenReset"))
     settings.set("ScarabCountDaily", 0)
     settings.set("ChaosBooksDaily", 0)
+    settings.set("CrystalCountDaily", 0)
     settings.save()
     log.info("daily reset detected: token and arena counters cleared")
 
@@ -99,4 +102,17 @@ def books_done(settings: Settings) -> bool:
 
 def note_books_done(settings: Settings) -> None:
     settings.set("ChaosBooksDaily", 1)
+    settings.save()
+
+
+def crystal_left(settings: Settings) -> int | None:
+    """None = unlimited (MaxCrystals is 0), else crystal hits still allowed today."""
+    limit = _int(settings, "MaxCrystals")
+    if limit <= 0:
+        return None
+    return max(0, limit - _int(settings, "CrystalCountDaily"))
+
+
+def note_crystal_hit(settings: Settings) -> None:
+    settings.set("CrystalCountDaily", _int(settings, "CrystalCountDaily") + 1)
     settings.save()

@@ -116,6 +116,7 @@ READ_ONLY_KEYS = {
     "ChaosCountDaily",
     "LastChaosReset",
     "ChaosBooksDaily",
+    "CrystalCountDaily",
     "ScarabCountDaily",
     "ClientID",
 }
@@ -299,6 +300,13 @@ OPTIONS: dict[str, Option] = {
         "Uses the claimed pickaxes on the crystal.",
         "switch",
     ),
+    "MaxCrystals": Option(
+        "Crystal hits per day",
+        "Pickaxes spent on the arcane crystal per game day, all in one visit; the crystal is "
+        "then skipped until the daily reset.",
+        "num",
+        zero_means="0 = no limit",
+    ),
     "Awaken": Option("Awaken heroes", "Uses the guild's awakening panel.", "switch"),
     "Chaos": Option(
         "Hit the chaos rift (free tokens only)",
@@ -478,6 +486,7 @@ OPTIONS: dict[str, Option] = {
 READ_ONLY_LABELS = {
     "TokenCountDaily": "Tokens used today",
     "ChaosCountDaily": "Chaos hits today",
+    "CrystalCountDaily": "Crystal hits today",
     "ScarabCountDaily": "Scarab plays today",
     "ArenaDoneDaily": "Arena done today",
     "LastTokenReset": "Last reset (tokens)",

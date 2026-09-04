@@ -65,6 +65,9 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 - **Unknown values** found in `settings.ini` (a legacy `GuardianTrain=Vermilion`, an
   unexpected chest rarity, an invalid priority order) are shown as `(unknown) value` with a
   warning and are never rewritten until you pick something else.
+- **Daily limits** (Town / Guild pages): tavern tokens, chaos hits, scarab plays and arcane
+  crystal hits per game day (defaults 12 / 10 / 10 / 5, 0 = no limit); each is done in one
+  visit and then skipped until the daily shop's free box is claimable again.
 - **Per-action switches**: every action the bot performs has its own switch (section
   `[Actions]` of `settings.ini`, all ON by default): guardian visit/evolve/training/chaos
   upgrades, beer tokens, artifact, Pharaoh's token, rituals, engineer tools, alchemy collection,

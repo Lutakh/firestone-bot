@@ -3,6 +3,7 @@ tree, notifications."""
 
 from __future__ import annotations
 
+from firestone_bot import daily
 from firestone_bot.features.awaken import awaken_run
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos import hit_chaos
@@ -72,17 +73,45 @@ def claim_axes(g: Game) -> None:
     big_close(g)
 
 
+MAX_CRYSTAL_HITS_PER_VISIT = 60  # safety when MaxCrystals is 0 (unlimited)
+
+
 def hit_crystal(g: Game) -> None:
+    """Spend pickaxes on the arcane crystal, all of today's allowance in one visit.
+
+    Python-only daily limit (MaxCrystals, default 5; CrystalCountDaily cleared by the daily
+    reset): the AHK bot hit once per cycle. Once the limit is reached the crystal is not
+    opened again until the next reset.
+    """
+    if daily.crystal_left(g.settings) == 0:
+        return
     g.move_to(atlas.GUILD_CRYSTAL)
     g.sleep(1000)
     g.click()
     g.sleep(1500)
-    if g.found(atlas.GUILD_CRYSTAL_HIT_READY):
+    hits = 0
+    while hits < MAX_CRYSTAL_HITS_PER_VISIT and daily.crystal_left(g.settings) != 0:
+        g.move_to(atlas.GUILD_CRYSTAL_PARK)  # off the button: hover would lighten it
+        g.sleep(500)
+        if not g.found(atlas.GUILD_CRYSTAL_HIT_READY):
+            break
         g.heartbeat("HitCrystal", important=True)
+        before = g.region_image(atlas.GUILD_PICKAXE_COUNTER)
         g.move_to(atlas.GUILD_CRYSTAL_HIT)
         g.sleep(1000)
         g.click()
+        g.sleep(500)
+        g.move_to(atlas.GUILD_CRYSTAL_PARK)
+        if not g.wait_region_change(atlas.GUILD_PICKAXE_COUNTER, before):
+            # the hit animation swallows clicks: the counter did not move, do not count it
+            g.status("Crystal: the pickaxe counter did not change, leaving")
+            break
         g.sleep(1500)
+        daily.note_crystal_hit(g.settings)
+        hits += 1
+        g.status(f"Crystal: hit {hits} ({g.settings.CrystalCountDaily} today)")
+    if daily.crystal_left(g.settings) == 0:
+        g.status(f"Crystal: daily limit reached ({g.settings.MaxCrystals})")
     big_close(g)
 
 
