@@ -187,3 +187,9 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
 - Guild shop > Supplies: the "Free pickaxes" card now has a green 0x0AA008 Claim button at
   client (590,692)-(835,735) -> logical (590,723)-(835,766); the AHK teal probe (0x1EA569 in
   (764,617)-(869,653)) and click (716,637) point at the "Next free" timer text instead.
+- Chaos rift shop (2026-09-04): Shop button right column, client (1815,690), bell at (1880,610);
+  shop left menu "Monthly pass" / "Supplies" (client (115,556), bell (205,522)); Supplies page:
+  "Tome of power" green price button client (553,739)-(798,783), price rises per purchase
+  (3,822 -> 3,994 -> ... 5,435 after 8 books), no confirmation; when unaffordable the button is
+  still green and the click opens "You need N more Dark rune" with a green OK at client
+  (805,595)-(1100,672). The price button turns 0x16BC15 while hovered.

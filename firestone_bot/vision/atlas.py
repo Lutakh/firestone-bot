@@ -528,6 +528,19 @@ CHAOS_HIT = Point(960, 886)
 CHAOS_HIT_READY = Probe(850, 865, 1070, 905, GREEN_BUTTON, 3, "chaos_hit_ready")
 CHAOS_HIT_ICON_PAID = Probe(905, 911, 955, 951, 0xA54510, 12, "chaos_hit_icon_paid")
 CHAOS_HIT_ICON_FREE = Probe(905, 911, 955, 951, 0x3182C6, 16, "chaos_hit_icon_free")
+# Rift shop (books), measured 2026-09-04: Shop button right column with its bell, Supplies
+# entry in the shop's left menu with its bell, green price button of the "Tome of power" card.
+RIFT_SHOP = Point(1815, 721)
+RIFT_SHOP_BELL = Probe(1865, 641, 1895, 671, RED_DOT, 3, "rift_shop_bell")
+RIFT_SUPPLIES = Point(115, 587)
+RIFT_SUPPLIES_BELL = Probe(190, 538, 220, 568, RED_DOT, 3, "rift_supplies_bell")
+RIFT_BOOKS_READY = Probe(580, 775, 770, 808, GREEN_BUTTON, 3, "rift_books_ready")
+RIFT_BOOKS_BUY = Point(675, 792)
+RIFT_BOOKS_PARK = Point(300, 950)
+# "You need N more Dark rune" pop-up: the price button stays green when unaffordable, so the
+# pop-up's green OK button (client (805,595)-(1100,672)) is the stop signal.
+RIFT_NEED_MORE_OK_READY = Probe(860, 640, 1040, 690, GREEN_BUTTON, 3, "rift_need_more_ok")
+RIFT_NEED_MORE_OK = Point(952, 664)
 
 # --- PTree.ahk ------------------------------------------------------------------------------
 PTREE_OPEN = Point(1823, 945)  # :8
@@ -650,7 +663,10 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (1290, 99),
         (1177, 35),
         (1104, 43),
-        (484, 166),  # Frostfire north-west, "Visit the Northern Tribes" (2 squads, timed; 2026-09-04)
+        (
+            484,
+            166,
+        ),  # Frostfire north-west, "Visit the Northern Tribes" (2 squads, timed; 2026-09-04)
     ),
     "War": (
         (672, 423),  # Tipsy Wisp Tavern

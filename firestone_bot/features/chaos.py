@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
+from firestone_bot.features.chaos_books import buy_books
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 
@@ -34,15 +35,17 @@ def _open_rift(g: Game) -> None:
 
 
 def hit_chaos(g: Game) -> None:
-    if daily.chaos_left(g.settings) == 0:
-        return  # limit reached for today: the rift is not opened again until the reset
+    need_hits = daily.chaos_left(g.settings) != 0
+    need_books = g.settings.flag("ChaosBooks") and not daily.books_done(g.settings)
+    if not (need_hits or need_books):
+        return  # nothing left for today: the rift is not opened again until the reset
     g.focus()
     # Check for Chaos notification on guild screen
     if not g.found(atlas.CHAOS_DOT):
         return
     _open_rift(g)
     hits = 0
-    while True:
+    while need_hits:
         left = daily.chaos_left(g.settings)
         if left == 0:
             g.status(f"Chaos rift: daily limit reached ({g.settings.MaxChaos}), leaving")
@@ -64,6 +67,10 @@ def hit_chaos(g: Game) -> None:
         # leave and come back: the battle resolves and the button is green again
         big_close(g)
         _open_rift(g)
+    if need_books:
+        # once a day, after the hits: buy the books in the rift shop when its bell shows
+        buy_books(g)
+        daily.note_books_done(g.settings)
     big_close(g)
     if hits:
         g.vars["chaos_hits"] = g.vars.get("chaos_hits", 0) + hits  # runner: guardian upgrades

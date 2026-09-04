@@ -115,6 +115,7 @@ READ_ONLY_KEYS = {
     "ArenaDoneDaily",
     "ChaosCountDaily",
     "LastChaosReset",
+    "ChaosBooksDaily",
     "ScarabCountDaily",
     "ClientID",
 }
@@ -307,6 +308,12 @@ OPTIONS: dict[str, Option] = {
     ),
     "MaxChaos": Option(
         "Chaos hits per day", "Free-token hits only.", "num", zero_means="0 = no limit"
+    ),
+    "ChaosBooks": Option(
+        "Buy the chaos rift books",
+        "Once a day, after the hits: opens the rift Shop when it shows a notification and buys "
+        "Tome of power books while the price button stays green.",
+        "switch",
     ),
     "PTree": Option("Upgrade the personal tree", "Buys the checked upgrades each visit.", "switch"),
     "AttDmg": Option("Attribute Damage", "Personal tree upgrade.", "check"),

@@ -19,6 +19,7 @@ def build(parent, ctx: PageContext):
     for key in ("GNotif", "Pickaxes", "Crystal", "Awaken", "Chaos"):
         guild.option(key)
     chaos = guild.option("MaxChaos")
+    guild.option("ChaosBooks")
 
     def tick_chaos():
         chaos.control.set_live(f"hits today: {daily._int(s, 'ChaosCountDaily')}")
