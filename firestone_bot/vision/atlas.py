@@ -115,7 +115,13 @@ QUESTS_REWARD_OK = Point(1619, 990)  # :29
 # --- Shop.ahk -------------------------------------------------------------------------------
 SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, 3, "shop_red_dot")  # :10
 SHOP_ICON = Point(1857, 583)  # :12
-SHOP_MYSTERY_BOX = Point(591, 857)  # :17
+# Shop.ahk:17 clicked the mystery box at (591,857); since the 2026 shop layout that spot is a
+# paid deal. The free box is the last card of the scrolling "Daily deals" row (measured
+# 2026-09-04, docs/MEASUREMENTS.md).
+SHOP_DEALS_HOVER = Point(1100, 600)
+SHOP_MYSTERY_CLAIM_READY = Probe(1560, 821, 1750, 871, GREEN_BUTTON, 3, "shop_mystery_claim")
+SHOP_MYSTERY_CLAIM = Point(1655, 846)
+SHOP_REWARD_DISMISS = Point(960, 950)
 SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
 SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
 SHOP_CHECKIN_OK = Point(1339, 828)  # :31
@@ -221,7 +227,9 @@ GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
 # --- ClaimBeer.ahk / UseTavernToken.ahk / CraftArtifact.ahk -----------------------------------
 TAVERN_BEER_TAB = Point(773, 500)  # ClaimBeer.ahk:18
 TAVERN_TOKEN_SHOP = Point(1735, 69)  # :23
-TAVERN_BEER_CLAIM_READY = Probe(616, 610, 697, 656, 0xFFBB33, 3, "tavern_beer_claim")  # :27
+# ClaimBeer.ahk:27 looked for a yellow 0xFFBB33 button in (616,610)-(697,656); the token shop
+# button is now green (0x0AA008) and spans (407,611)-(652,654) (measured 2026-09-04).
+TAVERN_BEER_CLAIM_READY = Probe(430, 615, 630, 650, GREEN_BUTTON, 3, "tavern_beer_claim")
 TAVERN_BEER_CLAIM = Point(544, 630)  # :29
 TAVERN_USE_TOKEN_READY = Probe(
     1019, 934, 1050, 991, GREEN_BUTTON, 3, "tavern_use_token"

@@ -40,6 +40,11 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "Chaos": ("CommonOptions", "1"),
     "PTree": ("CommonOptions", "0"),
     "GuardianTrain": ("CommonOptions", "Vermilion"),
+    # daily counters (Python port, see daily.py)
+    "MaxTokens": ("CommonOptions", "0"),
+    "TokenCountDaily": ("CommonOptions", "0"),
+    "LastTokenReset": ("CommonOptions", ""),
+    "ArenaDoneDaily": ("CommonOptions", "0"),
     "UpgradeSpecial": ("HeroOptions", "1"),
     "UpgradeGuardian": ("HeroOptions", "1"),
     "UpgradeH1": ("HeroOptions", "1"),

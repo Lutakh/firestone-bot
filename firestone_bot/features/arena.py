@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import random
 
+from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
@@ -57,6 +58,7 @@ def arena(g: Game) -> None:
         if g.found(atlas.ARENA_BUY_MORE):
             big_close(g)
             big_close(g)
+            daily.note_arena_done(g.settings)  # no battles left today
             return
         g.move_to(atlas.ARENA_FIGHT)
         g.sleep(1000)
@@ -64,3 +66,4 @@ def arena(g: Game) -> None:
         while not arena_battle(g):
             g.sleep(5000)
     big_close(g)
+    daily.note_arena_done(g.settings)  # skip the arena until the next daily reset

@@ -83,3 +83,13 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 
 Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, `*.bak`,
 `MapStart.ahk.bak`.
+
+## Changes beyond AHK parity (owner requests, 2026-09-04)
+
+| Change | Where | Notes |
+|---|---|---|
+| Tavern token-shop button probe | `atlas.TAVERN_BEER_CLAIM_READY` | game update: button is green 0x0AA008 at (407,611)-(652,654), AHK looked for yellow 0xFFBB33 |
+| Daily shop free mystery box | `features/shop.py` | box moved to the end of the scrolling "Daily deals" row; AHK click (591,857) now hits a paid deal and was removed |
+| Daily reset detection | `daily.py`, `shop.py` | free box claimable = new game day; shop is visited every cycle (when its red dot shows) regardless of the Shop setting |
+| Tavern token limit | `MaxTokens` (GUI: Tavern group), `TokenCountDaily` | 0 = unlimited; counters persisted in settings.ini, cleared at the detected reset |
+| Arena once per day | `ArenaDoneDaily` | set after the 5 battles (or the "buy more" pop-up); the 6 h timer still applies too |

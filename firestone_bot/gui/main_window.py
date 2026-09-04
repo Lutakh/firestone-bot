@@ -247,6 +247,12 @@ class MainWindow:
         self._check(g, "Token", "Use Tavern Tokens / Artifacts")
         self._check(g, "Beer", "Skip Claiming Beer")
         self._check(g, "Scarab", "Skip Using Scarab Token")
+        f = ttk.Frame(g)
+        f.grid(sticky="w", padx=8, pady=2)
+        ttk.Label(f, text="Max tokens per day (0 = no limit):").pack(side="left")
+        ttk.Entry(f, textvariable=self._var("MaxTokens"), width=5).pack(side="left", padx=6)
+        self.daily_label = ttk.Label(g, text="")
+        self.daily_label.grid(sticky="w", padx=8, pady=2)
         g = self._group(tab, "Mission Priority Order", row=2, column=2, rowspan=2)
         for i, label in enumerate(("1st:", "2nd:", "3rd:", "4th:", "5th:"), start=1):
             self._combo(g, f"Priority{i}", label, PRIORITY_CHOICES)
@@ -366,6 +372,10 @@ class MainWindow:
                 self.activity.configure(text=self.status_queue.get_nowait())
         except queue.Empty:
             pass
+        self.daily_label.configure(
+            text=f"Today: {self.settings.get('TokenCountDaily') or 0} token(s) used, arena "
+            f"{'done' if self.settings.flag('ArenaDoneDaily') else 'pending'}"
+        )
         self.root.after(200, self._poll_status)
 
     def set_bot_state(self, text: str) -> None:

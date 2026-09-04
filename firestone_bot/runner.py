@@ -10,6 +10,7 @@ import logging
 import threading
 import time
 
+from firestone_bot import daily
 from firestone_bot.features import (
     alchemist,
     arena,
@@ -117,9 +118,9 @@ class Runner:
             )
             main_menu.main_menu(g)
             g.focus()
-            if s.flag("Shop"):
-                g.heartbeat("Shop")
-                shop.shop(g)
+            # always: the shop visit also detects the daily reset (free mystery box)
+            g.heartbeat("Shop")
+            shop.shop(g)
             if s.flag("Mail"):
                 g.heartbeat("CheckMail")
                 check_mail.check_mail(g)
@@ -150,7 +151,7 @@ class Runner:
             if s.flag("SellEx"):
                 g.heartbeat("ExoticMerchant")
                 exotic_merchant.exotic_merchant(g)
-            if s.flag("PVP"):
+            if s.flag("PVP") and not daily.arena_done(s):
                 now = _ms()
                 if last_arena <= 0 or now - last_arena >= 6 * 60 * 60 * 1000:
                     g.heartbeat("Arena")

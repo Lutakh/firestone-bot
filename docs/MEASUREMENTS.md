@@ -159,3 +159,12 @@ The RestartGameRoutine wait loop found `RESTART_START_BUTTON` (0x16BC15 in (845,
 on the first check: on this account it was the green "Claim" of the offline-progress dialog,
 which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
 `steam_after_start.png` (not committed; they show a different account).
+
+## Game UI changes since the AHK bot (2026-09-04, Epic build, 1920x1009)
+
+- Tavern > Beer tab > token shop: the "1500 beer" buy button is green 0x0AA008, bbox client
+  (407,580)-(652,623), i.e. logical (407,611)-(652,654). The AHK click (544,630) is still on it.
+- Shop > Daily deals: horizontal card row (paid deals first), the free "Mystery box" card is
+  last and only fully visible after ~30 wheel-down notches with the mouse over the row; its
+  status button sits at client (1655,815) -> logical (1655,846) ("Claimed" text when done,
+  green button when claimable; the green state is checked at the daily reset).
