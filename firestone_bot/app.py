@@ -74,7 +74,35 @@ class App:
         self.game = Game(self.settings, status_cb=self._status)
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)
+        self.runner.on_finished = lambda: self.window.root.after(600, self.present)
         self._install_hotkey()
+        self.window.root.after(100, self.present)
+
+    def present(self) -> None:
+        """While the bot is idle: game window in front (restored if minimised), then the bot
+        window on top of it, so the user sees both."""
+        if self.runner is not None and self.runner.running:
+            return
+        from firestone_bot.platform.window import GameWindowNotFound, activate, find_game_window
+
+        try:
+            activate(find_game_window())
+        except GameWindowNotFound:
+            pass
+        root = self.window.root
+        root.after(350, self._raise_window)
+
+    def _raise_window(self) -> None:
+        root = self.window.root
+        try:
+            if root.state() == "iconic":
+                root.deiconify()
+            root.lift()
+            root.attributes("-topmost", True)
+            root.after(400, lambda: root.attributes("-topmost", False))
+            root.focus_force()
+        except Exception:
+            log.debug("raise window failed", exc_info=True)
 
     # -- callbacks --------------------------------------------------------------------------
     def _status(self, text: str) -> None:

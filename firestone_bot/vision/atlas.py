@@ -114,6 +114,17 @@ EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the
     (Probe(1530, 823, 1568, 870, GREEN_BUTTON, 3, "events_claim_3"), Point(1500, 837)),
 )
 
+# --- Battle pass (Python-only, measured 2026-09-04) -----------------------------------------
+BP_ICON = Point(445, 961)  # main-screen button (client (445,930)), left of Events
+BP_BELL = Probe(470, 894, 500, 924, RED_DOT, 3, "bp_bell")
+BP_REWARDS_TAB = Point(1085, 79)  # tab (client (1085,48))
+BP_REWARDS_BADGE = Probe(1198, 46, 1228, 76, RED_DOT, 3, "bp_rewards_badge")
+BP_REWARD_COLUMNS = (360, 1830)  # logical x range of the milestone track
+BP_REWARD_ROWS = ((525, 565), (945, 985))  # logical y bands of the Golden / Free Claim rows
+BP_PARK = Point(960, 1015)
+BP_SCROLL_HOVER = Point(1100, 700)
+BP_CLOSE = Point(1815, 126)  # X of the battle pass (client (1815,95))
+
 # --- Quests.ahk -----------------------------------------------------------------------------
 CHARACTER_ICON = Point(90, 112)  # :9
 QUESTS_TAB = Point(1455, 74)  # :14

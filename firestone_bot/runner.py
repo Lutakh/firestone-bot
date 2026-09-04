@@ -14,6 +14,7 @@ from firestone_bot import daily
 from firestone_bot.features import (
     alchemist,
     arena,
+    battle_pass,
     big_close,
     check_mail,
     claim_beer,
@@ -61,6 +62,7 @@ class Runner:
         self.thread: threading.Thread | None = None
         self.cycles = 0
         self.max_cycles = 0  # 0 = forever (AHK); tools set 1 for a single dry-run cycle
+        self.on_finished = None  # optional callback, called from the worker when a run ends
         game.heartbeat_cb = self._heartbeat
 
     # -- lifecycle ------------------------------------------------------------------------
@@ -91,6 +93,11 @@ class Runner:
             self.g.status("Crashed, see log")
         finally:
             capture.close()  # per-thread mss instance (GDI objects)
+            if self.on_finished is not None:
+                try:
+                    self.on_finished()
+                except Exception:
+                    log.exception("on_finished callback failed")
 
     # -- MainScript() -----------------------------------------------------------------------
     def main_script(self) -> None:
@@ -117,6 +124,8 @@ class Runner:
             g.focus()
             if s.flag("Events"):
                 claim_events.claim_events(g)
+            if s.flag("BattlePass"):
+                battle_pass.battle_pass(g)
             if s.flag("Quests"):
                 g.heartbeat("ClaimQuests")
                 quests.claim_quests(g)

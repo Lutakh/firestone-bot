@@ -17,7 +17,7 @@ def build(parent, ctx: PageContext):
     )
 
     card = place_card(Card(content, ctx, "Claims"))
-    for key in ("Events", "Quests", "Mail", "MailDelete", "Shop"):
+    for key in ("Events", "BattlePass", "Quests", "Mail", "MailDelete", "Shop"):
         card.option(key)
 
     chests = place_card(Card(content, ctx, "Chests (bag)", master="Chests"))

@@ -149,6 +149,7 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "MailDelete": ("Actions", "1"),
     "OracleGifts": ("Actions", "1"),
     "MysteryBoxes": ("Actions", "1"),
+    "BattlePass": ("Actions", "1"),
 }
 
 ENCODINGS = ("utf-16", "utf-8-sig")

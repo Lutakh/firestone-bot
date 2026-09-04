@@ -368,6 +368,11 @@ OPTIONS: dict[str, Option] = {
     "MailDelete": Option("Delete read mail", "After claiming the attachments.", "switch"),
     "OracleGifts": Option("Open Oracle's gifts", "From the bag, after the chests.", "switch"),
     "MysteryBoxes": Option("Open mystery boxes", "From the bag, after the chests.", "switch"),
+    "BattlePass": Option(
+        "Claim the battle pass rewards",
+        "When the Battle pass button shows a bell: Rewards tab, every green Claim button.",
+        "switch",
+    ),
     "ChaosBooks": Option(
         "Buy the chaos rift books",
         "Once a day, after the hits: opens the rift Shop when it shows a notification and buys "

@@ -1,6 +1,5 @@
 # Backlog (owner requests, not yet done)
 
-- Battle Pass: claim available rewards.
 - Robustness against network / server slowness: slow UI, clicks landing on the wrong screen,
   clicks not registered. Ideas: wait-for-probe helpers instead of fixed sleeps at screen
   transitions, verify the expected screen before clicking, retry once, and a "recover to the
