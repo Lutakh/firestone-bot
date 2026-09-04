@@ -80,7 +80,7 @@ DELAY_DISPLAY = {
 RESTART_HOURS = ["6", "12", "18", "24"]
 RESTART_DISPLAY = {h: f"{h} h" for h in RESTART_HOURS}
 GUARDIAN_LEVELS = ["1", "2", "3", "4"]
-GUARDIAN_DISPLAY = {n: f"Level {n}" for n in GUARDIAN_LEVELS}
+GUARDIAN_DISPLAY = {"1": "Guardian 1", "2": "Guardian 2", "3": "Guardian 3", "4": "Guardian 4"}" for n in GUARDIAN_LEVELS}
 CHAOS_GUARDIAN_CHOICES = ["1", "2", "3", "4"]
 SELL_KEYS = ["SellScrolls", "SellNoGold", "SellAll", "SellNone"]
 # features/exotic_merchant.py checks the flags in this order when several are set.
@@ -220,9 +220,10 @@ OPTIONS: dict[str, Option] = {
     "UpgradeH5": Option("Hero slot 5", "Hero panel row.", "check"),
     # -- Town ------------------------------------------------------------------------------
     "GuardianTrain": Option(
-        "Training level",
-        "Which training option is selected (the bot presses Right N-1 times). A legacy value "
-        "such as 'Vermilion' behaves like Level 1 and is kept until you pick one.",
+        "Guardian to train",
+        "Roster position of the guardian that receives the training (the bot presses Right N-1 "
+        "times). A legacy value such as 'Vermilion' behaves like Guardian 1 and is kept until "
+        "you pick one.",
         "seg",
         tuple(GUARDIAN_LEVELS),
         GUARDIAN_DISPLAY,
