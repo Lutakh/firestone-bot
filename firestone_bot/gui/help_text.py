@@ -14,6 +14,20 @@ HOME_SECTIONS: list[tuple[str, str]] = [
         ),
     ),
     (
+        "macOS",
+        (
+            "- Game Settings > Graphics: turn Fullscreen OFF (the fullscreen Space letterboxes "
+            "the game and hides the menu bar; a zoomed window is the reference setup). Keep "
+            "the menu bar and the Dock visible, the bot measures the window.\n"
+            "- System Settings > Privacy & Security: grant Screen Recording and Accessibility "
+            "to FirestoneBot.app (or to the terminal app that runs the bot from source). "
+            "Without Screen Recording every probe misses; without Accessibility no click "
+            "reaches the game. The Dashboard's Environment card names the missing one.\n"
+            "- Retina displays are handled (captures in pixels, mouse in points).\n"
+            "- Exit hotkey: Cmd + Esc."
+        ),
+    ),
+    (
         "Gameplay settings",
         (
             "- Adventure button style: Mobile or PC (NOT the new Adventure style).\n"
@@ -23,7 +37,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
     (
         "Bot usage",
         (
-            "- Exit hotkey: Windows key + Esc.\n"
+            "- Exit hotkey: Windows key + Esc (Cmd + Esc on macOS).\n"
             "- Check all pages and activate ONLY what you need.\n"
             "- DO NOT move or zoom the map. Leave it as it is on login. If moved, restart the game."
         ),
@@ -43,7 +57,7 @@ WHERE_THINGS_ARE = (
 )
 
 SHORTCUTS: list[tuple[str, str]] = [
-    ("Win+Esc", "Exit the bot (global hotkey, works while the game has the focus)"),
+    ("Win+Esc / Cmd+Esc", "Exit the bot (global hotkey, works while the game has the focus)"),
     ("F5", "Re-check the environment (game window, capture)"),
     ("Ctrl+S", "Save settings now"),
     ("Ctrl+1 … Ctrl+7", "Switch page (Dashboard … Help)"),
