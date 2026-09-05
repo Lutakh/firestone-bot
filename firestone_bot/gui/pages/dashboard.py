@@ -197,6 +197,13 @@ class DashboardView:
         self.meter_chaos = today.add(Meter(today.body, "Chaos hits"), pady=(2, 6))
         self.meter_scarab = today.add(Meter(today.body, "Scarab plays"), pady=(2, 6))
         self.meter_crystal = today.add(Meter(today.body, "Crystal hits"), pady=(2, 6))
+        cyc = ctk.CTkFrame(today.body, fg_color="transparent")
+        ctk.CTkLabel(cyc, text="Last cycle", anchor="w", font=theme.font(13)).pack(side="left")
+        self.cycle_value = ctk.CTkLabel(
+            cyc, text="-", anchor="e", font=theme.font(13, "bold"), text_color=theme.MUTED
+        )
+        self.cycle_value.pack(side="right")
+        today.add(cyc, pady=(2, 6), always_enabled=True)
         arena = ctk.CTkFrame(today.body, fg_color="transparent")
         arena.grid_columnconfigure(1, weight=1)
         self.arena_dot = StatusDot(arena, "grey")
@@ -258,10 +265,12 @@ class DashboardView:
     def set_state(self, text: str, kind: str, cycle: int | None, duration: str = "") -> None:
         self.pill.set(text, kind)
         c = f"cycle {cycle}" if cycle else ""
-        if c and duration:
-            c += f" · last cycle {duration}"
         if self.cycle_label.cget("text") != c:
             self.cycle_label.configure(text=c)
+        # the duration lives in the Today card, readable whatever the window size
+        d = f"{duration} (cycle {cycle})" if duration and cycle else duration or "-"
+        if self.cycle_value.cget("text") != d:
+            self.cycle_value.configure(text=d)
         crashed = kind == "err"
         if crashed and not self.open_log_btn.winfo_manager():
             self.open_log_btn.grid()
