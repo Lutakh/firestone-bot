@@ -69,8 +69,10 @@ class App:
         if self.runner is not None:
             return
         from firestone_bot.game import Game
+        from firestone_bot.platform import input as inp
         from firestone_bot.runner import Runner
 
+        inp.prepare()  # macOS: pynput layout lookups on the Tk (main) thread, see mac/pynput_fix
         self.game = Game(self.settings, status_cb=self._status)
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)

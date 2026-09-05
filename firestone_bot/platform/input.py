@@ -19,10 +19,22 @@ _KEYS: dict[str, object] = {}
 _Button = None
 
 
+def prepare() -> None:
+    """macOS: run pynput's main-thread-only layout lookups now (call from the main thread
+    before any worker creates a controller or listener). No-op elsewhere."""
+    import sys
+
+    if sys.platform == "darwin":
+        from .mac.pynput_fix import prepare_on_main_thread
+
+        prepare_on_main_thread()
+
+
 def _ensure() -> None:
     global _mouse, _keyboard, _Button
     if _mouse is not None:
         return
+    prepare()
     from pynput.keyboard import Controller as KeyboardController
     from pynput.keyboard import Key
     from pynput.mouse import Button

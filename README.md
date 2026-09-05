@@ -65,6 +65,12 @@ build). What differs from Windows:
   points; the Environment card shows the factor. Captures are colour-matched to sRGB (the
   raw screen is Display P3), so the atlas colours apply unchanged.
 - **Exit hotkey**: Cmd+Esc (Win+Esc on Windows).
+- **pynput on macOS 26**: the keyboard layout lookups pynput makes assert the main thread
+  (SIGTRAP otherwise), so the bot computes them once on the Tk thread at start-up
+  (`platform/mac/pynput_fix.py`). If a Python GUI process ever crashes, macOS then shows a
+  "Python quit unexpectedly while reopening windows" alert at every Tk start-up and the
+  window never appears until it is answered; disable that restoration once with
+  `defaults write org.python.python ApplePersistenceIgnoreState -bool YES`.
 - **Epic** has no macOS client: only Steam is looked up and launched (`steam://rungameid/`).
 - The game keeps a 16:9 canvas on the Mac, so the per-widget anchors of the 16:9 layout are
   used (validated live: main screen, mail, hero upgrades, one full cycle).
