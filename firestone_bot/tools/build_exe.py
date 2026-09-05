@@ -21,15 +21,45 @@ DIST = os.path.join(ROOT, "dist", "FirestoneBot")
 KEEP = ("settings.ini", "MapStartState.ini", "gui_state.json", "firestone-bot.log")
 
 
-def main() -> int:
-    if os.path.exists(os.path.join(DIST, "FirestoneBot.exe")):
+def bot_running() -> bool:
+    """True when a process runs dist/FirestoneBot/FirestoneBot.exe (rename checks are not
+    enough: Windows lets a running exe be renamed, and rmtree on _internal then fails half-way
+    through on a locked .pyd, leaving a broken install)."""
+    import psutil
+
+    target = os.path.normcase(os.path.join(DIST, "FirestoneBot.exe"))
+    for proc in psutil.process_iter(["exe"]):
         try:
-            os.rename(
-                os.path.join(DIST, "FirestoneBot.exe"), os.path.join(DIST, "FirestoneBot.exe")
-            )
+            exe = proc.info["exe"]
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        if exe and os.path.normcase(exe) == target:
+            return True
+    return False
+
+
+def _swap(name: str, src: str) -> None:
+    """Replace DIST/name by src/name: the old item is renamed aside first (fails cleanly when
+    it is in use, nothing is deleted), then the new one is moved in, then the old one is
+    removed if possible (a leftover *.old is cleaned on the next build)."""
+    dst = os.path.join(DIST, name)
+    old = dst + ".old"
+    if os.path.exists(old):
+        (shutil.rmtree if os.path.isdir(old) else os.remove)(old)
+    if os.path.exists(dst):
+        os.rename(dst, old)
+    shutil.move(os.path.join(src, name), dst)
+    if os.path.exists(old):
+        try:
+            (shutil.rmtree if os.path.isdir(old) else os.remove)(old)
         except OSError:
-            print("dist/FirestoneBot/FirestoneBot.exe is in use: close the bot window first")
-            return 1
+            print(f"{old} is still in use, it will be removed by the next build")
+
+
+def main() -> int:
+    if bot_running():
+        print("dist/FirestoneBot/FirestoneBot.exe is running: close the bot window first")
+        return 1
     cmd = [
         sys.executable,
         "-m",
@@ -48,12 +78,8 @@ def main() -> int:
         return r.returncode
     src = os.path.join(STAGE, "FirestoneBot")
     os.makedirs(DIST, exist_ok=True)
-    for name in ("_internal",):
-        dst = os.path.join(DIST, name)
-        if os.path.isdir(dst):
-            shutil.rmtree(dst)
-        shutil.move(os.path.join(src, name), dst)
-    shutil.move(os.path.join(src, "FirestoneBot.exe"), os.path.join(DIST, "FirestoneBot.exe"))
+    _swap("_internal", src)
+    _swap("FirestoneBot.exe", src)
     kept = [k for k in KEEP if os.path.exists(os.path.join(DIST, k))]
     print(f"exe updated in {DIST}; kept: {', '.join(kept) or 'nothing (first build)'}")
     return 0
