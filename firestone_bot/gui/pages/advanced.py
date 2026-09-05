@@ -117,6 +117,18 @@ def build(parent, ctx: PageContext):
 
     ctx.register_tick(tick_reset)
 
+    upd = place_card(Card(content, ctx, "Updates"))
+    from firestone_bot import __version__
+    from firestone_bot.update import RELEASES_PAGE
+
+    upd.note(
+        f"Version {__version__}. The bot checks the project's GitHub releases at start-up and "
+        "once a day; a newer version shows an Update button on the Dashboard (download, "
+        f"checksum, install, restart). Releases: {RELEASES_PAGE}",
+        kind="grey",
+    )
+    upd.buttons(("Check for updates now", lambda: ctx.call("check_updates")))
+
     files = place_card(Card(content, ctx, "Files"))
     if not ctx.extras.get("settings_existed", True):
         files.banner(

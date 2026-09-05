@@ -125,6 +125,8 @@ class MainWindow:
         self._last_poll = 0.0
         self._last_second = 0.0
         self._tick_fns: list[Callable[[], None]] = []
+        self.on_check_updates: Callable[[], None] | None = None  # set by App
+        self.on_install_update: Callable[[], None] | None = None
 
         self.ctx = PageContext(
             settings=settings,
@@ -140,6 +142,10 @@ class MainWindow:
                 "open_folder": self.open_folder,
                 "refresh_status": self.refresh_status,
                 "exit": self.request_exit,
+                "check_updates": lambda: self.on_check_updates() if self.on_check_updates else None,
+                "install_update": lambda: (
+                    self.on_install_update() if self.on_install_update else None
+                ),
             },
             show_page=self.show_page,
             base_dir=self.base_dir,
@@ -387,6 +393,15 @@ class MainWindow:
     def post_status(self, text: str) -> None:
         self.ui_queue.put(("activity", text))
 
+    def post_call(self, fn: Callable[[], None]) -> None:
+        """Run `fn` on the Tk thread (from any thread)."""
+        self.ui_queue.put(("call", fn))
+
+    def show_update(self, text: str, button: str | None = None) -> None:
+        """Update banner in the Dashboard's Control card (Tk thread)."""
+        if hasattr(self, "dash"):
+            self.dash.show_update(text, button)
+
     def request_exit(self) -> None:
         if threading.current_thread() is threading.main_thread():
             self._do_exit()  # the close button must not depend on the tick loop
@@ -559,6 +574,8 @@ class MainWindow:
                     self.dash.append_log(line)
                 elif kind == "selftest":
                     self._apply_selftest(payload)
+                elif kind == "call":  # any callable, run on the Tk thread (update flow)
+                    payload()
                 elif kind == "exit":
                     self._do_exit()
                     return True

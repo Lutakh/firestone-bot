@@ -30,7 +30,8 @@ def base_dir() -> str:
 
 
 class App:
-    def __init__(self) -> None:
+    def __init__(self, autostart: bool = False) -> None:
+        self.autostart = autostart
         self.dpi_mode = set_dpi_aware()
         self.base = base_dir()
         self.settings = Settings.load(os.path.join(self.base, "settings.ini"))
@@ -48,6 +49,9 @@ class App:
         )
         self._hotkey_listener = None
         self._exit_heartbeat: threading.Thread | None = None
+        self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
+        self.window.on_check_updates = lambda: self.check_updates(manual=True)
+        self.window.on_install_update = self.install_update
         self._close_splash()
         if sys.platform == "darwin":
             self.window.root.after(800, self._mac_permissions_guide)
@@ -112,6 +116,8 @@ class App:
         self.window.on_env_restored = self._raise_window
         self._install_hotkey()
         self.window.root.after(100, self.present)
+        self.window.root.after(3000, self.check_updates)
+        self.window.root.after(60_000, self._update_tick)
 
     def present(self) -> None:
         """While the bot is idle: game window in front (restored if minimised), then the bot
@@ -275,6 +281,128 @@ class App:
         )
         return out
 
+    # -- self-update (firestone_bot.update) --------------------------------------------------
+    UPDATE_CHECK_INTERVAL_S = 24 * 3600
+
+    def _update_tick(self) -> None:
+        if time.monotonic() - self._update["last"] > self.UPDATE_CHECK_INTERVAL_S:
+            self.check_updates()
+        self.window.root.after(60_000, self._update_tick)
+
+    def check_updates(self, manual: bool = False) -> None:
+        """Query GitHub on a worker thread; show the banner when a newer release exists."""
+        from firestone_bot import update
+
+        if self._update["busy"]:
+            return
+        self._update["last"] = time.monotonic()
+        win = self.window
+
+        def worker():
+            try:
+                rel = update.check_latest()
+            except update.UpdateError as e:
+                msg = str(e)
+                log.info("update check: %s", msg)
+                if manual:
+                    win.post_call(lambda: win.show_update(f"Update check failed: {msg}", None))
+                return
+            if update.is_newer(rel.version):
+                self._update["release"] = rel
+                self._update["payload"] = None
+                frozen = update.install_target() is not None
+                text = f"Version {rel.version} is available (you run {update.__version__})."
+                if not frozen:
+                    text += " Running from source: update with git pull."
+                win.post_call(
+                    lambda: win.show_update(text, "Update" if frozen else "Open releases page")
+                )
+            elif manual:
+                win.post_call(
+                    lambda: win.show_update(
+                        f"You run the latest version ({update.__version__}).", None
+                    )
+                )
+                win.root.after(8000, lambda: win.show_update("", None))
+
+        threading.Thread(target=worker, name="update-check", daemon=True).start()
+
+    def install_update(self) -> None:
+        """Download + verify on a worker thread, then ask before swapping and restarting."""
+        import webbrowser
+        from tkinter import messagebox
+
+        from firestone_bot import update
+
+        rel = self._update["release"]
+        if rel is None or self._update["busy"]:
+            return
+        target = update.install_target()
+        if target is None:
+            webbrowser.open(rel.page)
+            return
+        if self.runner is not None and self.runner.running:
+            messagebox.showinfo(
+                "Update", "Stop the bot first, then update.", parent=self.window.root
+            )
+            return
+        notes = (rel.notes or "").strip()
+        notes = (notes[:1200] + "…") if len(notes) > 1200 else notes
+        if not messagebox.askyesno(
+            "Update",
+            f"Download version {rel.version} now?\n\nThe bot will ask again before installing "
+            f"and restarting.\n\n{notes}",
+            parent=self.window.root,
+        ):
+            return
+        self._update["busy"] = True
+        win = self.window
+
+        def worker():
+            try:
+                tmp = os.path.join(update.staging_dir(target), "download")
+                win.post_call(lambda: win.show_update(f"Downloading {rel.version}…", None))
+
+                def progress(done, total):
+                    pct = f" {100 * done // total} %" if total else f" {done // 1_000_000} MB"
+                    win.post_call(lambda: win.show_update(f"Downloading {rel.version}…{pct}", None))
+
+                archive = update.download(rel, tmp, progress)
+                win.post_call(lambda: win.show_update("Checksum OK, unpacking…", None))
+                payload = update.extract(archive, os.path.join(update.staging_dir(target), "new"))
+                self._update["payload"] = payload
+                win.post_call(self._ask_install)
+            except Exception as e:
+                msg = str(e)
+                log.exception("update failed")
+                win.post_call(lambda: win.show_update(f"Update failed: {msg}", "Retry"))
+            finally:
+                self._update["busy"] = False
+
+        threading.Thread(target=worker, name="update-download", daemon=True).start()
+
+    def _ask_install(self) -> None:
+        from tkinter import messagebox
+
+        from firestone_bot import update
+
+        rel, payload = self._update["release"], self._update["payload"]
+        self.window.show_update(f"Version {rel.version} ready to install.", "Install and restart")
+        if not messagebox.askyesno(
+            "Update",
+            f"Install version {rel.version} now? The bot closes, the new version replaces the "
+            "current one (your settings.ini stays) and starts again.",
+            parent=self.window.root,
+        ):
+            return
+        try:
+            update.apply(payload)
+        except Exception as e:
+            log.exception("update apply failed")
+            self.window.show_update(f"Update failed: {e}", "Retry")
+            return
+        self.window.request_exit()
+
     # -- Win+Esc exit hotkey (AHK ~*#$Esc) ---------------------------------------------------
     def _install_hotkey(self) -> None:
         if self._hotkey_listener is not None:
@@ -304,12 +432,14 @@ class App:
     def run(self) -> None:
         # wire the bot side shortly after the first frame; START/DRY RUN also do it on demand
         self.window.root.after(400, self._late_init)
+        if self.autostart:
+            self.window.root.after(1500, self.start)
         self.window.run()
         if self._exit_heartbeat is not None:
             self._exit_heartbeat.join(timeout=2)
 
 
-def main() -> int:
+def main(autostart: bool = False) -> int:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
@@ -317,5 +447,5 @@ def main() -> int:
             logging.FileHandler(os.path.join(base_dir(), "firestone-bot.log"), encoding="utf-8")
         ],
     )
-    App().run()
+    App(autostart=autostart).run()
     return 0
