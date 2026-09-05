@@ -872,7 +872,8 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "Medium": (
         (463, 433),
         (460, 670),
-        (502, 330),  # Snow Wolves
+        (502, 330),  # Snow Wolves (AHK position)
+        (445, 321),  # Snow Wolves as placed by the game on 2026-09-05 (icon 57 px west of the AHK point)
         (581, 295),  # Expose the Spy
         (671, 755),  # Cursed Bay
         (705, 592),  # The Lost Chapter
