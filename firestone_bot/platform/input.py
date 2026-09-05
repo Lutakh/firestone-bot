@@ -70,19 +70,23 @@ def _key(name: str):
 
 
 def key(name: str) -> None:
+    _ensure()
     _keyboard.tap(_key(name))
 
 
 def key_down(name: str) -> None:
+    _ensure()
     _keyboard.press(_key(name))
 
 
 def key_up(name: str) -> None:
+    _ensure()
     _keyboard.release(_key(name))
 
 
 def hotkey(*names: str) -> None:
     """Press keys in order, release in reverse (e.g. hotkey("alt", "enter"))."""
+    _ensure()
     keys = [_key(n) for n in names]
     for k in keys:
         _keyboard.press(k)
