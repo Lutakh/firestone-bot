@@ -7,7 +7,13 @@ tests run on every OS (CI is ubuntu).
 import numpy as np
 
 from firestone_bot.platform.capture import mac_points_request
-from firestone_bot.platform.mac.window import bar_sizes, client_rect, is_fullscreen, to_pixels
+from firestone_bot.platform.mac.window import (
+    bar_sizes,
+    client_rect,
+    is_fullscreen,
+    title_bar_rows,
+    to_pixels,
+)
 from firestone_bot.platform.types import Rect
 
 
@@ -57,3 +63,15 @@ def test_bar_sizes_needs_every_strip_black_and_rejects_huge_bars():
     assert bar_sizes([a, b], n) == (3, 7)
     assert bar_sizes([np.ones(n, bool)], n) == (0, 0)  # all black = loading screen, no bars
     assert bar_sizes([], n) == (0, 0)
+
+
+def test_title_bar_rows_counts_flat_rows_and_separator():
+    img = np.full((200, 400, 4), 60, np.uint8)  # flat title bar colour
+    img[56] = 0  # separator line
+    img[57:] = np.random.default_rng(1).integers(0, 255, (143, 400, 4), dtype=np.uint8)
+    img[:60, :40] = 200  # traffic lights on the left are ignored (middle 60 % only)
+    img[0] = 94  # light border line on top
+    img[16:32, 180:220] = 230  # title text in the middle
+    assert title_bar_rows(img, 36, 80) == 57
+    assert title_bar_rows(img, 60, 80) is None  # outside the plausible range
+    assert title_bar_rows(img[57:], 36, 80) is None  # no bar at all

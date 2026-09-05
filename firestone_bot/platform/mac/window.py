@@ -76,7 +76,9 @@ def pixels_per_point() -> float:
 
 
 def title_bar_height_pt() -> float:
-    """Height of a standard titled window's title bar in points on this macOS."""
+    """Height of a standard titled window's title bar in points on this macOS (AppKit's
+    answer; measured live the Unity window has 28 pt where AppKit says 32 on macOS 26, so
+    find_game_window() prefers the value measured on the window image, title_bar_rows())."""
     import AppKit
 
     mask = (
@@ -105,6 +107,56 @@ def is_fullscreen(x: float, y: float, w: float, h: float, screen_w: float, scree
     """Bounds covering the whole screen, or the whole screen minus the menu bar (fullscreen
     Space with the menu bar shown): Unity draws no title bar in both cases."""
     return w >= screen_w and x <= 0 and (y <= 0 and h >= screen_h or h >= screen_h * 0.9)
+
+
+# -- title bar ----------------------------------------------------------------------------
+def title_bar_rows(img, min_px: int, max_px: int, tolerance: int = 8) -> int | None:
+    """Title bar height in pixels measured on a window image: the leading rows whose middle
+    60 % has the bar colour (row median within `tolerance` of the median of row 2; the title
+    text and the 1 px light border on top do not move the median), plus the 1 px separator
+    line macOS draws under the bar. None when outside [min_px, max_px]."""
+    import numpy as np
+
+    h, w = img.shape[:2]
+    x0, x1 = int(w * 0.2), int(w * 0.8)
+    band = img[:, x0:x1, :3].astype(np.int16)
+    medians = np.median(band, axis=1)  # (h, 3)
+    ref = medians[min(2, h - 1)]
+    rows = 0
+    while rows < min(h, max_px + 2) and (
+        rows < 2 or (np.abs(medians[rows] - ref) <= tolerance).all()  # rows 0-1: border line
+    ):
+        rows += 1
+    if rows < h and (medians[rows] <= 8).all():  # separator line under the bar
+        rows += 1
+    return rows if min_px <= rows <= max_px else None
+
+
+_title_cache: dict[Rect, int] = {}
+
+
+def _title_px(window_id: int, outer: Rect, factor: float) -> int:
+    """Title bar height in pixels: measured on the window image (cached per outer rect),
+    AppKit's standard value when the measurement is not plausible."""
+    px = _title_cache.get(outer)
+    if px is None:
+        standard = round(title_bar_height_pt() * factor)
+        try:
+            from .capture import grab_window
+
+            img = grab_window(window_id)
+            px = (
+                None if img is None else title_bar_rows(img, round(18 * factor), round(40 * factor))
+            )
+        except Exception:
+            log.debug("title bar measure failed", exc_info=True)
+            px = None
+        if px is None:
+            px = standard
+        elif px != standard:
+            log.info("title bar measured at %d px (AppKit standard %d px)", px, standard)
+        _title_cache[outer] = px
+    return px
 
 
 # -- letterbox ----------------------------------------------------------------------------
@@ -271,8 +323,8 @@ def find_game_window() -> WindowInfo:
     if minimised or hidden:
         client = Rect(outer.x, outer.y, 0, 0)
     else:
-        client = client_rect(outer, round(title_bar_height_pt() * f), fullscreen)
-        client = letterbox(best["id"], outer, client)
+        title_px = 0 if fullscreen else _title_px(best["id"], outer, f)
+        client = letterbox(best["id"], outer, client_rect(outer, title_px, fullscreen))
     return WindowInfo(
         best["id"],
         best["title"],
