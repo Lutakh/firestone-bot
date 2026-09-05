@@ -158,6 +158,18 @@ class App:
         from firestone_bot.vision.viewport import Viewport
 
         out = {"dpi": self.dpi_mode}
+        if sys.platform == "darwin":
+            from firestone_bot.platform.mac import permissions
+
+            missing = permissions.missing()
+            if missing:
+                out["window"] = (
+                    "macOS permission missing: "
+                    + ", ".join(missing)
+                    + f" ({permissions.SETTINGS_HINT})"
+                )
+                out.update(platform="-", client="-", scale="-", capture="-", input="-")
+                return out
         try:
             win = find_game_window()
         except GameWindowNotFound:
@@ -197,6 +209,12 @@ class App:
             )
             return out
         vp = Viewport(win.client)
+        if sys.platform == "darwin":
+            from firestone_bot.platform.window import pixels_per_point
+
+            out["dpi"] = (
+                f"macOS, {pixels_per_point():g} px per point (capture in pixels, input in points)"
+            )
         out["window"] = (
             f"'{win.title}' pid {win.pid}"
             + (" maximized" if win.maximized else "")
@@ -216,7 +234,11 @@ class App:
             )
         except Exception as e:  # noqa: BLE001
             out["capture"] = f"FAILED: {e}"
-        out["input"] = "pynput SendInput (move test happens in the dry run trace)"
+        out["input"] = (
+            "pynput CGEvent, Accessibility granted (move test happens in the dry run trace)"
+            if sys.platform == "darwin"
+            else "pynput SendInput (move test happens in the dry run trace)"
+        )
         return out
 
     # -- Win+Esc exit hotkey (AHK ~*#$Esc) ---------------------------------------------------

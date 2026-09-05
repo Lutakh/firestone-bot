@@ -1,7 +1,9 @@
 """Process DPI awareness.
 
 Must be called before anything creates a window or grabs the screen (mss sets its own
-awareness on import, so this module has to run first). On non-Windows platforms it is a no-op.
+awareness on import, so this module has to run first). On non-Windows platforms it is a no-op:
+macOS Retina scaling is handled by the mac window backend (points vs physical pixels), not by
+a process setting.
 """
 
 from __future__ import annotations
@@ -24,6 +26,8 @@ def set_dpi_aware() -> str:
 
 
 def _apply() -> str:
+    if sys.platform == "darwin":
+        return "n/a (macOS: Retina factor handled by the window backend)"
     if sys.platform != "win32":
         return "n/a"
     user32 = ctypes.windll.user32

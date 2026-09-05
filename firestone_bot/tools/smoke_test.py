@@ -10,7 +10,6 @@ position so the result can be checked visually.
 from __future__ import annotations
 
 import argparse
-import ctypes
 import sys
 import time
 
@@ -22,7 +21,7 @@ DPI_MODE = set_dpi_aware()
 def main(argv: list[str] | None = None) -> int:
     from firestone_bot.platform import capture, process
     from firestone_bot.platform import input as inp
-    from firestone_bot.platform.window import activate, find_game_window
+    from firestone_bot.platform.window import activate, cursor_position, find_game_window
     from firestone_bot.vision import atlas
     from firestone_bot.vision.atlas import Point, Probe
     from firestone_bot.vision.probes import pixel_search_in
@@ -63,15 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         sx, sy = vp.to_screen(x, y)
         inp.move(sx, sy)
         time.sleep(0.3)
-
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        print(f"moved to logical ({x},{y}) -> screen ({sx},{sy}); cursor now at ({pt.x},{pt.y})")
+        px, py = cursor_position()
+        print(f"moved to logical ({x},{y}) -> screen ({sx},{sy}); cursor now at ({px},{py})")
         img = capture.grab(win.client).copy()
-        cx, cy = pt.x - win.client.x, pt.y - win.client.y
+        cx, cy = px - win.client.x, py - win.client.y
         img[max(0, cy - 1) : cy + 2, max(0, cx - 25) : cx + 26, :3] = (0, 0, 255)
         img[max(0, cy - 25) : cy + 26, max(0, cx - 1) : cx + 2, :3] = (0, 0, 255)
         capture.save_png(img, args.out)

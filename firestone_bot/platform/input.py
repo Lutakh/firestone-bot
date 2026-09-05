@@ -1,12 +1,15 @@
-"""Mouse and keyboard injection via pynput (SendInput with scan codes on Windows).
+"""Mouse and keyboard injection via pynput (SendInput on Windows, CGEvents on macOS).
 
-All coordinates are physical screen pixels. Sleeps are NOT added here; feature modules keep
-the AHK timing explicitly.
+All coordinates are physical screen pixels (platform/types.py); on macOS pynput moves in
+points, so positions are divided by the Retina factor in _pos(). Sleeps are NOT added here;
+feature modules keep the AHK timing explicitly.
 """
 
 from __future__ import annotations
 
 import time
+
+from .window import pixels_per_point
 
 # pynput opens the display / installs hooks at import time, so it is imported on first use:
 # importing the feature modules (tests, headless CI) must not need a display.
@@ -40,9 +43,15 @@ def _ensure() -> None:
     )
 
 
+def _pos(x: int, y: int) -> tuple[float, float]:
+    """Physical pixels -> pynput coordinates (points on macOS, pixels elsewhere)."""
+    f = pixels_per_point()
+    return (x, y) if f == 1.0 else (x / f, y / f)
+
+
 def move(x: int, y: int) -> None:
     _ensure()
-    _mouse.position = (x, y)
+    _mouse.position = _pos(x, y)
 
 
 def click(button: str = "left") -> None:
@@ -58,12 +67,12 @@ def click_at(x: int, y: int) -> None:
 def drag(x1: int, y1: int, x2: int, y2: int, steps: int = 8, step_interval: float = 0.04) -> None:
     """Left-button drag from (x1,y1) to (x2,y2) in `steps` moves (screen pixels)."""
     _ensure()
-    _mouse.position = (x1, y1)
+    _mouse.position = _pos(x1, y1)
     time.sleep(0.2)
     _mouse.press(_Button.left)
     time.sleep(0.15)
     for i in range(1, steps + 1):
-        _mouse.position = (x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+        _mouse.position = _pos(x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
         time.sleep(step_interval)
     time.sleep(0.15)
     _mouse.release(_Button.left)

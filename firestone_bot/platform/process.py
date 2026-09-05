@@ -9,7 +9,7 @@ import time
 
 import psutil
 
-from .window import PROCESS_NAMES
+from .types import PROCESS_NAMES
 
 STEAM_APP_ID = "1013320"
 STEAM_URL = f"steam://rungameid/{STEAM_APP_ID}"
@@ -64,6 +64,8 @@ def launch_game(platform: str) -> None:
     url = {"steam": STEAM_URL, "epic": EPIC_URL}[platform]
     if sys.platform == "win32":
         os.startfile(url)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", url])
     else:
         subprocess.Popen(["xdg-open", url])
 
@@ -79,14 +81,28 @@ def wait_for_game(timeout: float = 120.0, poll: float = 1.0) -> psutil.Process |
 
 
 EPIC_DEFAULT_EXE = r"C:\Program Files\Epic Games\FirestoneOnlineIdleRPG\Firestone.exe"
+STEAM_ROOTS_WIN = (r"C:\Program Files (x86)\Steam", r"C:\Program Files\Steam")
+STEAM_ROOTS_MAC = (os.path.expanduser("~/Library/Application Support/Steam"),)
+STEAM_ROOTS_LINUX = (
+    os.path.expanduser("~/.steam/steam"),
+    os.path.expanduser("~/.local/share/Steam"),
+)
+# Relative path of the game binary inside a Steam library (Firestone.app on macOS)
+STEAM_GAME_FILE = {
+    "win32": ("Firestone", "Firestone.exe"),
+    "darwin": ("Firestone", "Firestone.app"),
+}.get(sys.platform, ("Firestone", "Firestone.x86_64"))
 
 
 def _steam_library_paths() -> list[str]:
-    """Steam library roots from libraryfolders.vdf (Windows default install)."""
+    """Steam library roots from libraryfolders.vdf (default install of each OS)."""
     import re
 
     roots = []
-    for base in (r"C:\Program Files (x86)\Steam", r"C:\Program Files\Steam"):
+    bases = {"win32": STEAM_ROOTS_WIN, "darwin": STEAM_ROOTS_MAC}.get(
+        sys.platform, STEAM_ROOTS_LINUX
+    )
+    for base in bases:
         vdf = os.path.join(base, "steamapps", "libraryfolders.vdf")
         if os.path.exists(vdf):
             roots.append(base)
@@ -100,12 +116,13 @@ def _steam_library_paths() -> list[str]:
 
 
 def installed_platforms() -> list[str]:
-    """Stores with a Firestone install on this machine (Windows paths), e.g. ['epic', 'steam']."""
+    """Stores with a Firestone install on this machine, e.g. ['epic', 'steam'] (Epic has no
+    macOS / Linux client, so only Steam is looked up there)."""
     found = []
-    if os.path.exists(EPIC_DEFAULT_EXE):
+    if sys.platform == "win32" and os.path.exists(EPIC_DEFAULT_EXE):
         found.append("epic")
     for root in _steam_library_paths():
-        if os.path.exists(os.path.join(root, "steamapps", "common", "Firestone", "Firestone.exe")):
+        if os.path.exists(os.path.join(root, "steamapps", "common", *STEAM_GAME_FILE)):
             found.append("steam")
             break
     return found

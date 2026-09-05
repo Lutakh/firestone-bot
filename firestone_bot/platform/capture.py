@@ -1,4 +1,9 @@
-"""Screen capture via mss. grab() returns a numpy array in BGRA order, shape (H, W, 4).
+"""Screen capture. grab() returns a numpy array in BGRA order, shape (H, W, 4).
+
+Rects are physical pixels (platform/types.py). Windows / Linux use mss. macOS uses Quartz
+directly (platform/mac/capture.py: sRGB colour matching, which mss does not do); Quartz takes
+points and returns physical pixels (2x on Retina), so the request is snapped to whole points
+and the result cropped back to the exact pixel rect requested (mac_points_request()).
 
 One mss instance per thread: on Windows mss stores its GDI handles in a threading.local that
 is only initialised by the creating thread, so a shared instance raises AttributeError when
@@ -7,11 +12,13 @@ another thread (bot worker vs. GUI self-test) grabs with it.
 
 from __future__ import annotations
 
+import math
+import sys
 import threading
 
 import numpy as np
 
-from .window import Rect
+from .window import Rect, pixels_per_point
 
 _local = threading.local()
 
@@ -37,9 +44,30 @@ def close() -> None:
             pass
 
 
+def mac_points_request(rect: Rect, factor: float) -> tuple[dict, int, int]:
+    """Points rect covering `rect` (pixels) and the pixel offset of `rect` inside the capture."""
+    left = math.floor(rect.x / factor)
+    top = math.floor(rect.y / factor)
+    right = math.ceil((rect.x + rect.w) / factor)
+    bottom = math.ceil((rect.y + rect.h) / factor)
+    req = {"left": left, "top": top, "width": right - left, "height": bottom - top}
+    return req, rect.x - round(left * factor), rect.y - round(top * factor)
+
+
 def grab(rect: Rect) -> np.ndarray:
-    shot = _sct().grab({"left": rect.x, "top": rect.y, "width": rect.w, "height": rect.h})
-    return np.frombuffer(shot.raw, dtype=np.uint8).reshape(shot.height, shot.width, 4)
+    if sys.platform != "darwin":
+        shot = _sct().grab({"left": rect.x, "top": rect.y, "width": rect.w, "height": rect.h})
+        return np.frombuffer(shot.raw, dtype=np.uint8).reshape(shot.height, shot.width, 4)
+    from .mac.capture import grab_screen_points
+
+    factor = pixels_per_point()
+    req, ox, oy = mac_points_request(rect, factor)
+    img = grab_screen_points(req["left"], req["top"], req["width"], req["height"])
+    if img.shape[1] != round(req["width"] * factor):  # a display scale we did not expect
+        raise RuntimeError(
+            f"capture returned {img.shape[1]}x{img.shape[0]} for {req} at factor {factor}"
+        )
+    return img[oy : oy + rect.h, ox : ox + rect.w]
 
 
 def save_png(img: np.ndarray, path: str) -> None:

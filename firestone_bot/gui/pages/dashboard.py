@@ -36,7 +36,11 @@ def env_kind(key: str, value: str) -> str:
     if v in ("-", ""):
         return "grey"
     if key == "window":
-        return "err" if v.startswith(("not found", "self-test failed")) else "ok"
+        return (
+            "err"
+            if v.startswith(("not found", "self-test failed", "macOS permission missing"))
+            else "ok"
+        )
     if key == "platform":
         return "ok" if v.lower() in ("steam", "epic") else "warn"
     if key == "scale":

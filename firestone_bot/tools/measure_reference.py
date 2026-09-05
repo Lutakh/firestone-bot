@@ -15,21 +15,23 @@ DPI_MODE = set_dpi_aware()
 
 
 def main() -> int:
-    import ctypes
-
-    from firestone_bot.platform.window import find_game_window, screen_size
+    from firestone_bot.platform.window import find_game_window, pixels_per_point, screen_size
     from firestone_bot.vision.atlas import REF
     from firestone_bot.vision.viewport import Viewport
 
     win = find_game_window()
     vp = Viewport(win.client)
     sw, sh = screen_size()
-    user32 = ctypes.windll.user32
-    dpi = user32.GetDpiForWindow(win.handle) if hasattr(user32, "GetDpiForWindow") else None
+    dpi = None
+    if sys.platform == "win32":
+        from firestone_bot.platform.win.window import window_dpi
+
+        dpi = window_dpi(win)
     out = {
         "dpi_mode": DPI_MODE,
         "screen": [sw, sh],
         "window_dpi": dpi,
+        "pixels_per_point": pixels_per_point(),
         "window": asdict(win),
         "ref": asdict(REF),
         "canvas_scale": vp.scale,

@@ -376,6 +376,8 @@ class MainWindow:
         try:
             if sys.platform.startswith("win"):
                 os.startfile(path)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
             else:
                 subprocess.Popen(["xdg-open", path])
         except Exception:
