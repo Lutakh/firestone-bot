@@ -19,9 +19,13 @@ log = logging.getLogger("firestone_bot.app")
 
 
 def base_dir() -> str:
-    """Directory holding settings.ini: next to the exe when frozen, else the cwd."""
+    """Directory holding settings.ini: next to the exe when frozen (next to the .app bundle on
+    macOS, never inside it), else the cwd."""
     if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
+        exe_dir = os.path.dirname(sys.executable)
+        if sys.platform == "darwin" and exe_dir.endswith(os.path.join(".app", "Contents", "MacOS")):
+            return os.path.dirname(os.path.dirname(os.path.dirname(exe_dir)))
+        return exe_dir
     return os.getcwd()
 
 
@@ -45,6 +49,8 @@ class App:
         self._hotkey_listener = None
         self._exit_heartbeat: threading.Thread | None = None
         self._close_splash()
+        if sys.platform == "darwin":
+            self.window.root.after(800, self._mac_permissions_guide)
         # Screenshot / test helpers: open the GUI on a given page or appearance.
         if page := os.environ.get("FIRESTONE_GUI_PAGE"):
             self.window.show_page(page)
@@ -63,6 +69,32 @@ class App:
             pyi_splash.close()
         except Exception:
             log.debug("splash close failed", exc_info=True)
+
+    def _mac_permissions_guide(self) -> None:
+        """First-run help on macOS: name the missing permissions, trigger the system prompts
+        and open the right pane of System Settings (owner request 2026-09-06)."""
+        from tkinter import messagebox
+
+        from firestone_bot.platform.mac import permissions
+
+        missing = permissions.missing()
+        if not missing:
+            return
+        names = " and ".join(missing)
+        messagebox.showinfo(
+            "macOS permissions",
+            f"Firestone Bot needs {names}.\n\n"
+            "System Settings > Privacy & Security opens next: enable Firestone Bot (or the "
+            "terminal app that runs it) under each of these entries, then restart the bot.\n\n"
+            "Screen Recording lets the bot read the game screen; Accessibility lets it move "
+            "the mouse and type.",
+            parent=self.window.root,
+        )
+        if "Screen Recording" in missing:
+            permissions.request_screen_recording()  # system prompt, once per app
+        if "Accessibility" in missing:
+            permissions.accessibility_granted(prompt=True)
+        permissions.open_settings_pane(missing[0])
 
     def _late_init(self) -> None:
         """Import and wire the bot side once the window is on screen."""

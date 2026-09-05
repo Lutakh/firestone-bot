@@ -89,6 +89,24 @@ notarised: right-click > Open the first time). `settings.ini` is read from the c
 directory when run from source and from the directory holding `FirestoneBot.app` when the
 bundle is launched from Finder.
 
+### Sharing the macOS build with someone else
+
+1. Build it (`pyinstaller firestone-bot.spec`) and zip `dist/FirestoneBot.app` (zip keeps the
+   ad-hoc signature; do not copy the bare folder through a cloud drive).
+2. The other person unzips it anywhere (their Documents folder for instance) and puts their
+   `settings.ini` NEXT TO `FirestoneBot.app` (the bot reads and writes `settings.ini`,
+   `MapStartState.ini`, `gui_state.json` and the log in the folder that holds the bundle).
+3. First launch: right-click > Open (the bundle is not notarised, macOS warns once).
+4. The bot then guides through the two permissions: it shows a dialog naming what is
+   missing, triggers the system prompts and opens System Settings > Privacy & Security on the
+   right pane. Enable FirestoneBot under **Screen Recording** and **Accessibility**, then
+   quit and relaunch the bot (macOS applies Screen Recording at the next start). The
+   Dashboard's Environment card keeps saying which one is still missing.
+5. In the game: Settings > Graphics > Fullscreen OFF, window zoomed (green button).
+
+Every rebuild changes the bundle's ad-hoc signature, so macOS may ask for the permissions
+again after an update; a Developer ID signature would avoid that.
+
 ## GUI
 
 The window (customtkinter, "dark-blue" theme) has a sidebar with seven pages and the

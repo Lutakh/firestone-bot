@@ -44,3 +44,20 @@ def missing() -> list[str]:
     if not accessibility_granted():
         out.append("Accessibility")
     return out
+
+
+PANES = {
+    "Screen Recording": "Privacy_ScreenCapture",
+    "Accessibility": "Privacy_Accessibility",
+}
+
+
+def open_settings_pane(name: str) -> None:
+    """Open System Settings on the Privacy pane for `name` (best effort)."""
+    import subprocess
+
+    pane = PANES.get(name)
+    if pane:
+        subprocess.Popen(
+            ["open", f"x-apple.systempreferences:com.apple.preference.security?{pane}"]
+        )
