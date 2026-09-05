@@ -251,9 +251,11 @@ class DashboardView:
         ctx.register_tick(self.refresh_today)
 
     # -- state ------------------------------------------------------------------------------
-    def set_state(self, text: str, kind: str, cycle: int | None) -> None:
+    def set_state(self, text: str, kind: str, cycle: int | None, duration: str = "") -> None:
         self.pill.set(text, kind)
         c = f"cycle {cycle}" if cycle else ""
+        if c and duration:
+            c += f" · last cycle {duration}"
         if self.cycle_label.cget("text") != c:
             self.cycle_label.configure(text=c)
         crashed = kind == "err"

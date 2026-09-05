@@ -113,6 +113,7 @@ class MainWindow:
         self.bot_state = "idle"
         self.activity_text = "Idle"
         self.cycle: int | None = None
+        self.cycle_duration = ""
         self._was_running = False
         self._selftest_inflight = False
         self._selftest_started = 0.0
@@ -398,6 +399,7 @@ class MainWindow:
         self.bot_state = mapping.get(text, self.bot_state)
         if self.bot_state in ("running", "dry"):
             self.cycle = None
+            self.cycle_duration = ""
             self._was_running = True  # so a thread that dies at once is seen as a transition
             # forget the previous run's final line ("Crashed, see log" must not outlive it)
             self.activity_text = "Starting…"
@@ -410,7 +412,7 @@ class MainWindow:
         text, kind = STATES[self.bot_state]
         self.pill.set(text, kind)
         if hasattr(self, "dash"):
-            self.dash.set_state(text, kind, self.cycle)
+            self.dash.set_state(text, kind, self.cycle, self.cycle_duration)
         start = dry = not running and self.bot_state not in ("running", "dry", "stopping")
         stop = running and self.bot_state != "stopping"
         for b, on in ((self.start_btn, start), (self.dry_btn, dry), (self.stop_btn, stop)):
@@ -427,9 +429,11 @@ class MainWindow:
 
     def _on_activity(self, text: str) -> None:
         self.activity_text = text
-        m = re.match(r"Cycle (\d+) done", text)
+        m = re.match(r"Cycle (\d+) done(?: in (\S+?))?(?:,| |$)", text)
         if m:
             self.cycle = int(m[1])
+            if m[2]:
+                self.cycle_duration = m[2]
         self.dash.set_activity(text)
         if text not in self._recent_logs:
             # Game.status() also logs, so the line normally arrives via the logging bridge;

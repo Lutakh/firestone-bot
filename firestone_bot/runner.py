@@ -54,6 +54,16 @@ def _ms() -> int:
     return int(time.monotonic() * 1000)
 
 
+def fmt_duration(ms: float) -> str:
+    """12m34s / 1h02m style duration for the cycle status line."""
+    s = int(ms // 1000)
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    if h:
+        return f"{h}h{m:02d}m"
+    return f"{m}m{sec:02d}s"
+
+
 class Runner:
     def __init__(self, settings: Settings, game: Game) -> None:
         self.settings = settings
@@ -106,6 +116,7 @@ class Runner:
         last_restart = _ms()
         restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
         while True:  # loop:
+            cycle_start = _ms()
             if s.flag("RestartGame") and (
                 s.flag("RestartGameTest") or _ms() - last_restart >= restart_ms
             ):
@@ -203,8 +214,9 @@ class Runner:
             # EndingMouseMove:
             g.heartbeat("Delay ending bot")
             self.cycles += 1
+            took = fmt_duration(_ms() - cycle_start)
             if self.max_cycles and self.cycles >= self.max_cycles:
-                g.status(f"Cycle {self.cycles} done (max cycles reached)")
+                g.status(f"Cycle {self.cycles} done in {took} (max cycles reached)")
                 return
             delay = END_OF_CYCLE_DELAYS.get(s.get("Delay").strip())
             if delay is None:
@@ -213,7 +225,7 @@ class Runner:
                 return
             if delay:
                 g.move_to(atlas.END_OF_CYCLE_PARK)
-                g.status(f"Cycle {self.cycles} done, waiting {delay} s")
+                g.status(f"Cycle {self.cycles} done in {took}, waiting {delay} s")
                 g.sleep(delay * 1000)
             else:
-                g.status(f"Cycle {self.cycles} done")
+                g.status(f"Cycle {self.cycles} done in {took}")

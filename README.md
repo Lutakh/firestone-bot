@@ -47,7 +47,7 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 
 | Page | What lives there |
 |---|---|
-| Dashboard | Control (Start, Dry run, Stop, state, current activity), Environment (game window, platform, client area, scale, DPI, capture, input; re-checked every 30 s while idle, F5 to re-check), Today (tavern tokens, chaos hits, scarab plays against their daily limits, arena done), Activity log |
+| Dashboard | Control (Start, Dry run, Stop, state, cycle number and duration of the last full cycle, current activity), Environment (game window, platform, client area, scale, DPI, capture, input; re-checked every 30 s while idle, F5 to re-check), Today (tavern tokens, chaos hits, scarab plays against their daily limits, arena done), Activity log |
 | Main screen | claims (events, quests, mail, daily check-in), chests from the bag, hero upgrades |
 | Town | guardian training and chaos-rift upgrade order, tavern (tokens, beer, scarab, daily limits), oracle, engineer, exotic merchant (selling strategy), arena, alchemist, research |
 | Guild & Tree | guild visit (notifications, pickaxes, crystal, awaken, chaos rift + daily limit), personal tree upgrades |
