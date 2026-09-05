@@ -18,6 +18,9 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check . && ruff format --check .
       - run: pytest -q tests
+      - name: Tag must match __version__
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python -c "import firestone_bot, os, sys; tag = os.environ['GITHUB_REF_NAME']; sys.exit(0 if tag == 'v' + firestone_bot.__version__ else f'tag {tag} != v{firestone_bot.__version__}')"
 
   build:
     needs: test
@@ -28,6 +31,8 @@ jobs:
             archive: FirestoneBot-windows.zip
           - os: ubuntu-22.04
             archive: FirestoneBot-linux.tar.gz
+          - os: macos-14
+            archive: FirestoneBot-macos.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +40,21 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      - name: Import the self-signed code-signing certificate (macOS)
+        # Secrets MACOS_CERT_P12 (base64 of the .p12) and MACOS_CERT_PASSWORD, see
+        # tools/mac_codesign.py. Without them the bundle is ad-hoc signed.
+        if: runner.os == 'macOS' && env.MACOS_CERT_P12 != ''
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
+          python -m firestone_bot.tools.mac_codesign import-keychain cert.p12 "$MACOS_CERT_PASSWORD"
+          rm cert.p12
+          echo "FIRESTONE_CODESIGN_IDENTITY=Firestone Bot" >> "$GITHUB_ENV"
       - run: pyinstaller firestone-bot.spec
       - name: Add example settings
+        if: runner.os != 'macOS'
         run: cp settings.ini.example dist/FirestoneBot/settings.ini.example
         shell: bash
       - name: Archive (Windows)
@@ -45,12 +63,31 @@ jobs:
       - name: Archive (Linux)
         if: runner.os == 'Linux'
         run: tar -C dist -czf ${{ matrix.archive }} FirestoneBot
+      - name: Archive (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --verify --deep --strict dist/FirestoneBot.app && codesign -dv dist/FirestoneBot.app 2>&1 | head -3
+          ditto -c -k --keepParent dist/FirestoneBot.app ${{ matrix.archive }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive }}
           path: ${{ matrix.archive }}
-      - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          files: ${{ matrix.archive }}
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums (read by the bot's self-update)
+        run: cd artifacts && sha256sum FirestoneBot-*.zip FirestoneBot-*.tar.gz > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/FirestoneBot-windows.zip
+            artifacts/FirestoneBot-linux.tar.gz
+            artifacts/FirestoneBot-macos.zip
+            artifacts/SHA256SUMS.txt

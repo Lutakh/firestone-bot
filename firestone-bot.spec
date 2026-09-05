@@ -4,11 +4,15 @@
 # (Splash is not supported on macOS; the app bundle carries the Retina and permission plist
 # keys and is ad-hoc signed by PyInstaller, so Screen Recording / Accessibility grants stick
 # to the bundle).
+import os
 import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 MAC = sys.platform == "darwin"
+# macOS: identity of the self-signed code-signing certificate (tools/mac_codesign.py); empty =
+# ad-hoc. A stable identity keeps the Screen Recording / Accessibility grants across updates.
+CODESIGN_IDENTITY = os.environ.get("FIRESTONE_CODESIGN_IDENTITY") or None
 
 a = Analysis(
     ["firestone_bot/__main__.py"],
@@ -33,6 +37,7 @@ if MAC:
         console=False,
         upx=False,
         icon=None,
+        codesign_identity=CODESIGN_IDENTITY,
     )
     coll = COLLECT(exe, a.binaries, a.datas, name="FirestoneBot", upx=False)
     app = BUNDLE(
@@ -44,7 +49,7 @@ if MAC:
             "NSHighResolutionCapable": True,
             "LSMinimumSystemVersion": "13.0",
             "NSAppleEventsUsageDescription": "Firestone Bot brings the game window to the front.",
-            "CFBundleShortVersionString": "0.1.0",
+            "CFBundleShortVersionString": "0.2.0",
         },
     )
 else:
