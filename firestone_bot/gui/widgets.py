@@ -26,18 +26,54 @@ def _state(enabled: bool) -> str:
     return "normal" if enabled else "disabled"
 
 
-def bind_linux_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
-    """Add <Button-4>/<Button-5> wheel scrolling on X11 (ctk only binds <MouseWheel>)."""
-    if not sys.platform.startswith("linux"):
-        return
+def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
+    """Wheel scrolling customtkinter does not handle: <Button-4>/<Button-5> on X11, and on
+    macOS with Tk 9 the trackpad's <TouchpadScroll> (pixel deltas, no <MouseWheel> at all)
+    plus <MouseWheel> deltas that are now multiples of 120 (ctk scrolls 120 units per notch)."""
     canvas = scrollable._parent_canvas
 
-    def scroll(event):
-        if scrollable.check_if_master_is_canvas(event.widget):
-            canvas.yview("scroll", -1 if event.num == 4 else 1, "units")
+    def mine(event) -> bool:
+        return scrollable.check_if_master_is_canvas(event.widget)
 
-    scrollable.bind_all("<Button-4>", scroll, add="+")
-    scrollable.bind_all("<Button-5>", scroll, add="+")
+    if sys.platform.startswith("linux"):
+
+        def scroll(event):
+            if mine(event):
+                canvas.yview("scroll", -1 if event.num == 4 else 1, "units")
+
+        scrollable.bind_all("<Button-4>", scroll, add="+")
+        scrollable.bind_all("<Button-5>", scroll, add="+")
+    elif sys.platform == "darwin":
+        scrollable._mouse_wheel_all = lambda event: None  # ctk's 120-units-per-notch handler
+        acc = [0.0]
+
+        def wheel(event):  # ctk's own handler is neutralised at import, see below
+            if mine(event) and canvas.yview() != (0.0, 1.0):
+                notches = int(event.delta / 120) or (1 if event.delta > 0 else -1)
+                canvas.yview("scroll", -notches * WHEEL_UNITS_PER_NOTCH, "units")
+
+        def touchpad(event):
+            if not mine(event) or canvas.yview() == (0.0, 1.0):
+                return
+            _dx, dy = scrollable.tk.call("tk::PreciseScrollDeltas", event.delta)
+            acc[0] += float(dy) / TOUCHPAD_PIXELS_PER_UNIT
+            units = int(acc[0])
+            if units:
+                acc[0] -= units
+                canvas.yview("scroll", -units, "units")
+
+        scrollable.bind_all("<MouseWheel>", wheel, add="+")
+        scrollable.bind_all("<TouchpadScroll>", touchpad, add="+")
+
+
+TOUCHPAD_PIXELS_PER_UNIT = 6  # trackpad pixels per canvas scroll unit (feel, not geometry)
+WHEEL_UNITS_PER_NOTCH = 20  # what ctk scrolls per notch on Windows (delta 120 / 6)
+
+if sys.platform == "darwin":
+    # ctk binds its bound method at frame creation and Tk 9 reports deltas of 120 per notch,
+    # so it would scroll 120 units per notch: neutralise it on the class before any frame
+    # exists (bind_platform_wheel installs the replacement).
+    ctk.CTkScrollableFrame._mouse_wheel_all = lambda self, event: None
 
 
 CONTENT_WIDTH = 960  # page content column cap (page_frame); wrap widths derive from it
@@ -860,7 +896,7 @@ def page_frame(parent, scrollable: bool = True):
         else ctk.CTkFrame(parent, fg_color="transparent")
     )
     if scrollable:
-        bind_linux_wheel(page)
+        bind_platform_wheel(page)
     content = ctk.CTkFrame(page, fg_color="transparent")
     content.grid(row=0, column=0, sticky="nsew", padx=(24, 12), pady=(16, 24))
     page.grid_rowconfigure(0, weight=1)
