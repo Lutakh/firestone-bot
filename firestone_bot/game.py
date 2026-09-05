@@ -177,6 +177,15 @@ class Game:
             inp.move(sx, sy)
             inp.click()
 
+    def drag(self, x1: int, y1: int, x2: int, y2: int, anchor=None) -> None:
+        """Left-button drag between two logical points (same anchor for both)."""
+        vp = self._viewport()
+        sx1, sy1 = vp.to_screen(x1, y1, anchor)
+        sx2, sy2 = vp.to_screen(x2, y2, anchor)
+        self._trace(f"drag ({x1},{y1}) -> ({x2},{y2}) screen ({sx1},{sy1}) -> ({sx2},{sy2})")
+        if not self.dry_run:
+            inp.drag(sx1, sy1, sx2, sy2)
+
     def key(self, name: str) -> None:
         self._trace(f"key {name}")
         if not self.dry_run:

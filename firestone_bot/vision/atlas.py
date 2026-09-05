@@ -982,6 +982,15 @@ END_OF_CYCLE_PARK = Point(947, 755)  # MouseMove before the end-of-cycle delay
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
 MS_START_BUTTON = Probe(953, 822, 1205, 898, GREEN_BUTTON, 10, "ms_start_button")  # :170
 MS_START = Point(1084, 865)  # :172
+# Missions on the north edge of the map (2026-09-05): in a 1920x1009 client the centred map
+# loses ~35 px at the top and bottom compared with the 1920x1080 canvas, so an icon whose
+# centre is above logical y 100 is hidden behind the HUD (only its pin / timer shows) and a
+# click there hits the squad counter. Such points are reached by dragging the map down by
+# MAP_NORTH_DRAG_DY (drag on open sea, verified to move the map by exactly that amount and
+# back), clicking, then dragging back.
+MAP_NORTH_DRAG_LIMIT = 100  # logical y below which a point needs the drag
+MAP_NORTH_DRAG_DY = 80
+MAP_NORTH_DRAG_FROM = (350, 631)  # open sea south-west of Ebony Jungle (centre anchor)
 # World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
 MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "2 Squad": (
@@ -1005,6 +1014,7 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (1290, 99),
         (1177, 35),
         (1104, 43),
+        (1300, 26),  # Eastrock volcano island, north edge (timed mission, hidden; 2026-09-05)
         (
             484,
             166,

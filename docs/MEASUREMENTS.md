@@ -209,3 +209,9 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   (1543..1887, 120..730). Chest dialog X at client (1413,55); its three open buttons are wider
   (client x 615-810 / 860-1060 / 1105-1305, y 750-830) but the AHK probes still fall inside
   them. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.
+- World map north edge (2026-09-05): the Doomfire Island (volcano, "Guardian of Doomfire",
+  Titan mission, 4 squads, timed) icon centre is at client (1300,-5), hidden behind the HUD
+  with only its pin and timer visible next to the 21/27 squad counter. Dragging the map from
+  client (350,600) to (350,680) moves it by exactly 80 px and the reverse drag restores it
+  (strip correlation 0 px); the icon is then at client (1300,75). Its pop-up has the usual
+  green "Start mission" button and X.

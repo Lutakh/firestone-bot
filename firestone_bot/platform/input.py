@@ -55,6 +55,20 @@ def click_at(x: int, y: int) -> None:
     click()
 
 
+def drag(x1: int, y1: int, x2: int, y2: int, steps: int = 8, step_interval: float = 0.04) -> None:
+    """Left-button drag from (x1,y1) to (x2,y2) in `steps` moves (screen pixels)."""
+    _ensure()
+    _mouse.position = (x1, y1)
+    time.sleep(0.2)
+    _mouse.press(_Button.left)
+    time.sleep(0.15)
+    for i in range(1, steps + 1):
+        _mouse.position = (x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+        time.sleep(step_interval)
+    time.sleep(0.15)
+    _mouse.release(_Button.left)
+
+
 def wheel(notches: int, interval: float = 0.2) -> None:
     """Scroll `notches` wheel clicks (negative = down, like AHK WheelDown), `interval` apart."""
     _ensure()
