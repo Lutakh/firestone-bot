@@ -22,6 +22,7 @@ REF = Rect(0, 31, 1920, 1009)
 # Anchor = (ax, ay), each 0.0 (left/top), 0.5 (centre) or 1.0 (right/bottom).
 Anchor = tuple[float, float]
 
+
 LEFT, CENTER, RIGHT = 0.0, 0.5, 1.0
 TOP, BOTTOM = 0.0, 1.0
 ANCHOR_CENTER: Anchor = (CENTER, CENTER)  # centred content (dialogs, the world map)
@@ -98,20 +99,45 @@ MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 EVENTS_BELL = Probe(595, 916, 635, 956, RED_DOT, 3, "events_bell")
 EVENTS_ICON = Point(583, 961)
 # Events list: active cards first, 175 px pitch; bell at the top-right corner of a card.
-EVENTS_CARDS = tuple(Point(960, 359 + i * 175) for i in range(4))
+# The list is a centred dialog: at 16:9 its right-hand edge (bells, X) must be anchored to the
+# centre, not to the screen edge (measured on macOS 2026-09-06: bell 125 px right of the
+# edge-anchored rect).
+EVENTS_CARDS = tuple(Point(960, 359 + i * 175, (CENTER, CENTER)) for i in range(4))
 EVENTS_CARD_BELLS = tuple(
-    Probe(1417, 299 + i * 175, 1447, 329 + i * 175, RED_DOT, 3, f"events_card_bell_{i + 1}")
+    Probe(
+        1417,
+        299 + i * 175,
+        1447,
+        329 + i * 175,
+        RED_DOT,
+        3,
+        f"events_card_bell_{i + 1}",
+        (CENTER, CENTER),
+    )
     for i in range(4)
 )
-EVENTS_LIST_CLOSE = Point(1490, 81)  # X of the list (client (1490,50))
+EVENTS_LIST_CLOSE = Point(1490, 81, (CENTER, CENTER))  # X of the list (client (1490,50))
 EVENTS_TOP_EVENT = EVENTS_CARDS[0]  # :15 (AHK clicked (942,359))
-EVENTS_CHALLENGES_TAB = Point(1125, 70)  # :20
-EVENTS_CHALLENGES_TAB_BELL = Probe(1290, 44, 1320, 74, RED_DOT, 3, "events_tab_bell")
-EVENTS_PAGE_CLOSE = Point(1715, 124)  # X of the event page (client (1715,93))
+# The event page is centred too (macOS 2026-09-06: tab bell 106 px right of the edge-anchored
+# rect).
+EVENTS_CHALLENGES_TAB = Point(1125, 70, (CENTER, CENTER))  # :20
+EVENTS_CHALLENGES_TAB_BELL = Probe(
+    1290, 44, 1320, 74, RED_DOT, 3, "events_tab_bell", (CENTER, CENTER)
+)
+EVENTS_PAGE_CLOSE = Point(1715, 124, (CENTER, CENTER))  # X of the event page (client (1715,93))
 EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the 2026 layout
-    (Probe(1540, 365, 1568, 405, GREEN_BUTTON, 3, "events_claim_1"), Point(1483, 382)),
-    (Probe(1538, 592, 1566, 633, GREEN_BUTTON, 3, "events_claim_2"), Point(1496, 604)),
-    (Probe(1530, 823, 1568, 870, GREEN_BUTTON, 3, "events_claim_3"), Point(1500, 837)),
+    (
+        Probe(1540, 365, 1568, 405, GREEN_BUTTON, 3, "events_claim_1", (CENTER, CENTER)),
+        Point(1483, 382, (CENTER, CENTER)),
+    ),
+    (
+        Probe(1538, 592, 1566, 633, GREEN_BUTTON, 3, "events_claim_2", (CENTER, CENTER)),
+        Point(1496, 604, (CENTER, CENTER)),
+    ),
+    (
+        Probe(1530, 823, 1568, 870, GREEN_BUTTON, 3, "events_claim_3", (CENTER, CENTER)),
+        Point(1500, 837, (CENTER, CENTER)),
+    ),
 )
 
 # --- Battle pass (Python-only, measured 2026-09-04) -----------------------------------------
@@ -498,25 +524,30 @@ RAST_IN_PROGRESS = Probe(562, 245, 754, 311, 0x8C4221, 10, "rast_in_progress")  
 
 # --- Guild.ahk ------------------------------------------------------------------------------
 MAIN_GUILD_ICON = Point(1857, 481)  # :12
+# The guild map and its dialogs are centred (like the world map): at 16:9 every entry below
+# must be anchored to the centre (measured on macOS 2026-09-06: the expeditions bell sat 47 px
+# left of the left-anchored rect).
 GUILD_EXPEDITION_DOT = Probe(
-    450, 410, 380, 490, RED_DOT, 3, "guild_expedition_dot"
+    450, 410, 380, 490, RED_DOT, 3, "guild_expedition_dot", (CENTER, CENTER)
 )  # :17 (inverted)
-GUILD_EXPEDITIONS = Point(308, 406)  # :20
-GUILD_EXPEDITION_START = Point(1321, 331)  # :24
-GUILD_PTREE_ENTRY = Point(1560, 366)  # :58
-GUILD_SHOP = Point(639, 263)  # :72
-GUILD_SHOP_SUPPLIES = Point(141, 790)  # :77
+GUILD_EXPEDITIONS = Point(308, 406, (CENTER, CENTER))  # :20
+GUILD_EXPEDITION_START = Point(1321, 331, (CENTER, CENTER))  # :24
+GUILD_PTREE_ENTRY = Point(1560, 366, (CENTER, CENTER))  # :58
+GUILD_SHOP = Point(639, 263, (CENTER, CENTER))  # :72
+GUILD_SHOP_SUPPLIES = Point(141, 790, (CENTER, CENTER))  # :77
 # Guild.ahk:81-84 probed the teal card colour 0x1EA569 in (764,617)-(869,653) and clicked
 # (716,637). Since the 2026 layout the "Free pickaxes" card has its green Claim button at the
 # bottom, logical (590,723)-(835,766) (measured 2026-09-04).
-GUILD_AXE_READY = Probe(620, 730, 800, 760, GREEN_BUTTON, 3, "guild_axe_ready")
-GUILD_AXE_CLAIM = Point(714, 747)
-GUILD_CRYSTAL = Point(1646, 928)  # :93
+GUILD_AXE_READY = Probe(620, 730, 800, 760, GREEN_BUTTON, 3, "guild_axe_ready", (CENTER, CENTER))
+GUILD_AXE_CLAIM = Point(714, 747, (CENTER, CENTER))
+GUILD_CRYSTAL = Point(1646, 928, (CENTER, CENTER))  # :93
 GUILD_CRYSTAL_HIT_READY = Probe(
-    1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit"
+    1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit", (CENTER, CENTER)
 )  # :97 (inverted)
-GUILD_CRYSTAL_HIT = Point(957, 896)  # :100
-GUILD_CRYSTAL_PARK = Point(300, 950)  # mouse parking spot away from the hit button
+GUILD_CRYSTAL_HIT = Point(957, 896, (CENTER, CENTER))  # :100
+GUILD_CRYSTAL_PARK = Point(
+    300, 950, (CENTER, CENTER)
+)  # mouse parking spot away from the hit button
 GUILD_PICKAXE_COUNTER = (1590, 51, 1710, 91)  # logical rect of the pickaxe counter digits
 GUILD_NOTIF_1 = Point(1056, 487)  # :109
 GUILD_NOTIF_2 = Point(230, 667)  # :114

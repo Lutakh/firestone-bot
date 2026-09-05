@@ -241,3 +241,19 @@ Live checks on the Mac: `window_tool`, `capture_tool`, `smoke_test` (main-screen
 check_mail` (mail claimed and deleted, back on the main screen), `run_feature hero_upgrade`
 (6 cards clicked), `tools/dry_run.py` (376 actions), `tools/dry_run.py --live --cycles 1`
 (one real cycle through the runner).
+
+### Centred screens at 16:9 (macOS, 2026-09-06)
+
+The main screen HUD is edge-anchored and mapped correctly, but three screens are centred
+dialogs / scenes whose entries had the default thirds-rule anchors: at the Mac's 16:9 client
+their right-hand parts sat 47-125 px away from the probes. Anchored to the centre in the atlas
+(`(CENTER, CENTER)`), no coordinate changed:
+
+| Screen | Entries | Measured |
+|---|---|---|
+| Events list | cards, card bells, X | card bell at client x 2300 vs edge-anchored rect 2174-2229; centre-anchored 2307 |
+| Event page | Challenges tab + bell, claim buttons, X | tab bell at 2082-2116 vs rect 1960-2015; centre-anchored 2066-2121 |
+| Guild map + dialogs | expedition dot / buttons, shop, pickaxes, crystal | expeditions bell at x 591 vs left-anchored rect 638-761; centre-anchored 593 |
+
+After the change: `run_feature guild` started the expedition (dot found at logical
+(414,439), gone afterwards), `run_feature claim_events` claimed one challenge reward.
