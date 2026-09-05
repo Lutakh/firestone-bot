@@ -77,6 +77,14 @@ class Game:
         self.vars: dict[str, int] = {}  # AHK globals shared between feature functions
         self.heartbeat_cb: Callable[[str, bool, bool], None] | None = None
         self.map_state_path = "MapStartState.ini"
+        self.style = "classic"  # main-screen layout, detected at each cycle start (layouts.py)
+
+    @property
+    def ms(self):
+        """Main-screen layout for the detected interface style."""
+        from firestone_bot.vision import layouts
+
+        return layouts.BY_NAME.get(self.style, layouts.CLASSIC)
 
     # -- window -------------------------------------------------------------------------
     def refresh_window(self) -> WindowInfo:

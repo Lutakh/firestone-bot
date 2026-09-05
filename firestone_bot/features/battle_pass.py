@@ -72,9 +72,9 @@ def claim_rewards(g: Game) -> int:
 
 def battle_pass(g: Game) -> None:
     g.focus()
-    if not g.found(atlas.BP_BELL):
+    if not g.found(g.ms.bp_bell):
         return
-    g.move_to(atlas.BP_ICON)
+    g.move_to(g.ms.bp_icon)
     g.sleep(1000)
     g.click()
     g.sleep(2500)

@@ -3,7 +3,7 @@ signature colour and variation). The open-button rows sit lower than for chests.
 
 from __future__ import annotations
 
-from firestone_bot.features.big_close import big_close
+from firestone_bot.features.open_chest_type import close_chest_dialog
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 from firestone_bot.vision.atlas import Probe
@@ -14,7 +14,7 @@ def _open_gift(g: Game, title: str, color: int, variation: int) -> None:
     g.move_to(atlas.BAG_SCROLL_HOVER)
     g.toast(title, "Scrolling to ensure bottom gifts are visible", 1.5)
     g.wheel(-5)
-    hit = g.search(Probe(*atlas.CHEST_GRID, color, variation, f"gift_{color:06X}"))
+    hit = g.search(Probe(*g.ms.chest_grid, color, variation, f"gift_{color:06X}"))
     if hit is None:
         return
     g.move_screen(hit.sx, hit.sy)
@@ -41,12 +41,7 @@ def _open_gift(g: Game, title: str, color: int, variation: int) -> None:
                 break  # Goto, ...Close
             g.sleep(100)
     # ...Close:
-    big_close(g)
-    # failsafe in case big close opens options
-    g.move_to(atlas.CHEST_FAILSAFE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    close_chest_dialog(g)
 
 
 def oracles_gift(g: Game) -> None:

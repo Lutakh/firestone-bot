@@ -63,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
     g.map_state_path = args.state
     fn = resolve(args.feature)
     win = g.refresh_window()
+    from firestone_bot.vision import layouts
+
+    g.style = layouts.detect_style(g, settings.get("InterfaceStyle"))
+    print(f"interface style: {g.style}")
     print(f"window client={win.client} scale={g.vp.rel_scale:.4f} dry_run={args.dry_run}")
     t0 = time.monotonic()
     try:

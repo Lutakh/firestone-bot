@@ -197,3 +197,15 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   175 px apart starting at client y 263 (bell at (1432,283)), list X at client (1490,50); event
   page tabs "Events"/"Challenges" (Challenges bell at client (1305,28)), page X at (1715,93);
   Claim buttons client (1343,329)-(1626,388) and the two rows below, matching the AHK probes.
+- New adventure style (2026-09-05, main screen only; dialogs, town, guild, map unchanged):
+  right column icons Town / Map / Guild / Shop / Events / Battle pass at client x 1862, y 165 /
+  275 / 400 / 525 / 650 / 780 (125 px apart), bell at (+38, -34) from the icon centre (seen on
+  Map: client (1886..1915, 221..259)); settings gear at (1860,55); mail at client (55,575);
+  bottom row Sale (optional) / Bag / Fellowship / Party at client y 790, Bag at x 1455; hero
+  cards at client y 925 with centres x 165 (leader), 620, 800, 980, 1160, 1340 (guardian),
+  1520 (Special), border orange 0xFCAC47 when upgradable, grey 0xB7B7B7 otherwise; blue
+  0x1089FF mode button at client (1630..1810, 915..985) with white text. Bag panel anchored top
+  right: X at client (1868,68), tabs at x 1487 y 100/190/285/370, chest grid client
+  (1543..1887, 120..730). Chest dialog X at client (1413,55); its three open buttons are wider
+  (client x 615-810 / 860-1060 / 1105-1305, y 750-830) but the AHK probes still fall inside
+  them. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.

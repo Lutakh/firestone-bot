@@ -20,9 +20,6 @@
   miss; measure per-module durations in the log to find the slow spots; skip modules whose
   entry probe already says there is nothing to do; keep the AHK timing available as a fallback
   "safe mode" setting.
-- Support the game's new interface style (the "new Adventure style" button layout that the AHK
-  bot required to be OFF): measure the new positions/colours and make the atlas cover both
-  styles, or detect which style is active.
 - Map alignment: detect that the world map is not centred or is zoomed (zoom slider bottom
   right, drag offset) and re-centre / reset the zoom before clicking the mission points; today a
   moved map silently breaks every fixed mission coordinate.

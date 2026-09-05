@@ -25,19 +25,19 @@ def _open_group(g: Game, group: tuple[tuple[str, int], ...], start: int | None) 
 
 def _open_bag_chests_tab(g: Game) -> None:
     # open bag
-    g.move_to(atlas.BAG_ICON)
+    g.move_to(g.ms.bag_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1000)
     # click chests tab
-    g.move_to(atlas.BAG_CHESTS_TAB)
+    g.move_to(g.ms.bag_chests_tab)
     g.sleep(1000)
     g.click()
     g.sleep(1000)
 
 
 def _close_bag(g: Game, after_ms: int) -> None:
-    g.move_to(atlas.BAG_CLOSE)
+    g.move_to(g.ms.bag_close)
     g.sleep(1000)
     g.click()
     g.sleep(after_ms)
@@ -57,10 +57,12 @@ def open_chests(g: Game) -> None:
         g.toast("Open Chests", "Opening Mystery Boxes", 1.5)
         mystery_box(g)
     if g.settings.flag("Bless"):
-        open_bless_chests(g)
+        open_bless_chests(g)  # closes the bag itself
+    # AHK returns WITHOUT closing the bag when Bless is off, and closed it a second time when
+    # Bless was on (a click on the Town icon in classic, on the settings gear in the new style).
+    # Rework: the bag is closed exactly once, whatever the Bless setting.
     else:
-        return  # AHK returns WITHOUT closing the bag here
-    _close_bag(g, 1500)
+        _close_bag(g, 1500)
 
 
 def open_bless_chests(g: Game) -> None:

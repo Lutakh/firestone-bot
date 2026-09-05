@@ -39,10 +39,10 @@ def _first_card_with_bell(g: Game) -> int | None:
 
 def claim_events(g: Game) -> None:
     g.focus()
-    if not g.found(atlas.EVENTS_BELL):
+    if not g.found(g.ms.events_bell):
         return
     # open events
-    g.move_to(atlas.EVENTS_ICON)
+    g.move_to(g.ms.events_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1500)

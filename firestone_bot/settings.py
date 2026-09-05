@@ -131,6 +131,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
 EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "SafetyCap": ("PythonOptions", "0"),  # optional cap on unbounded loops (plan 3.2)
     "GamePlatform": ("PythonOptions", "auto"),  # store used to launch the game: auto/steam/epic
+    "InterfaceStyle": ("PythonOptions", "auto"),  # main-screen layout: auto/classic/new
     "LastPlatform": ("PythonOptions", ""),  # store detected the last time (read-only)
     # Per-action switches (owner request 2026-09-04): one ON/OFF per bot action that had none
     # in the AHK settings. Default ON = the AHK behaviour.

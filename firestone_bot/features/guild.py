@@ -15,7 +15,7 @@ from firestone_bot.vision import atlas
 def guild(g: Game) -> None:
     g.focus()
     # open guild
-    g.move_to(atlas.MAIN_GUILD_ICON)
+    g.move_to(g.ms.guild_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1500)

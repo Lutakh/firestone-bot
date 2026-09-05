@@ -43,7 +43,7 @@ from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.game import BotStopped, Game
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, layouts
 
 log = logging.getLogger("firestone_bot.runner")
 
@@ -122,6 +122,8 @@ class Runner:
             g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
             main_menu.main_menu(g)
             g.focus()
+            g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
+            g.status(f"Interface style: {g.style}")
             if s.flag("Events"):
                 claim_events.claim_events(g)
             if s.flag("BattlePass"):

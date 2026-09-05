@@ -10,7 +10,7 @@ from firestone_bot.vision import atlas
 def check_mail(g: Game) -> None:
     g.focus()
     # open mail
-    g.move_to(atlas.MAIL_ICON)
+    g.move_to(g.ms.mail_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1000)

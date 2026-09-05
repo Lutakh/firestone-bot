@@ -456,6 +456,14 @@ OPTIONS: dict[str, Option] = {
         tuple(DELAY_CHOICES),
         DELAY_DISPLAY,
     ),
+    "InterfaceStyle": Option(
+        "Game interface style",
+        "The game's 'new adventure style' moves the main-screen icons and shows the hero "
+        "upgrade row at the bottom. Auto detects it at every cycle start.",
+        "choice",
+        ("auto", "classic", "new"),
+        {"auto": "Auto-detect", "classic": "Classic", "new": "New adventure style"},
+    ),
     "GamePlatform": Option(
         "Store used to launch the game",
         "When the game is not running at START (or at a cycle start) the bot launches it "

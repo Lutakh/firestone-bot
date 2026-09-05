@@ -29,7 +29,7 @@ def _claim_tab(g: Game, tab: atlas.Point) -> None:
 
 def claim_quests(g: Game) -> None:
     # open character window
-    g.move_to(atlas.CHARACTER_ICON)
+    g.move_to(g.ms.character_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1000)

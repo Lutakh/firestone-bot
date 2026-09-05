@@ -24,7 +24,15 @@ def _click_equip(g: Game) -> bool:
     return False
 
 
-def _close(g: Game) -> None:
+def close_chest_dialog(g: Game) -> None:
+    """Close the chest / gift dialog. New style: its own X (BigClose would hit the bag panel's
+    X); classic: BigClose plus the AHK failsafe."""
+    if g.ms.chest_dialog_close is not None:
+        g.move_to(g.ms.chest_dialog_close)
+        g.sleep(1000)
+        g.click()
+        g.sleep(1500)
+        return
     # OpenChestTypeClose:
     big_close(g)
     # failsafe in case big close opens options
@@ -35,7 +43,7 @@ def _close(g: Game) -> None:
 
 
 def open_chest_type(g: Game, color: int, variation: int = 2) -> None:
-    hit = g.search(Probe(*atlas.CHEST_GRID, color, variation, f"chest_{color:06X}"))
+    hit = g.search(Probe(*g.ms.chest_grid, color, variation, f"chest_{color:06X}"))
     if hit is None:
         return
     g.move_screen(hit.sx, hit.sy)  # MouseMove, FoundX, FoundY
@@ -51,7 +59,7 @@ def open_chest_type(g: Game, color: int, variation: int = 2) -> None:
     if target is None:
         # NoOpenButton:
         g.toast("Open Chests", "No Open Button Available", 1.5)
-        _close(g)
+        close_chest_dialog(g)
         return
     g.move_to(target)
     g.sleep(1000)
@@ -67,4 +75,4 @@ def open_chest_type(g: Game, color: int, variation: int = 2) -> None:
             g.sleep(10000)
             if not _click_equip(g):
                 break  # Goto, OpenChestTypeClose
-    _close(g)
+    close_chest_dialog(g)

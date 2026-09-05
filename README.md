@@ -9,7 +9,9 @@ reading, no network calls to the game).
 
 - Windows 10/11, Steam or Epic version of the game.
 - Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar at the
-  bottom, game language English, adventure button style Mobile or PC. The Status panel on the
+  bottom, game language English. Both main-screen layouts are supported: the classic one and
+  the "new adventure style" (heroes row at the bottom); the style is detected on the main
+  screen at each cycle (Advanced > Game launch > Interface style forces one). The Status panel on the
   Home tab reports the detected window, client size, scale and aspect. Any window with the
   reference aspect (1920:1009) maps exactly; 16:9 windows and fullscreen use per-widget anchors
   and are still being validated.

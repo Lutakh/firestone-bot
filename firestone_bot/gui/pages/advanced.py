@@ -33,6 +33,7 @@ def build(parent, ctx: PageContext):
 
     launch = place_card(Card(content, ctx, "Game launch"))
     launch.option("GamePlatform")
+    launch.option("InterfaceStyle")
 
     restart = place_card(Card(content, ctx, "Game restart", master="RestartGame"))
     restart.option("RestartGameTime")

@@ -40,9 +40,9 @@ def shop(g: Game) -> None:
     g.focus()
     # The red dot is the cheap trigger; near the expected reset time (23 h after the last
     # detected one, or never detected) the shop is opened anyway so the reset is not missed.
-    if not g.found(atlas.SHOP_RED_DOT) and 0 < hours_since(g.settings.LastTokenReset) < 23:
+    if not g.found(g.ms.shop_bell) and 0 < hours_since(g.settings.LastTokenReset) < 23:
         return
-    g.move_to(atlas.SHOP_ICON)
+    g.move_to(g.ms.shop_icon)
     g.sleep(1000)
     g.click()
     g.sleep(1500)

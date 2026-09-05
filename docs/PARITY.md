@@ -35,7 +35,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | Quests.ahk | quests | yes | yes | | AHK never calls BigClose (brace before it); reproduced |
 | Shop.ahk | shop | yes | yes | | |
 | CheckMail.ahk | check_mail | yes | yes | yes | claimed + deleted mail |
-| OpenChests.ahk | open_chests, open_bless_chests | yes | yes | | Goto ladders -> tables; Nebula/Cosmic -> Galaxy kept; "close bag" click can hit the Town icon when the bag is already closed (AHK does the same) |
+| OpenChests.ahk | open_chests, open_bless_chests | yes | yes | | Goto ladders -> tables; Nebula/Cosmic -> Galaxy kept; AHK closed the bag twice with Bless on (hitting the Town icon) and never with Bless off; the rework closes it exactly once |
 | subFunctions/OpenChestType.ahk | open_chest_type | yes | yes | | found-pixel click |
 | subFunctions/OraclesGift.ahk | oracles_gift | yes | probe only | | |
 | subFunctions/MysteryBox.ahk | mystery_box | yes | yes | | opened one box |
@@ -108,4 +108,5 @@ Dead AHK files not ported on purpose (plan 1.2): the 20 per-rarity chest files, 
 | Game launch / restore | `features/game_launch.py`, `GamePlatform` (auto/steam/epic) | at every cycle start: launches the game through the store when it is not running (waits for the window and clicks the start button), restores it when minimised; the Dashboard environment check restores a minimised game instead of reporting an error and says "not running, START launches it" when closed |
 | Battle pass | `features/battle_pass.py`, `BattlePass` switch | main-screen bell -> Rewards tab (badge) -> every green Claim button found by colour in the Golden / Free rows, rescanned after each claim, one extra scroll to the right; page closed with its own X |
 | Idle presentation | `app.present` | at start-up and when a run ends: game window activated (restored if minimised), then the bot window raised on top of it |
+| New adventure style | `vision/layouts.py`, `InterfaceStyle` (auto/classic/new) | the main screen of the new style is a second `MainScreen` layout (`atlas.NS_*`): HUD icons and bells on the right column, mail bottom left, bag at the bottom, bag panel at the top right with its own X and chest grid, chest dialog closed by its own X. Hero upgrade in this style skips the U menu: the blue mode button (white-text signature, `NS_MODE_SIGNATURES`) is set to Next milestone, then each enabled card of the bottom row (leader, H2..H5, guardian, Special) is clicked while its border is orange 0xFCAC47 (grey = not upgradable). `detect_style` probes the blue button at each cycle |
 | Hero upgrade mode button | `features/hero_upgrade.py set_next_milestone` | the button cycles x1 -> x10 -> x100 -> Next milestone -> max; the AHK marker-pixel loop only worked from x1. The rework reads the label (dark-pixel column profile + extent, references in `atlas.HU_MODE_SIGNATURES`) and clicks the exact number of times from any state, then verifies |

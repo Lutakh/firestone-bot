@@ -810,6 +810,167 @@ HERO_UPGRADE_SLOTS = (  # (setting, probe rect, click point) in AHK order
     ("UpgradeGuardian", (1869, 319, 1890, 352), Point(1670, 317)),
 )
 
+# --- Main screen, "new adventure style" (measured 2026-09-05, client y + 31 = logical) --------
+# Right column of icons (Town, Map, Guild, Shop, Events, Battle pass) at client x 1862, bells at
+# the icon's top-right (+38, -30, seen on the Map icon); bottom row Sale / Bag / Fellowship /
+# Party at client y 790; hero cards at client y 925, orange 0xFCAC47 card = upgradable, grey
+# 0xB7B7B7 = not; blue 0x1089FF "Upgrade x1" mode button bottom right.
+NS_STYLE_PROBE = Probe(1640, 946, 1800, 966, 0x1089FF, 6, "ns_style_probe")
+NS_MAIL_ICON = Point(55, 606)
+NS_EVENTS_ICON = Point(1862, 681)
+NS_EVENTS_BELL = Probe(1885, 636, 1915, 666, RED_DOT, 3, "ns_events_bell")
+NS_BP_ICON = Point(1862, 811)
+NS_BP_BELL = Probe(1885, 766, 1915, 796, RED_DOT, 3, "ns_bp_bell")
+NS_SHOP_ICON = Point(1862, 556)
+NS_SHOP_BELL = Probe(1885, 511, 1915, 541, RED_DOT, 3, "ns_shop_bell")
+NS_GUILD_ICON = Point(1862, 431)
+NS_BAG_ICON = Point(1455, 821)
+# The bag opens as a panel anchored at the top right (X at client 1868,68; tabs backpack /
+# scroll / chests / gems at client x 1487, y 100 / 190 / 285 / 370; chest grid rows at client
+# y 180-700). The chest dialog is the same as in classic but its own X (client 1413,55) is
+# used instead of BigClose, which would hit the panel's X in this layout.
+NS_BAG_CLOSE = Point(1868, 99)
+NS_BAG_CHESTS_TAB = Point(1487, 316)
+NS_CHEST_GRID = (1543, 150, 1887, 760)
+NS_CHEST_DIALOG_CLOSE = Point(1413, 86)
+NS_MODE_BUTTON = Point(1720, 981)
+NS_MODE_TEXT = (1630, 946, 1810, 1016)  # white text on the blue button
+NS_MODE_PARK = Point(1200, 600)
+NS_HERO_CARDS = tuple(  # (setting, orange-border probe, click point), left to right
+    (setting, Probe(x - 60, 893, x + 60, 903, ORANGE_2, 8, f"ns_card_{setting}"), Point(x, 956))
+    for setting, x in (
+        ("UpgradeH1", 165),  # leader (leftmost card)
+        ("UpgradeH2", 620),
+        ("UpgradeH3", 800),
+        ("UpgradeH4", 980),
+        ("UpgradeH5", 1160),
+        ("UpgradeGuardian", 1340),
+        ("UpgradeSpecial", 1520),
+    )
+)
+NS_MODE_SIGNATURES = {
+    "x1": (
+        (32, 156),
+        (
+            0.0,
+            0.0,
+            0.0,
+            0.072,
+            0.068,
+            0.073,
+            0.062,
+            0.075,
+            0.13,
+            0.089,
+            0.116,
+            0.082,
+            0.053,
+            0.083,
+            0.052,
+            0.045,
+            0.0,
+            0.0,
+        ),
+        1536,
+    ),
+    "x10": (
+        (32, 156),
+        (
+            0.0,
+            0.0,
+            0.0,
+            0.063,
+            0.059,
+            0.063,
+            0.054,
+            0.116,
+            0.093,
+            0.108,
+            0.108,
+            0.134,
+            0.046,
+            0.072,
+            0.045,
+            0.039,
+            0.0,
+            0.0,
+        ),
+        1767,
+    ),
+    "x100": (
+        (32, 156),
+        (
+            0.0,
+            0.0,
+            0.0,
+            0.055,
+            0.052,
+            0.056,
+            0.096,
+            0.081,
+            0.11,
+            0.104,
+            0.088,
+            0.122,
+            0.097,
+            0.064,
+            0.04,
+            0.034,
+            0.0,
+            0.0,
+        ),
+        2006,
+    ),
+    "next": (
+        (22, 166),
+        (
+            0.0,
+            0.0,
+            0.041,
+            0.048,
+            0.042,
+            0.044,
+            0.112,
+            0.122,
+            0.074,
+            0.08,
+            0.108,
+            0.07,
+            0.098,
+            0.041,
+            0.044,
+            0.044,
+            0.031,
+            0.0,
+        ),
+        1978,
+    ),
+    "max": (
+        (32, 156),
+        (
+            0.0,
+            0.0,
+            0.0,
+            0.061,
+            0.057,
+            0.061,
+            0.092,
+            0.111,
+            0.106,
+            0.089,
+            0.085,
+            0.118,
+            0.068,
+            0.07,
+            0.044,
+            0.038,
+            0.0,
+            0.0,
+        ),
+        1833,
+    ),
+}
+
 # --- RestartGameRoutine.ahk -----------------------------------------------------------------
 RESTART_HOVER = Point(900, 900)  # :56
 RESTART_START_BUTTON = Probe(845, 860, 1080, 937, GREEN_BUTTON_2, 3, "restart_start_button")  # :58
@@ -873,7 +1034,10 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (463, 433),
         (460, 670),
         (502, 330),  # Snow Wolves (AHK position)
-        (445, 321),  # Snow Wolves as placed by the game on 2026-09-05 (icon 57 px west of the AHK point)
+        (
+            445,
+            321,
+        ),  # Snow Wolves as placed by the game on 2026-09-05 (icon 57 px west of the AHK point)
         (581, 295),  # Expose the Spy
         (671, 755),  # Cursed Bay
         (705, 592),  # The Lost Chapter
