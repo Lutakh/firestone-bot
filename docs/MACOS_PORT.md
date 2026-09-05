@@ -1,5 +1,11 @@
 # macOS port brief
 
+Status (2026-09-05): done, see README.md (macOS section), docs/MEASUREMENTS.md (macOS) and
+docs/PARITY.md (step 4.8b). Findings that were not in the brief: the game must run with
+Fullscreen OFF (the fullscreen Space letterboxes a 16:9 canvas), the Unity title bar is 28 pt
+where AppKit reports 32, captures must be colour-matched from Display P3 to sRGB, and a
+background process needs the Accessibility kAXFrontmost attribute to activate the game.
+
 Owner request (2026-09-05): run the bot on a Mac. This file is the brief for the session that
 does the port. Everything in the repository stays in English; the owner chats in French.
 

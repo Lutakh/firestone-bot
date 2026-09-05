@@ -7,7 +7,8 @@ reading, no network calls to the game).
 
 ## Requirements
 
-- Windows 10/11, Steam or Epic version of the game.
+- Windows 10/11 (Steam or Epic version of the game) or macOS 13+ (Steam version; see the
+  macOS section below).
 - Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar at the
   bottom, game language English. Both main-screen layouts are supported: the classic one and
   the "new adventure style" (heroes row at the bottom); the style is detected on the main
@@ -39,6 +40,48 @@ python -m venv .venv
 
 `settings.ini` and `MapStartState.ini` are read from the current directory (from the exe's
 directory in the packaged build).
+
+## macOS
+
+Ported on 2026-09-05 (Apple silicon MacBook Pro, macOS 26, Retina 1512x982 pt at 2x, Steam
+build). What differs from Windows:
+
+- **Game settings**: in the game's Settings > Graphics turn **Fullscreen OFF**. The macOS
+  fullscreen Space letterboxes the 16:9 canvas with black bars and hides the menu bar; the
+  bot copes (bars are measured and removed) but a normal window zoomed to the visible screen
+  (menu bar and Dock showing) is the reference setup on the Mac.
+- **Permissions** (System Settings > Privacy & Security), both required:
+  - *Screen Recording*: without it macOS hands the bot a capture of the wallpaper only and
+    every probe misses.
+  - *Accessibility*: mouse and keyboard events (pynput) and un-minimising / resizing the game
+    window go through it.
+
+  Grant them to `FirestoneBot.app` when you use the bundle, or to the terminal application
+  (Terminal, iTerm...) that runs the bot from source: macOS attributes the permissions to
+  the application that launched the process. The Dashboard's Environment card says which
+  one is missing. macOS shows the prompts the first time; a newly granted Screen Recording
+  permission needs the bot to be restarted.
+- **Retina**: the bot works in physical pixels (captures are 2x), the mouse is driven in
+  points; the Environment card shows the factor. Captures are colour-matched to sRGB (the
+  raw screen is Display P3), so the atlas colours apply unchanged.
+- **Exit hotkey**: Cmd+Esc (Win+Esc on Windows).
+- **Epic** has no macOS client: only Steam is looked up and launched (`steam://rungameid/`).
+- The game keeps a 16:9 canvas on the Mac, so the per-widget anchors of the 16:9 layout are
+  used (validated live: main screen, mail, hero upgrades, one full cycle).
+
+Run from source (Python 3.12 from Homebrew, with Tk):
+
+```bash
+brew install python@3.12 python-tk@3.12
+python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/python -m firestone_bot
+```
+
+or double-click `firestone-bot-mac.command` (creates `.venv` on first use). Build the bundle
+with `pyinstaller firestone-bot.spec`: `dist/FirestoneBot.app` (ad-hoc signed, not
+notarised: right-click > Open the first time). `settings.ini` is read from the current
+directory when run from source and from the directory holding `FirestoneBot.app` when the
+bundle is launched from Finder.
 
 ## GUI
 
@@ -89,7 +132,7 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
   (all restored on the next start); it is safe to delete.
 - The Activity log shows the bot's log stream (`firestone-bot.log` at INFO level); status
   lines posted without a log entry are added to it too.
-- Shortcuts: Win+Esc exits (global), F5 re-checks the environment, Ctrl+S saves now,
+- Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,
   Ctrl+1..7 switch pages, Ctrl+Q exits.
 
 ## Tools
@@ -102,7 +145,7 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 | `python -m firestone_bot.tools.smoke_test --move 56,777` | find window, probe, move the mouse |
 | `python -m firestone_bot.tools.run_feature check_mail [--dry-run --fast]` | run one feature module |
 | `python -m firestone_bot.tools.dry_run [--live --cycles N]` | one full cycle, input disabled (or live) |
-| `python -m firestone_bot.tools.window_tool --client 1280x720` | resize the game window for tests |
+| `python -m firestone_bot.tools.window_tool --client 1280x720` | resize the game window for tests (pixels; on macOS through the Accessibility API) |
 | `FIRESTONE_GUI_PAGE=town python -m firestone_bot` | open the GUI on a given page (`dashboard`, `main`, `town`, `guild`, `missions`, `advanced`, `help`); `FIRESTONE_GUI_APPEARANCE=light|dark|system` overrides the theme (screenshots) |
 
 ## Development

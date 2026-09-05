@@ -5,9 +5,10 @@
   transitions, verify the expected screen before clicking, retry once, and a "recover to the
   main screen" routine (main_menu) when a probe chain fails.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
-- macOS port (owner request 2026-09-05, brief in docs/MACOS_PORT.md): platform layer
-  (Quartz window lookup, Retina capture/points mapping, Steam launch), validation of the
-  coordinate model at the Mac window size, .app packaging, permissions doc.
+- macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): a real cycle started from the
+  GUI on the Mac (the runner cycle ran from `tools/dry_run.py --live`), mixed-scale
+  multi-monitor setups (one Retina factor is applied to every coordinate), `window_tool
+  --client` through the Accessibility API is untested, CI does not build the `.app`.
 - Linux (plan 4.9) and browser build (plan 4.10 / section 8).
 - Mouse-usage detection (owner spec, 2026-09-04): detect that the USER moves the mouse while
   the bot runs (pynput 1.8 gives an `injected` flag on Windows, so the bot's own SendInput events

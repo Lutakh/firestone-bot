@@ -215,3 +215,29 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   client (350,600) to (350,680) moves it by exactly 80 px and the reverse drag restores it
   (strip correlation 0 px); the icon is then at client (1300,75). Its pop-up has the usual
   green "Start mission" button and X.
+
+## macOS (2026-09-05)
+
+Owner's MacBook Pro (Apple silicon, macOS 26.6), built-in Liquid Retina XDR 3024x1964 px =
+1512x982 pt (backing scale 2.0), menu bar 34 pt, Dock 65 pt (visible frame 1512x883 pt at
+y=65 from the bottom). Steam build, process name `Firestone`, bundle
+`com.HolydayStudios.Firestone`, window title `Firestone`. Python 3.12.14 (Homebrew,
+`python-tk@3.12` needed for tkinter).
+
+| Item | Value |
+|---|---|
+| Quartz window bounds, zoomed window (fullscreen OFF in the game) | (0, 34, 1512, 883) pt = (0, 68, 3024, 1766) px |
+| Title bar | 28 pt + 1 px separator = 57 px measured on the window image (AppKit's `contentRectForFrameRect` says 32 pt on macOS 26, which put every top-anchored point 8 px too low: the settings gear was missed) |
+| Client | (0, 125, 3024, 1709) px, aspect 1.770 (16:9), canvas scale 1.575, rel 1.686 |
+| Fullscreen Space (game Fullscreen ON) | window (0, 33, 1512, 949) pt below the menu bar, no title bar, the game letterboxes a 16:9 canvas with 94 px black bars top and bottom -> client (0, 160, 3024, 1710); measured on the per-window Quartz capture. Not the reference setup on the Mac: the Space switch animates for ~1 s and other windows are hidden |
+| Capture colour space | raw `CGWindowListCreateImage` pixels are Display P3: blue mode button 0x1089FF read 0x3C84F7, gear 0xF5CA89 read 0xD49B50. Drawn into an sRGB `CGBitmapContext`: 0x0B86FF / 0xDE983F, inside the atlas tolerances |
+| Capture timing | full client 41 ms, 60x40 px probe 17 ms (Quartz call overhead) |
+| Settings gear bounding box, canvas units | Windows 16:9 reference x 1833-1889, y 28-61; Mac x 1833-1889, y 22-57 (after the title-bar fix the point (1846,57) is inside) |
+| Activation | `NSRunningApplication.activateWithOptions_` returns True but does not activate from a background process on macOS 26; `AXUIElementSetAttributeValue(app, kAXFrontmost, True)` does (Accessibility granted); `open -b` kept as the last fallback |
+| Permissions | Screen Recording denied = wallpaper capture, no error; both permissions are attributed to the app that launched the process (Claude / Terminal for a venv run, the bundle for FirestoneBot.app) |
+
+Live checks on the Mac: `window_tool`, `capture_tool`, `smoke_test` (main-screen probes hit:
+`ns_style_probe`, shop/events/battle-pass bells), `probe_check` on the capture, `run_feature
+check_mail` (mail claimed and deleted, back on the main screen), `run_feature hero_upgrade`
+(6 cards clicked), `tools/dry_run.py` (376 actions), `tools/dry_run.py --live --cycles 1`
+(one real cycle through the runner).
