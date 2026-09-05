@@ -104,8 +104,29 @@ bundle is launched from Finder.
    Dashboard's Environment card keeps saying which one is still missing.
 5. In the game: Settings > Graphics > Fullscreen OFF, window zoomed (green button).
 
-Every rebuild changes the bundle's ad-hoc signature, so macOS may ask for the permissions
-again after an update; a Developer ID signature would avoid that.
+The bundle is signed with the project's self-signed certificate ("Firestone Bot", see
+`tools/mac_codesign.py`) so the identity, and with it the Screen Recording / Accessibility
+grants, stays the same across updates; an ad-hoc build (no certificate available) would ask
+for them again after each update. Gatekeeper still warns once because the app is not
+notarised (that needs a paid Apple developer account).
+
+## Updates
+
+The bot checks the project's GitHub releases at start-up and once a day (public API, no
+account). When a newer version exists the Dashboard's Control card shows "Version X is
+available" with an **Update** button: the archive for the current OS is downloaded, its
+SHA256 checked against the release's `SHA256SUMS.txt`, unpacked next to the install, and
+after a last confirmation the bot closes, a small script swaps the old install aside
+(renamed, never deleted first) and puts the new one in place, then relaunches the bot.
+`settings.ini`, `MapStartState.ini`, `gui_state.json` and the log are outside the install and
+are never touched. Advanced > Updates has a "Check for updates now" button. Running from
+source only gets the notification (update with `git pull`). Nothing is downloaded or
+installed without a click.
+
+Releasing: bump `__version__` in `firestone_bot/__init__.py`, tag `vX.Y.Z` and push the tag;
+CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and
+attaches everything to the GitHub release (the tag must equal `v` + `__version__`).
+`python -m firestone_bot --start` starts the bot as soon as the window is up.
 
 ## GUI
 

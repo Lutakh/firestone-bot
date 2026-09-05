@@ -5,6 +5,10 @@
   transitions, verify the expected screen before clicking, retry once, and a "recover to the
   main screen" routine (main_menu) when a probe chain fails.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
+- Self-update (2026-09-06): first end-to-end test needs a published release (tag v0.2.0):
+  check the banner, the download, the swap and the relaunch on Windows and on macOS; macOS
+  signing on CI depends on the MACOS_CERT_P12 / MACOS_CERT_PASSWORD secrets and on the
+  certificate being trusted on the maintainer's Mac (`mac_codesign trust`).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): a real cycle started from the
   GUI on the Mac (the runner cycle ran from `tools/dry_run.py --live`), mixed-scale
   multi-monitor setups (one Retina factor is applied to every coordinate), `window_tool
