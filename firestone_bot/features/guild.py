@@ -3,6 +3,8 @@ tree, notifications."""
 
 from __future__ import annotations
 
+import logging
+
 from firestone_bot import daily
 from firestone_bot.features.awaken import awaken_run
 from firestone_bot.features.big_close import big_close
@@ -10,6 +12,8 @@ from firestone_bot.features.chaos import hit_chaos
 from firestone_bot.features.ptree import personal_tree
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
+
+log = logging.getLogger("firestone_bot")
 
 
 def guild(g: Game) -> None:
@@ -70,12 +74,29 @@ def _guild_level_check(g: Game) -> bool:
     g.progress.set_guild_level(level)
     if level is None:
         g.status("Guild level: banner not readable (not in a guild?), guild features run as usual")
+        _save_diagnostic(g, "guild-banner-miss.png")
     else:
         g.status(f"Guild level {level}")
     return True
 
 
 GUILD_LEVEL_READ_TRIES = 3
+
+
+def _save_diagnostic(g: Game, name: str) -> None:
+    """Capture of the game client next to the user files, to see what the bot saw."""
+    import os
+
+    from firestone_bot.platform import capture
+
+    try:
+        if g.window is None or g.dry_run:
+            return
+        path = os.path.join(os.path.dirname(os.path.abspath(g.map_state_path)), name)
+        capture.save_png(capture.grab(g.window.client), path)
+        g.status(f"Guild level: capture saved as {name}")
+    except Exception:
+        log.debug("diagnostic capture failed", exc_info=True)
 
 
 def claim_axes(g: Game) -> None:
