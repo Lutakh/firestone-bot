@@ -128,6 +128,7 @@ class MainWindow:
         self.on_check_updates: Callable[[], None] | None = None  # set by App
         self.on_install_update: Callable[[], None] | None = None
         self.on_rollback_update: Callable[[], None] | None = None
+        self.on_import_settings: Callable[[], None] | None = None
         from firestone_bot import update
 
         self.previous_version = update.previous_version()  # None from source
@@ -152,6 +153,9 @@ class MainWindow:
                 ),
                 "rollback_update": lambda: (
                     self.on_rollback_update() if self.on_rollback_update else None
+                ),
+                "import_settings": lambda: (
+                    self.on_import_settings() if self.on_import_settings else None
                 ),
             },
             show_page=self.show_page,

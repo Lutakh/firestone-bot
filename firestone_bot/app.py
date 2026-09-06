@@ -53,6 +53,7 @@ class App:
         self.window.on_check_updates = lambda: self.check_updates(manual=True)
         self.window.on_install_update = self.install_update
         self.window.on_rollback_update = self.rollback_update
+        self.window.on_import_settings = self.import_settings
         self._close_splash()
         self.window.root.after(800, self._startup_dialogs)
         # Screenshot / test helpers: open the GUI on a given page or appearance.
@@ -103,8 +104,83 @@ class App:
         permissions.open_settings_pane(missing[0])
 
     def _startup_dialogs(self) -> None:
+        """One after the other (each is modal): settings import, then macOS permissions."""
+        if not os.path.exists(self.settings.path):
+            self._offer_settings_import()
         if sys.platform == "darwin":
             self._mac_permissions_guide()
+
+    # -- user files (settings.ini next to the bot) -------------------------------------------
+    def _offer_settings_import(self) -> None:
+        """No settings.ini next to this bot (fresh manual download): look for one in the usual
+        places and offer to copy it, never moving or overwriting anything."""
+        from tkinter import messagebox
+
+        from firestone_bot import userfiles
+
+        try:
+            found = userfiles.find_candidates(self.base)
+        except Exception:
+            log.exception("settings search failed")
+            found = []
+        if not found:
+            log.info("no settings.ini next to the bot and none found nearby")
+            return
+        best = found[0]
+        more = f"\n\n({len(found) - 1} other folder(s) found; Advanced > Files imports any.)"
+        if not messagebox.askyesno(
+            "Import your settings?",
+            "There is no settings.ini next to this bot, so defaults are in use.\n\n"
+            f"Found one in:\n{best.label}\n\nCopy it here (with MapStartState.ini and "
+            "gui_state.json when present)? The old folder is left untouched."
+            + (more if len(found) > 1 else ""),
+            parent=self.window.root,
+        ):
+            return
+        self._import_from(best.folder)
+
+    def import_settings(self) -> None:
+        """Advanced > Files: pick a folder and copy the user files from it."""
+        from tkinter import filedialog
+
+        folder = filedialog.askdirectory(
+            title="Folder holding your settings.ini", parent=self.window.root
+        )
+        if folder:
+            self._import_from(folder)
+
+    def _import_from(self, folder: str) -> None:
+        from tkinter import messagebox
+
+        from firestone_bot import userfiles
+
+        try:
+            copied, skipped = userfiles.import_user_files(folder, self.base)
+        except Exception as e:
+            log.exception("import from %s failed", folder)
+            messagebox.showerror("Import failed", str(e), parent=self.window.root)
+            return
+        log.info("imported %s from %s (skipped %s)", copied, folder, skipped)
+        if not copied:
+            messagebox.showinfo(
+                "Nothing imported",
+                "No settings.ini in that folder"
+                if not skipped
+                else f"Already present here, not overwritten: {', '.join(skipped)}",
+                parent=self.window.root,
+            )
+            return
+        if "settings.ini" in copied:
+            try:
+                self.window.binder.reload()
+            except Exception:
+                log.exception("reload after import failed")
+        text = f"Copied {', '.join(copied)} from {folder}."
+        if skipped:
+            text += f"\nAlready here, kept as is: {', '.join(skipped)}."
+        if "gui_state.json" in copied:
+            text += "\nWindow layout applies at next start."
+        messagebox.showinfo("Settings imported", text, parent=self.window.root)
 
     def _late_init(self) -> None:
         """Import and wire the bot side once the window is on screen."""

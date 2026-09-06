@@ -132,6 +132,13 @@ files back and restarts; the newer version takes the `.previous` place, so the s
 brings it back again. Each update replaces the kept copy, so exactly one older version is
 kept at a time (a full build, about the size of the install).
 
+**Downloaded a release by hand?** Unzip it anywhere and start it. Without a `settings.ini`
+next to the exe the bot runs with defaults and, at start-up, looks for a settings.ini of a
+previous bot folder around the new one and in Desktop / Downloads / Documents; it offers to
+copy it (with `MapStartState.ini` and `gui_state.json`), leaving the old folder untouched
+and never overwriting a file already there. Advanced > Files > "Import settings from another
+folder…" does the same for any folder you pick.
+
 Releasing: bump `__version__` in `firestone_bot/__init__.py`, tag `vX.Y.Z` and push the tag;
 CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and
 attaches everything to the GitHub release (the tag must equal `v` + `__version__`).

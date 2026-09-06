@@ -145,7 +145,9 @@ def build(parent, ctx: PageContext):
     files = place_card(Card(content, ctx, "Files"))
     if not ctx.extras.get("settings_existed", True):
         files.banner(
-            "info", "settings.ini not found: defaults in use; it is created on first save."
+            "info",
+            "settings.ini not found next to this bot: defaults in use; it is created on first "
+            "save. Downloaded a new version by hand? Import your files from the old folder.",
         )
     base = ctx.base_dir
     for name in ("settings.ini", "MapStartState.ini", "firestone-bot.log"):
@@ -157,6 +159,7 @@ def build(parent, ctx: PageContext):
         ("Reload from disk", lambda: ctx.call("reload")),
         ("Open log file", lambda: ctx.call("open_log")),
         ("Open folder", lambda: ctx.call("open_folder")),
+        ("Import settings from another folder…", lambda: ctx.call("import_settings")),
     )
     files.note(f"settings.ini encoding: {s.encoding}")
     return page
