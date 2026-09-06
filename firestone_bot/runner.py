@@ -149,6 +149,9 @@ class Runner:
         if not g.progress.need_account_check():
             return
         level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
+        if level is None:  # a toast or the end of the last cycle's animation over the avatar
+            g.sleep(700)
+            level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
         g.progress.set_account_level(level)
         if level is None:
             g.status("Account level: not readable on the avatar, no feature is skipped")
