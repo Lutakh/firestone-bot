@@ -74,6 +74,11 @@ def segment(img_bgr: np.ndarray, min_gap: int = 1) -> list[Glyph]:
             x += 1
         x1 = x
         y0, y1 = _main_row_run(mask[:, x0:x1].any(axis=1))
+        # bright specks outside the body's rows (the badge border's glint under a digit)
+        # extend the column run: keep only the columns the body itself covers
+        body_cols = np.nonzero(mask[y0:y1, x0:x1].any(axis=0))[0]
+        if len(body_cols):
+            x0, x1 = x0 + int(body_cols[0]), x0 + int(body_cols[-1]) + 1
         glyphs.append(Glyph(x0, x1, y0, y1, resample(mask[y0:y1, x0:x1])))
     return glyphs
 
