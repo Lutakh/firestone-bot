@@ -42,7 +42,8 @@ def _state(enabled: bool) -> str:
 def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
     """Wheel scrolling customtkinter does not handle: <Button-4>/<Button-5> on X11, and on
     macOS with Tk 9 the trackpad's <TouchpadScroll> (pixel deltas, no <MouseWheel> at all)
-    plus <MouseWheel> deltas that are now multiples of 120 (ctk scrolls 120 units per notch)."""
+    plus <MouseWheel> deltas that are now multiples of 120 (ctk scrolls 120 units per notch).
+    macOS with Tk 8.6: ctk's handler is kept (see MAC_TK9)."""
     canvas = scrollable._parent_canvas
 
     def mine(event) -> bool:
@@ -56,7 +57,7 @@ def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
 
         scrollable.bind_all("<Button-4>", scroll, add="+")
         scrollable.bind_all("<Button-5>", scroll, add="+")
-    elif sys.platform == "darwin":
+    elif sys.platform == "darwin" and MAC_TK9:
         scrollable._mouse_wheel_all = lambda event: None  # ctk's 120-units-per-notch handler
         acc = [0.0]
 
@@ -82,7 +83,13 @@ def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
 TOUCHPAD_PIXELS_PER_UNIT = 6  # trackpad pixels per canvas scroll unit (feel, not geometry)
 WHEEL_UNITS_PER_NOTCH = 20  # what ctk scrolls per notch on Windows (delta 120 / 6)
 
-if sys.platform == "darwin":
+# Tk 9 (Homebrew python-tk) changed macOS scrolling: <MouseWheel> deltas of 120 per notch
+# and a separate <TouchpadScroll> event for the trackpad. Tk 8.6 (python.org / GitHub
+# runners, what the packaged bundle ships) has neither: its <MouseWheel> delta is already in
+# lines for wheel and trackpad alike, and ctk's own handler is right for it, so nothing is
+# bound there ("bad event type or keysym TouchpadScroll" otherwise).
+MAC_TK9 = sys.platform == "darwin" and tk.TkVersion >= 9.0
+if MAC_TK9:
     # ctk binds its bound method at frame creation and Tk 9 reports deltas of 120 per notch,
     # so it would scroll 120 units per notch: neutralise it on the class before any frame
     # exists (bind_platform_wheel installs the replacement).
