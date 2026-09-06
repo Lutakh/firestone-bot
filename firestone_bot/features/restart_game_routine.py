@@ -30,17 +30,25 @@ def restart_game_routine(g: Game) -> None:
     attempts = 0
     while True:
         # 2. close the process
+        g.status(
+            f"Game restart: closing Firestone{f' (attempt {attempts + 1})' if attempts else ''}, "
+            "this is expected"
+        )
         process.kill_game()
         g.sleep(15000)
         # 3. launch according to the platform
         if not g.dry_run:
             process.launch_game(platform)
+        g.status(
+            f"Game restart: relaunching through {platform}, waiting for the start screen (up to 5 min)"
+        )
         if platform == "steam":
             g.heartbeat("Game Restarted via Steam, waiting for pixel...", important=True)
         # 4. wait up to 5 minutes for the start button
         pixel_found = wait_for_start_button(g, 300)
         # 5. resume or retry
         if pixel_found:
+            g.status("Game restart: start screen found, resuming the cycle")
             g.heartbeat("Pixel found. Resuming bot.", important=True)
             g.vars["lastRestartTime"] = int(time.monotonic() * 1000)
             return
@@ -49,7 +57,10 @@ def restart_game_routine(g: Game) -> None:
         if platform == "steam":
             # a relaunched game can stay on a black window while the Steam client keeps a
             # stale state (macOS, 2026-09-06): restart the client before the next attempt
-            g.status("Game restart: start screen not found, restarting the Steam client")
+            g.status(
+                "Game restart: start screen not found, closing and relaunching the Steam "
+                "client (about a minute), this is expected"
+            )
             process.kill_game()
             if not g.dry_run:
                 process.restart_steam()

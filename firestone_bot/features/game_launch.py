@@ -57,7 +57,10 @@ def launch_game(g: Game) -> bool:
         return True
     if platform == "steam":
         # black window after the launch: restart the Steam client and try once more
-        g.status("Game launch: start button not found, restarting the Steam client")
+        g.status(
+            "Game launch: start button not found, closing and relaunching the Steam client "
+            "(about a minute), this is expected"
+        )
         process.kill_game()
         if not g.dry_run:
             process.restart_steam()

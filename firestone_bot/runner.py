@@ -138,6 +138,7 @@ class Runner:
             if s.flag("RestartGame") and (
                 s.flag("RestartGameTest") or _ms() - last_restart >= restart_ms
             ):
+                g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
                 g.heartbeat("Initiating 24h Game Restart", important=True)
                 restart_game_routine.restart_game_routine(g)
                 last_restart = _ms()
