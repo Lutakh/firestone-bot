@@ -49,6 +49,8 @@ class GameOverlay:
         self.capture_safe = False  # True when the OS leaves the window out of captures
         self.visible = False
         self._rect: Rect | None = None
+        self.placed_px: tuple[int, int, int, int] | None = None  # x, y, w, h, physical px
+        self._hidden_until = None  # Tk after id while hidden for a click
 
     # -- lifecycle --------------------------------------------------------------------------
     def _build(self) -> None:
@@ -104,6 +106,9 @@ class GameOverlay:
     def hide(self) -> None:
         self.visible = False
         if self.top is not None:
+            if self._hidden_until is not None:
+                self.top.after_cancel(self._hidden_until)
+                self._hidden_until = None
             self.top.withdraw()
 
     def destroy(self) -> None:
@@ -153,6 +158,33 @@ class GameOverlay:
             y = int(top + 2)  # top strip: no probe looks there
         width = int(min(WIDTH_PT, max(200, w - 2 * MARGIN)))
         self.top.geometry(f"{width}x{need_h}+{x}+{y}")
+        self.placed_px = (int(x * f), int(y * f), int(width * f), int(need_h * f))
+
+    def covers(self, sx: int, sy: int) -> bool:
+        """Whether the panel (when shown) sits over this physical screen pixel. Thread-safe:
+        reads the rect remembered at the last placement."""
+        r = self.placed_px
+        if not self.visible or r is None:
+            return False
+        x, y, w, h = r
+        return x <= sx < x + w and y <= sy < y + h
+
+    def hide_briefly(self, ms: int = 1500) -> None:
+        """Tk thread: withdraw the panel now (a click is about to land under it) and show it
+        again `ms` later, unless hidden for good meanwhile."""
+        if self.top is None or not self.visible:
+            return
+        if self._hidden_until is not None:
+            self.top.after_cancel(self._hidden_until)
+        self.top.withdraw()
+        self.top.update_idletasks()
+
+        def back() -> None:
+            self._hidden_until = None
+            if self.visible and self.top is not None:
+                self.top.deiconify()
+
+        self._hidden_until = self.top.after(ms, back)
 
 
 # -- per-OS window flags ----------------------------------------------------------------------

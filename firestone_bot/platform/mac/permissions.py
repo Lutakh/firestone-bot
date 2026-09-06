@@ -14,17 +14,26 @@ from __future__ import annotations
 SETTINGS_HINT = "System Settings > Privacy & Security"
 
 
-def screen_recording_granted() -> bool:
-    import Quartz
+def _coregraphics_bool(name: str) -> bool:
+    """Call a CoreGraphics function returning a bool through ctypes: pyobjc's lazy Quartz
+    module lacks the metadata of these two functions in the PyInstaller bundle (KeyError
+    'CGPreflightScreenCaptureAccess' at start-up in v0.2.10)."""
+    import ctypes
 
-    return bool(Quartz.CGPreflightScreenCaptureAccess())
+    cg = ctypes.cdll.LoadLibrary("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+    fn = getattr(cg, name)
+    fn.restype = ctypes.c_bool
+    fn.argtypes = []
+    return bool(fn())
+
+
+def screen_recording_granted() -> bool:
+    return _coregraphics_bool("CGPreflightScreenCaptureAccess")
 
 
 def request_screen_recording() -> bool:
     """Shows the system prompt once per app; returns the current state."""
-    import Quartz
-
-    return bool(Quartz.CGRequestScreenCaptureAccess())
+    return _coregraphics_bool("CGRequestScreenCaptureAccess")
 
 
 def accessibility_granted(prompt: bool = False) -> bool:

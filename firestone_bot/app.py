@@ -108,10 +108,13 @@ class App:
         the front (hiding the dialog) until the user has answered."""
         if sys.platform == "darwin" and self._offer_move_to_applications():
             return  # relaunching from /Applications
-        if not os.path.exists(self.settings.path):
-            self._offer_settings_import()
-        if sys.platform == "darwin":
-            self._mac_permissions_guide()
+        try:
+            if not os.path.exists(self.settings.path):
+                self._offer_settings_import()
+            if sys.platform == "darwin":
+                self._mac_permissions_guide()
+        except Exception:  # a dialog must never keep the bot side from being wired
+            log.exception("start-up dialog failed")
         self.window.root.after(50, self._late_init)
         if self.autostart:
             self.window.root.after(1100, self.start)
@@ -274,6 +277,7 @@ class App:
 
         inp.prepare()  # macOS: pynput layout lookups on the Tk (main) thread, see mac/pynput_fix
         self.game = Game(self.settings, status_cb=self._status)
+        self.game.click_hook = self._overlay_avoid
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)
         self.runner.on_finished = lambda: self.window.root.after(0, self._run_finished)
@@ -332,6 +336,25 @@ class App:
         if rect is not None:
             self._overlay.set_game_rect(rect)
         self._overlay.push(text)
+
+    def _overlay_avoid(self, sx: int, sy: int) -> None:
+        """Bot thread, before a click: when the overlay sits over the target pixel, hide it and
+        wait until it is gone (belt and braces over the click-through window flags, which the
+        owner saw fail on the research claim button under the panel, 2026-09-06)."""
+        ov = self._overlay
+        if ov is None or not ov.covers(sx, sy):
+            return
+        done = threading.Event()
+
+        def hide() -> None:
+            try:
+                ov.hide_briefly()
+            finally:
+                done.set()
+
+        self.window.post_call(hide)
+        done.wait(0.5)
+        log.info("overlay hidden for a click under it at (%s, %s)", sx, sy)
 
     def _overlay_start(self) -> None:
         if not self.settings.flag("Overlay"):
