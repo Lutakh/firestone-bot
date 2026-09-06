@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -100,11 +102,66 @@ class App:
         permissions.open_settings_pane(missing[0])
 
     def _startup_dialogs(self) -> None:
-        """One after the other (each is modal): settings import, then macOS permissions."""
+        """One after the other (each is modal): move to Applications (macOS), settings import,
+        macOS permissions."""
+        if sys.platform == "darwin" and self._offer_move_to_applications():
+            return  # relaunching from /Applications
         if not os.path.exists(self.settings.path):
             self._offer_settings_import()
         if sys.platform == "darwin":
             self._mac_permissions_guide()
+
+    def _offer_move_to_applications(self) -> bool:
+        """First launch of the bundle from Downloads or elsewhere: offer to move it into
+        /Applications (or ~/Applications when that is not writable) and relaunch it from
+        there. Asked once; "No" is remembered in gui_state.json. Returns True when the bot is
+        exiting to relaunch."""
+        from tkinter import messagebox
+
+        from firestone_bot import paths
+
+        bundle = paths.bundle_path()
+        if bundle is None or paths.in_applications(bundle):
+            return False
+        if self.window.gui_state.get("keep_outside_applications"):
+            return False
+        if not messagebox.askyesno(
+            "Move to Applications?",
+            "FirestoneBot is running from\n"
+            f"{os.path.dirname(bundle)}\n\nMove it to the Applications folder and restart "
+            "it from there? Your settings live in\n"
+            f"{self.base}\nwhatever the app's location.",
+            parent=self.window.root,
+        ):
+            self.window.gui_state["keep_outside_applications"] = True
+            self.window._write_state()
+            return False
+        for folder in paths.applications_dirs():
+            dest = os.path.join(folder, os.path.basename(bundle))
+            try:
+                os.makedirs(folder, exist_ok=True)
+                if os.path.exists(dest):
+                    if not messagebox.askyesno(
+                        "Replace?",
+                        f"{dest} already exists. Replace it with this copy?",
+                        parent=self.window.root,
+                    ):
+                        return False
+                    shutil.rmtree(dest)
+                shutil.move(bundle, dest)
+            except OSError as e:
+                log.info("cannot move the bundle to %s: %s", folder, e)
+                continue
+            log.info("bundle moved to %s", dest)
+            subprocess.Popen(["open", "-n", dest], start_new_session=True)
+            self.window.request_exit()
+            return True
+        messagebox.showwarning(
+            "Move failed",
+            "Could not move the app into Applications; keep using it from here.",
+            parent=self.window.root,
+        )
+        return False
 
     # -- user files (settings.ini next to the bot) -------------------------------------------
     def _offer_settings_import(self) -> None:

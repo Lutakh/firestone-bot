@@ -86,17 +86,21 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 or double-click `firestone-bot-mac.command` (creates `.venv` on first use). Build the bundle
 with `pyinstaller firestone-bot.spec`: `dist/FirestoneBot.app` (ad-hoc signed, not
 notarised: see the step-by-step below for the Gatekeeper warning). `settings.ini` is read
-from the current directory when run from source and from the directory holding
-`FirestoneBot.app` when the bundle is launched from Finder.
+from the current directory when run from source and from
+`~/Library/Application Support/FirestoneBot` when the bundle is launched (see the
+step-by-step below).
 
 ### macOS: install from a release (step by step)
 
 1. Download `FirestoneBot-macos.zip` from the
    [releases page](https://github.com/Lutakh/firestone-bot/releases/latest) and unzip it.
-   Move `FirestoneBot.app` into a folder of its own (for instance `~/Documents/FirestoneBot`):
-   the bot creates `settings.ini`, `MapStartState.ini`, `gui_state.json` and its log NEXT TO
-   the bundle. Already have a `settings.ini`? Put it in that folder, or let the bot offer to
-   import it at first start.
+   At its first start the app offers to move itself into the Applications folder; say yes.
+   Its files (`settings.ini`, `MapStartState.ini`, `gui_state.json`, the log, the kept
+   previous version) live in `~/Library/Application Support/FirestoneBot`, a folder the app
+   can use without any permission (Advanced > Files > Open folder shows it). Already have a
+   `settings.ini` from an older version or from Windows? Advanced > Files > "Import settings
+   from another folder…" copies it there (picking a folder in Documents or Downloads makes
+   macOS ask once for access to that folder; that is the only time the bot touches them).
 2. Double-click `FirestoneBot.app`. macOS refuses: *"Apple could not verify FirestoneBot.app
    is free of malware"* with **Move to Trash** / **Done**. Click **Done** (never Move to
    Trash). The app is signed with the project's own certificate but not notarised by Apple,
@@ -121,7 +125,9 @@ from the current directory when run from source and from the directory holding
    one is still missing.
 5. In the game: Settings > Graphics > **Fullscreen OFF**, window zoomed (green button),
    Steam only (no Epic client on macOS).
-6. Start the bot from the Dashboard. Cmd+Esc stops it. Updates arrive through the Dashboard
+6. Start the bot from the Dashboard. Cmd+Esc stops it. The bot never reads Desktop,
+   Documents, Downloads, Music or Pictures on its own: if macOS asks for one of those, the
+   request comes from a folder you picked in an import dialog. Updates arrive through the Dashboard
    banner (see Updates below) and keep the same signature, so the permissions are not asked
    again; a manually downloaded new version goes through steps 2 and 3 again.
 
