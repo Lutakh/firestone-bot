@@ -19,7 +19,7 @@ a = Analysis(
     ["firestone_bot/__main__.py"],
     pathex=["."],
     datas=collect_data_files("customtkinter")  # theme JSON + fonts under _internal/customtkinter/assets
-    + [("assets/icon-256.png", "assets")],  # window icon (tk.PhotoImage)
+    + [("assets/icon-256.png", "assets"), ("assets/icon.ico", "assets")],  # window icon
     hiddenimports=collect_submodules("firestone_bot.features")
     + collect_submodules("firestone_bot.gui")
     + collect_submodules("firestone_bot.platform")

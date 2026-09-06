@@ -28,7 +28,7 @@ from firestone_bot.gui.binding import Binder
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.logging_bridge import QueueLogHandler
 from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
-from firestone_bot.gui.widgets import StatePill, StatusDot, assets_dir
+from firestone_bot.gui.widgets import StatePill, StatusDot, apply_window_icon
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
@@ -286,15 +286,8 @@ class MainWindow:
         ).pack(fill="x")
 
     def _set_window_icon(self) -> None:
-        """The game's icon (assets/icon-256.png, same image as the exe / .app icon)."""
-        path = os.path.join(assets_dir(), "icon-256.png")
-        if not os.path.exists(path):
-            return
-        try:
-            self._icon_image = tk.PhotoImage(file=path)
-            self.root.iconphoto(True, self._icon_image)
-        except Exception:
-            log.debug("window icon not set", exc_info=True)
+        """The bot icon (assets/icon.ico + icon-256.png, same image as the exe / .app)."""
+        apply_window_icon(self.root)
 
     def _build_top_banner(self) -> None:
         """Full-width coloured banner above the sidebar and pages, used for updates."""

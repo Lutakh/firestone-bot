@@ -75,8 +75,11 @@ class UpdateDialog:
     ) -> None:
         import customtkinter as ctk
 
+        from firestone_bot.gui.widgets import apply_window_icon
+
         self.top = ctk.CTkToplevel(parent)
         self.top.title(title)
+        apply_window_icon(self.top)
         self.top.transient(parent)
         self.top.resizable(True, True)
         self.top.minsize(480, 360)

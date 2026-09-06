@@ -581,6 +581,28 @@ class ReadOnlyValue:
         pass
 
 
+def apply_window_icon(win) -> None:
+    """Bot icon on a CTk / CTkToplevel window (title bar and taskbar).
+
+    customtkinter sets its own icon 200 ms after creation unless `iconbitmap` was called, so
+    on Windows the .ico goes through iconbitmap (which also feeds the taskbar button); the
+    PNG through iconphoto covers the other platforms and Tk's own uses."""
+    import os
+
+    ico = os.path.join(assets_dir(), "icon.ico")
+    png = os.path.join(assets_dir(), "icon-256.png")
+    try:
+        if sys.platform == "win32" and os.path.exists(ico):
+            win.iconbitmap(ico)
+        if os.path.exists(png):
+            win._bot_icon_image = tk.PhotoImage(file=png)  # keep a reference
+            win.iconphoto(True, win._bot_icon_image)
+    except Exception:  # cosmetic
+        import logging
+
+        logging.getLogger("firestone_bot.gui").debug("window icon not set", exc_info=True)
+
+
 class Banner(ctk.CTkFrame):
     """Full-width coloured strip (grid-managed; `set_visible` uses grid/grid_remove)."""
 
