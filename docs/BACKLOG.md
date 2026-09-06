@@ -5,14 +5,9 @@
   transitions, verify the expected screen before clicking, retry once, and a "recover to the
   main screen" routine (main_menu) when a probe chain fails.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
-- Self-update (2026-09-06): first end-to-end test needs a published release (tag v0.2.0):
-  check the banner, the download, the swap and the relaunch on Windows and on macOS; macOS
-  signing on CI depends on the MACOS_CERT_P12 / MACOS_CERT_PASSWORD secrets and on the
-  certificate being trusted on the maintainer's Mac (`mac_codesign trust`).
-- macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): a real cycle started from the
-  GUI on the Mac (the runner cycle ran from `tools/dry_run.py --live`), mixed-scale
-  multi-monitor setups (one Retina factor is applied to every coordinate), `window_tool
-  --client` through the Accessibility API is untested, CI does not build the `.app`.
+- macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
+  setups (one Retina factor is applied to every coordinate), `window_tool --client` through
+  the Accessibility API is untested. (GUI cycles, CI-built signed `.app`, self-update: done.)
 - Linux (plan 4.9) and browser build (plan 4.10 / section 8).
 - Mouse-usage detection (owner spec, 2026-09-04): detect that the USER moves the mouse while
   the bot runs (pynput 1.8 gives an `injected` flag on Windows, so the bot's own SendInput events
@@ -34,3 +29,10 @@
 - Map missions: inventory the mission icons the AHK list does not cover (e.g. the Frostfire
   north-west point added 2026-09-04) by capturing the map at several times of the day, and/or
   detect mission icons by colour instead of a fixed list.
+- Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
+  captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
+  rollback button on a packaged install.
+- Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
+  simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
+  are size-normalised but only checked at 3024x1709), the new-adventure interface style.
+- Linux: overlay without capture exclusion (top strip only), X11 input shape untested.
