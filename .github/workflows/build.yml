@@ -83,17 +83,20 @@ jobs:
     permissions:
       contents: write  # create the release and attach the archives
     steps:
+      # checkout FIRST: it cleans the workspace (it would delete downloaded artifacts) and
+      # peels the tag, so the annotated tag object is fetched again explicitly for its message
+      - uses: actions/checkout@v4
+      - name: Release notes from the tag annotation
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git for-each-ref "refs/tags/$GITHUB_REF_NAME" --format='%(contents:body)' > notes.md
+          cat notes.md
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
       - name: Checksums (read by the bot's self-update)
         run: cd artifacts && sha256sum FirestoneBot-*.zip FirestoneBot-*.tar.gz > SHA256SUMS.txt && cat SHA256SUMS.txt
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Release notes from the tag annotation
-        run: git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > notes.md && cat notes.md
       - uses: softprops/action-gh-release@v2
         with:
           body_path: notes.md
