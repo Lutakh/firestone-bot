@@ -352,7 +352,7 @@ def activate(win: WindowInfo) -> None:
     if app is None:
         return
     onscreen = _window_onscreen(win.handle)
-    was_active = bool(app.isActive()) and onscreen
+    was_active = _is_front(win.pid) and onscreen
     _bring_front(app, win)
     if was_active:
         return
@@ -410,13 +410,32 @@ def _bring_front(app, win: WindowInfo) -> None:
     _wait_active(app, 2.0)
 
 
+def _is_front(pid: int) -> bool:
+    """True when the frontmost normal window on screen belongs to `pid`.
+
+    NSRunningApplication.isActive (and NSWorkspace.frontmostApplication) only refresh when
+    the process runs an NSRunLoop, which neither the Tk GUI nor the CLI tools do: they kept
+    reporting the game as not active, so activate() sat through every fallback and timeout
+    (3.5 s per call, measured 2026-09-06). The window list is always current."""
+    import Quartz
+
+    wl = Quartz.CGWindowListCopyWindowInfo(
+        Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID
+    )
+    for w in wl or []:
+        if int(w.get("kCGWindowLayer", 1)) == 0:
+            return int(w.get("kCGWindowOwnerPID", -1)) == pid
+    return False
+
+
 def _wait_active(app, timeout: float) -> bool:
+    pid = app.processIdentifier()
     end = time.monotonic() + timeout
     while time.monotonic() < end:
-        if app.isActive():
+        if _is_front(pid):
             return True
         time.sleep(0.05)
-    return bool(app.isActive())
+    return _is_front(pid)
 
 
 # -- misc ---------------------------------------------------------------------------------
