@@ -49,7 +49,7 @@ if MAC:
             "NSHighResolutionCapable": True,
             "LSMinimumSystemVersion": "13.0",
             "NSAppleEventsUsageDescription": "Firestone Bot brings the game window to the front.",
-            "CFBundleShortVersionString": "0.2.0",
+            "CFBundleShortVersionString": "0.2.1",
         },
     )
 else:
