@@ -1125,3 +1125,11 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
 # Logical rects (x1, y1, x2, y2), top-left anchored, read by vision/digits.py.
 ACCOUNT_LEVEL_REGION = (80, 130, 145, 178)  # white level number on the avatar, main screen
 GUILD_LEVEL_REGION = (193, 122, 480, 152)  # "Guild level 24" bar under the guild name, guild map
+
+
+# -- generic dialog close button (fast timing waits, 2026-09-06) -------------------------------
+# The orange circle with a cream X at the top right of every full-screen dialog (town, guild
+# map, shop...). Its centre is cream-white; on the main screen the settings gear sits there
+# with a hole in the middle (pink background), so the probe tells "a dialog is open" from
+# "main screen". Measured on the Mac (town X centre 255,249,206; gear 225,151,66).
+DIALOG_CLOSE_X = Probe(1849, 81, 1858, 90, 0xFFF9CE, 30, "dialog_close_x")

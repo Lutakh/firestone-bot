@@ -19,7 +19,7 @@ log = logging.getLogger("firestone_bot")
 def guild(g: Game) -> None:
     g.focus()
     # open guild
-    g.tap(g.ms.guild_icon)
+    g.tap(g.ms.guild_icon, expect=atlas.DIALOG_CLOSE_X)
     if not _guild_level_check(g):
         # no banner: most likely not on the main screen when the icon was clicked (a live
         # cycle still had the town open after the library, 2026-09-06). Back to the main
@@ -30,7 +30,7 @@ def guild(g: Game) -> None:
         big_close(g)
         main_menu(g)
         g.focus()
-        g.tap(g.ms.guild_icon)
+        g.tap(g.ms.guild_icon, expect=atlas.DIALOG_CLOSE_X)
         _guild_level_check(g, final=True)
     # check if expeditions are ready
     if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):

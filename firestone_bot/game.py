@@ -282,11 +282,44 @@ class Game:
             if time.monotonic() >= end:
                 return False
 
-    def tap(self, p: Point, settle_ms: float = 1500) -> None:
+    EXPECT_TIMEOUT_MS = 4000  # patience for an expected screen (slow game / server)
+
+    def wait_for(self, p: Probe, timeout_ms: float = EXPECT_TIMEOUT_MS) -> bool:
+        """Poll until `p` is found (True) or `timeout_ms` elapsed (False)."""
+        end = time.monotonic() + timeout_ms / 1000
+        while True:
+            if self.found(p):
+                return True
+            if time.monotonic() >= end:
+                return False
+            self.sleep(self.CHANGE_POLL_MS)
+
+    def wait_gone(self, p: Probe, timeout_ms: float = EXPECT_TIMEOUT_MS) -> bool:
+        """Poll until `p` is no longer found (True) or `timeout_ms` elapsed (False)."""
+        end = time.monotonic() + timeout_ms / 1000
+        while True:
+            if not self.found(p):
+                return True
+            if time.monotonic() >= end:
+                return False
+            self.sleep(self.CHANGE_POLL_MS)
+
+    def tap(self, p: Point, settle_ms: float = 1500, expect: Probe | None = None) -> None:
         """AHK `MouseMove x, y; Sleep 1000; Click; Sleep settle`: move onto the point, hover,
-        click, then wait for the screen to react (fast timing) or `settle_ms` (safe)."""
+        click, then wait for the screen to react (fast timing) or `settle_ms` (safe).
+
+        `expect`: the probe the click should bring up (a dialog's close button...). Fast
+        timing then waits for it, with more patience than `settle_ms` (EXPECT_TIMEOUT_MS,
+        for a slow game) and returns as soon as it is there; a probe that never shows only
+        logs a line, the feature goes on as before."""
         self.move_to(p)
         self.hover()
+        if expect is not None and self.fast():
+            self.click()
+            self.sleep(self.CHANGE_SETTLE_MS)
+            if not self.wait_for(expect, max(self.EXPECT_TIMEOUT_MS, settle_ms)):
+                self.status(f"Expected screen ({expect.name}) did not appear after the click")
+            return
         before = self._thumbnail() if self.fast() and settle_ms else None
         self.click()
         if settle_ms:
