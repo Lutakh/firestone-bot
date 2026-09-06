@@ -24,16 +24,14 @@
   logged; scarab / arena / crystal loops poll every 250 ms). Still to do: measure on a slow
   connection and on an account with everything unlocked (scarab, arena, crystal loops were
   only exercised through unit tests: the owner's account has them locked).
-- Map alignment: detect that the world map is not centred or is zoomed (zoom slider bottom
-  right, drag offset) and re-centre / reset the zoom before clicking the mission points; today a
-  moved map silently breaks every fixed mission coordinate.
-- Map missions: inventory the mission icons the AHK list does not cover (e.g. the Frostfire
-  north-west point added 2026-09-04) by capturing the map at several times of the day, and/or
-  detect mission icons by colour instead of a fixed list.
+- Map missions: the missions come at random from a pool, so the list cannot be completed by
+  observation (owner, 2026-09-06); the only way is detecting mission icons by colour instead
+  of a fixed list.
 - Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
   captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
   rollback button on a packaged install.
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
-  are size-normalised but only checked at 3024x1709), the new-adventure interface style.
+  are size-normalised but only checked at 3024x1709), the level regions in the classic
+  interface style (measured in the new-adventure style only).
 - Linux: overlay without capture exclusion (top strip only), X11 input shape untested.

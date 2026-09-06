@@ -30,6 +30,7 @@ from firestone_bot.features import (
     guild,
     hero_upgrade,
     main_menu,
+    map_align,
     map_redeem,
     open_chests,
     open_town,
@@ -269,6 +270,7 @@ class Runner:
                 # MapStartUp:
                 if s.flag("MapMissions"):
                     go_map.go_map(g)
+                    map_align.align_map(g)
                     g.heartbeat("MapRedeem")
                     map_redeem.map_redeem(g)
             with self._timed("heroes"):

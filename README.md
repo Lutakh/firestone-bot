@@ -209,6 +209,19 @@ Mouse-wheel scrolls send their notches 50 ms apart instead of 200 (a 35-notch sc
 2 s instead of 7). Modules with a main-screen indicator (event bell, battle-pass bell, shop
 dot) were already skipped when it is off.
 
+## World-map alignment
+
+The mission points of the map are fixed coordinates, so the map must be at its default zoom
+and position. Before the missions are clicked the bot checks both: the knob of the zoom
+slider (bottom right) must sit at the left end, otherwise the wheel is scrolled down over
+the map until it is; and the "World of Alandria" title is looked for around its reference
+place (`vision/map_landmark.json`, recorded with `python -m firestone_bot.tools.map_landmark`
+on a map in its default state). A moved map is dragged back on open sea by the measured
+offset (a drag keeps the map offset even after closing and reopening it). Lines "Map:
+zoomed in..." / "Map: moved by (dx, dy) px, dragging it back" show in the Activity log
+when a correction happens; "Map: landmark not found" leaves the map alone (a popup was
+over it).
+
 ## Activity overlay over the game
 
 While the bot runs, its last activity lines ("Account level 36", "Engineer: needs account

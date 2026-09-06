@@ -1019,6 +1019,19 @@ MS_START = Point(1084, 865)  # :172
 MAP_NORTH_DRAG_LIMIT = 100  # logical y below which a point needs the drag
 MAP_NORTH_DRAG_DY = 80
 MAP_NORTH_DRAG_FROM = (350, 631)  # open sea south-west of Ebony Jungle (centre anchor)
+# Map alignment (features/map_align.py, measured 2026-09-06): zoom slider bottom right, its
+# knob's dark rim scanned on a row above the track; home = default zoom (knob at the left
+# end). The mouse wheel over the map zooms (about 1.6 px of knob per notch); 30 notches down
+# reach the minimum from any zoom. Landmark = the "World of Alandria" title on open sea,
+# compared at half resolution with vision/map_landmark.json within +-100 logical px.
+MAP_ZOOM_KNOB_ROW = (1340, 981, 1620, 985)
+MAP_ZOOM_KNOB_HOME = 1374
+MAP_ZOOM_TOLERANCE = 6
+MAP_ZOOM_OUT_NOTCHES = 30
+MAP_WHEEL_CENTRE = Point(960, 520, ANCHOR_CENTER)
+MAP_LANDMARK_RECT = (310, 765, 489, 847)  # centre anchor
+MAP_LANDMARK_SCALE = 0.5
+MAP_LANDMARK_SEARCH = 100
 # World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
 MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "2 Squad": (
