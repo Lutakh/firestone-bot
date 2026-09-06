@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "firestone-bot"
-version = "0.2.3"
+version = "0.2.4"
 description = "Python port of the Firestone Idle RPG AutoHotkey bot"
 requires-python = ">=3.12"
 dependencies = [
