@@ -153,6 +153,10 @@ BP_CLOSE = Point(1815, 126)  # X of the battle pass (client (1815,95))
 
 # --- Quests.ahk -----------------------------------------------------------------------------
 CHARACTER_ICON = Point(90, 112)  # :9
+# Red badge on the quests icon under the avatar (classic and new layouts differ in y):
+# measured 2026-09-06 on the Mac client, badge extent (90..120, 249..275) / (90..120, 188..213).
+QUESTS_BADGE = Probe(94, 253, 116, 271, RED_DOT, 30, "quests_badge")
+NS_QUESTS_BADGE = Probe(94, 192, 116, 209, RED_DOT, 30, "ns_quests_badge")
 QUESTS_TAB = Point(1455, 74)  # :14
 QUESTS_DAILY_TAB = Point(765, 155)  # :19
 QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
@@ -168,8 +172,11 @@ SHOP_ICON = Point(1857, 583)  # :12
 # at logical (466,812)-(711,852), measured 2026-09-04 right after the reset) and moves to the
 # end of the row once claimed, where a paid deal takes its place.
 SHOP_DEALS_HOVER = Point(1100, 600)
-SHOP_MYSTERY_CLAIM_READY = Probe(490, 818, 690, 846, GREEN_BUTTON, 3, "shop_mystery_claim")
-SHOP_MYSTERY_CLAIM = Point(588, 832)
+# Green "Free" button of the first daily-deal card, measured 2026-09-06 (extent 488..796 x
+# 850..899); the previous rect sat above the button and the box was never claimed.
+SHOP_MYSTERY_CLAIM_READY = Probe(520, 860, 760, 890, GREEN_BUTTON, 30, "shop_mystery_claim")
+SHOP_MYSTERY_CLAIM = Point(642, 875)
+SHOP_FIRST_TAB = Point(493, 124)  # bundle tab holding the free mystery box
 SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
 SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
 SHOP_CHECKIN_OK = Point(1339, 828)  # :31

@@ -23,6 +23,7 @@ from firestone_bot.vision import atlas
 def claim_free_mystery_box(g: Game) -> bool:
     """Scroll the daily deals back to the start and claim the free box. True when it was
     claimable (= the game day has just reset)."""
+    g.tap(atlas.SHOP_FIRST_TAB, 700)  # the shop may reopen on the last tab visited
     g.move_to(atlas.SHOP_DEALS_HOVER)
     g.sleep(500)
     g.wheel(30)

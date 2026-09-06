@@ -223,6 +223,15 @@ flags synthetic events, so a script cannot stand in for the user there unless th
 started with `FIRESTONE_GUARD_IGNORE_INJECTED_FLAG=1` (test hook: only timing and position
 are used then).
 
+### macOS notification banners
+
+Banners (Calendar, Messages...) appear in the top-right corner of the screen, exactly where
+the game's close buttons and the settings gear sit, and the bot clicked them by mistake.
+While a run is in progress the bot now dismisses every banner within a second (Advanced >
+Mouse guard > "Close notification banners", on by default). It uses the Accessibility
+permission it already has to perform the banner's own Close action, so the notification
+stays in Notification Center. Nothing happens on Windows and Linux.
+
 ## World-map alignment
 
 The mission points of the map are fixed coordinates, so the map must be at its default zoom

@@ -23,6 +23,16 @@
 - Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
   captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
   rollback button on a packaged install.
+- Map missions, alternative to the fixed coordinates (owner, 2026-09-06): a setting to choose
+  between the coordinate list and a detection mode that finds the round mission icons (or
+  the duration label under each mission) and clicks only those, so nothing is clicked in the
+  void. Needs map captures with missions of both styles.
+- Classic interface style: the hero-upgrade mode reader returned "unknown" three times in a
+  row on the owner's Mac (2026-09-06, cycle 4, references resampled from the classic
+  reference screens); `hero-mode-miss.png` is now saved next to the settings when it
+  happens, to extend the references from a real screen. The main-menu safety cap was also
+  reached twice at the start of a cycle without a visible cause (something left open after
+  the shop step?).
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic

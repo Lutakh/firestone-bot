@@ -33,6 +33,7 @@ class MainScreen:
     chest_grid: tuple[int, int, int, int]
     chest_dialog_close: Point | None  # None: BigClose + failsafe (classic)
     character_icon: Point
+    quests_badge: Probe  # red badge on the quests icon: nothing to claim without it
 
 
 CLASSIC = MainScreen(
@@ -52,6 +53,7 @@ CLASSIC = MainScreen(
     chest_grid=atlas.CHEST_GRID,
     chest_dialog_close=None,
     character_icon=atlas.CHARACTER_ICON,
+    quests_badge=atlas.QUESTS_BADGE,
 )
 
 NEW = MainScreen(
@@ -71,6 +73,7 @@ NEW = MainScreen(
     chest_grid=atlas.NS_CHEST_GRID,
     chest_dialog_close=atlas.NS_CHEST_DIALOG_CLOSE,
     character_icon=atlas.CHARACTER_ICON,
+    quests_badge=atlas.NS_QUESTS_BADGE,
 )
 
 BY_NAME = {"classic": CLASSIC, "new": NEW}

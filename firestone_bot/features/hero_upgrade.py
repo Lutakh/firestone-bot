@@ -7,12 +7,16 @@ mode.
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 from firestone_bot.vision.atlas import Point, Probe
+
+log = logging.getLogger("firestone_bot.hero_upgrade")
 
 
 def click_hero_if_pixel_found(g: Game, probe: Probe, click: atlas.Point) -> None:
@@ -156,8 +160,24 @@ def set_next_milestone(g: Game) -> bool:
             g.sleep(400)
             g.click()
             g.sleep(500)
+    _save_mode_diagnostic(g)
     g.toast("Hero Upgrades", "Could not set the Next milestone mode", 2)
     return False
+
+
+def _save_mode_diagnostic(g: Game) -> None:
+    """Keep the label region of an unreadable mode button next to the settings
+    (hero-mode-miss.png) so the references can be extended from a real screen."""
+    import os
+
+    from firestone_bot.platform import capture
+
+    try:
+        rect = mode_text_rect(g) if g.style == "new" else atlas.HU_MODE_TEXT
+        folder = os.path.dirname(os.path.abspath(g.map_state_path))
+        capture.save_png(g.region_image(rect), os.path.join(folder, "hero-mode-miss.png"))
+    except Exception:
+        log.debug("mode diagnostic not saved", exc_info=True)
 
 
 def hero_upgrade_new_style(g: Game) -> None:

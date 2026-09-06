@@ -519,6 +519,15 @@ OPTIONS: dict[str, Option] = {
         "active in dry runs.",
         "switch",
     ),
+    "CloseNotifications": Option(
+        "Close notification banners while the bot runs (macOS)",
+        "macOS shows banners (Calendar, Messages...) in the top-right corner, right where the "
+        "game's close buttons are, and the bot clicked them by mistake. With this on, the bot "
+        "dismisses every banner as soon as it appears while a run is in progress (through the "
+        "accessibility permission it already has). The notifications stay in Notification "
+        "Center. No effect on Windows and Linux.",
+        "switch",
+    ),
     "Overlay": Option(
         "Show the activity overlay over the game",
         "While the bot runs, its last activity lines are drawn in a small translucent panel over "

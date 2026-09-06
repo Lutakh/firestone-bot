@@ -49,6 +49,7 @@ class App:
         self._guard = None  # inputguard.InputGuard, created in _late_init
         self._overlay = None
         self._exit_heartbeat: threading.Thread | None = None
+        self._banners_stop_event: threading.Event | None = None
         self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
         self.window.on_check_updates = lambda: self.check_updates(manual=True)
         self.window.on_install_update = self.install_update
@@ -292,6 +293,7 @@ class App:
 
     def _run_finished(self) -> None:
         self._overlay_stop()
+        self._banners_stop()
         if self._guard is not None:
             self._guard.disarm()
         self.window.root.after(150, self.present)
@@ -383,6 +385,7 @@ class App:
         self._overlay_start()
         if self._guard is not None and self.settings.flag("MouseGuard"):
             self._guard.arm()
+        self._banners_start()
         self.runner.start()
         self.window.set_bot_state("running")
 
@@ -717,6 +720,32 @@ class App:
             self.window.show_update(f"Update failed: {e}", "Retry", "err")
             return
         self.window.request_exit()
+
+    # -- macOS notification banners: closed while the bot runs (they sit under its clicks) ---
+    def _banners_start(self) -> None:
+        if sys.platform != "darwin" or not self.settings.flag("CloseNotifications"):
+            return
+        if self._banners_stop_event is not None:
+            return
+        from firestone_bot.platform.mac import notifications
+
+        stop = threading.Event()
+        self._banners_stop_event = stop
+
+        def worker() -> None:
+            while not stop.wait(1.0):
+                try:
+                    if notifications.close_banners():
+                        self.window.post_status("Closed a notification banner over the game")
+                except Exception:
+                    log.debug("banner check failed", exc_info=True)
+
+        threading.Thread(target=worker, name="banner-closer", daemon=True).start()
+
+    def _banners_stop(self) -> None:
+        if self._banners_stop_event is not None:
+            self._banners_stop_event.set()
+            self._banners_stop_event = None
 
     # -- Win+Esc exit hotkey (AHK ~*#$Esc) ---------------------------------------------------
     # -- input guard: pause when the user takes the mouse (inputguard.py) --------------------

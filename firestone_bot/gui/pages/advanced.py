@@ -48,6 +48,7 @@ def build(parent, ctx: PageContext):
 
     guard = place_card(Card(content, ctx, "Mouse guard"))
     guard.option("MouseGuard")
+    guard.option("CloseNotifications")
 
     hb = place_card(Card(content, ctx, "Heartbeat (opt-in)"))
     enable = hb.option("EnableHeartbeat")

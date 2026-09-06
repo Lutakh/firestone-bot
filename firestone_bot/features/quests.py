@@ -19,6 +19,9 @@ def _claim_tab(g: Game, tab: atlas.Point) -> None:
 
 
 def claim_quests(g: Game) -> None:
+    if not g.found(g.ms.quests_badge):
+        g.status("Quests: no notification badge, nothing to claim")
+        return
     # open character window
     g.open_screen(g.ms.character_icon, atlas.DIALOG_CLOSE_X, 1000)
     # open quests tab
