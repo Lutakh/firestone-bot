@@ -240,8 +240,11 @@ in place (next section). **Detection** looks for the duration label drawn under 
 mission icon (bold white digits with a dark outline: "27:36", "4:57", "2:15:35") in the
 current screen capture and clicks only those icons, top to bottom, so nothing is clicked in
 the void; the categories are ignored. The label, not the icon, is the cue because the icon
-changes with the mission and pulses. Measured on macOS in the new-adventure style (five out
-of five icons on the reference capture); other resolutions scale with the capture.
+changes with the mission and pulses. Labels close to the top or bottom edge fall outside
+the capture: when idle troops remain after the visible missions, the map is dragged down
+(north revealed) then up (south revealed) and searched again, and it is put back in place
+with the alignment below before the bot leaves. Measured on macOS in the new-adventure style
+(five out of five icons on the reference capture); other resolutions scale with the capture.
 
 ## World-map alignment
 

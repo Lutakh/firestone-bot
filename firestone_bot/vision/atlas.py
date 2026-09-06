@@ -1046,6 +1046,9 @@ MAP_LANDMARK_SEARCH = 100
 # (HUD panels, the zoom slider and the buttons excluded) and the label-to-icon distance.
 MAP_DETECT_AREA = (100, 160, 1700, 960)
 MAP_LABEL_TO_ICON = 18
+# Detection mode fallback: how far (logical px) the map is dragged to reveal the missions
+# hidden beyond the top / bottom edge when idle troops remain (owner, 2026-09-06).
+MAP_DETECT_SCROLL = 220
 # World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
 MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "2 Squad": (
