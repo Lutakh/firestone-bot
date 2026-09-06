@@ -6,6 +6,8 @@ push state into it from `_tick`.
 
 from __future__ import annotations
 
+import json
+import os
 import time
 from collections import deque
 
@@ -204,6 +206,15 @@ class DashboardView:
         )
         self.cycle_value.pack(side="right")
         today.add(cyc, pady=(2, 6), always_enabled=True)
+        lvl = ctk.CTkFrame(today.body, fg_color="transparent")
+        ctk.CTkLabel(lvl, text="Account / guild level", anchor="w", font=theme.font(13)).pack(
+            side="left"
+        )
+        self.level_value = ctk.CTkLabel(
+            lvl, text="-", anchor="e", font=theme.font(13, "bold"), text_color=theme.MUTED
+        )
+        self.level_value.pack(side="right")
+        today.add(lvl, pady=(2, 6), always_enabled=True)
         arena = ctk.CTkFrame(today.body, fg_color="transparent")
         arena.grid_columnconfigure(1, weight=1)
         self.arena_dot = StatusDot(arena, "grey")
@@ -329,6 +340,9 @@ class DashboardView:
         text = "Done" if done else "Pending"
         if self.arena_value.cget("text") != text:
             self.arena_value.configure(text=text, text_color=theme.OK if done else theme.MUTED)
+        text = _levels_text(os.path.join(self.ctx.base_dir, "progress.json"))
+        if self.level_value.cget("text") != text:
+            self.level_value.configure(text=text)
         reset = format_ahk_stamp(s.get("LastTokenReset"), "not detected yet")
         text = f"Last daily reset: {reset}"
         if self.reset_label.cget("text") != text:
@@ -383,3 +397,16 @@ def build(parent, ctx: PageContext):
     view = DashboardView(parent, ctx)
     ctx.extras["dashboard"] = view
     return view.frame
+
+
+def _levels_text(path: str) -> str:
+    """ "36 / 24" from progress.json (written by the bot, see progress.py), "-" when unknown."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return "-"
+    acc, gld = data.get("account_level"), data.get("guild_level")
+    if acc is None and gld is None:
+        return "-"
+    return f"{acc if acc is not None else '?'} / {gld if gld is not None else '?'}"
