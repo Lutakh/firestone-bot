@@ -63,8 +63,9 @@ def applications_dirs() -> list[str]:
 
 
 def in_applications(path: str) -> bool:
+    # both sides through abspath: on Windows (tests, dev) "/Applications" becomes a drive path
     path = os.path.abspath(path)
-    return any(path.startswith(d + os.sep) for d in applications_dirs())
+    return any(path.startswith(os.path.abspath(d) + os.sep) for d in applications_dirs())
 
 
 def is_translocated(path: str) -> bool:
