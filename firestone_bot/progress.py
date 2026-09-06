@@ -9,8 +9,7 @@ the feature runs as soon as the account qualifies.
 - The account level is read on the avatar at every cycle start until it reaches
   ALL_UNLOCKED_LEVEL (200, everything unlocked): from then on the check is skipped.
 - The guild level is read on the guild map (top-left banner) until it reaches
-  GUILD_ALL_LEVEL (5). Not being in a guild leaves no banner: the guild features are then
-  skipped for the cycle.
+  GUILD_ALL_LEVEL (5); the read is retried a few times as the map settles.
 - An unreadable number never gates anything (a misread would silently disable features on
   a layout the reader was not tuned for); it is logged and the previous value is kept.
 

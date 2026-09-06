@@ -206,7 +206,7 @@ reads stop. Numbers are read with a small template matcher on the game's font
 (`vision/digits.py`, templates from `tools/digit_templates.py`), independent of the screen
 resolution; an unreadable number never disables anything, it is only logged. Levels are kept
 in `progress.json` next to `settings.ini`. Not being in a guild shows no level banner: the
-guild features are then skipped for the cycle.
+bot then says so and runs the guild features as before (they fail harmlessly).
 
 ## GUI
 

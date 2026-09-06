@@ -19,9 +19,7 @@ def guild(g: Game) -> None:
     g.sleep(1000)
     g.click()
     g.sleep(1500)
-    if not _guild_level_check(g):
-        big_close(g)
-        return
+    _guild_level_check(g)
     # check if expeditions are ready
     if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
         g.heartbeat("Guild expedition start", important=True)
@@ -58,21 +56,26 @@ def guild(g: Game) -> None:
 
 def _guild_level_check(g: Game) -> bool:
     """Read "Guild level N" on the guild map (progress.py); skipped once the guild reached
-    the level that unlocks everything. Returns False when the account is not in a guild
-    (no banner: the guild map shows the find/create screen instead) so the guild features
-    are skipped for this cycle."""
+    the level that unlocks everything. The banner can take a moment after the town closes
+    (a live cycle missed it once at 1.5 s, 2026-09-06), so the read is retried. An
+    unreadable banner never gates anything: the guild features run as they always did."""
     if g.progress is None or not g.progress.need_guild_check():
         return True
-    level = g.read_number(atlas.GUILD_LEVEL_REGION, last_word=True)
+    level = None
+    for _ in range(GUILD_LEVEL_READ_TRIES):
+        level = g.read_number(atlas.GUILD_LEVEL_REGION, last_word=True)
+        if level is not None:
+            break
+        g.sleep(1000)
     g.progress.set_guild_level(level)
     if level is None:
-        if g.progress.guild_level is None:
-            g.status("Guild: no guild level banner (not in a guild?), guild features skipped")
-            return False
-        g.status("Guild level: banner not readable, keeping the last value")
+        g.status("Guild level: banner not readable (not in a guild?), guild features run as usual")
     else:
         g.status(f"Guild level {level}")
     return True
+
+
+GUILD_LEVEL_READ_TRIES = 3
 
 
 def claim_axes(g: Game) -> None:
