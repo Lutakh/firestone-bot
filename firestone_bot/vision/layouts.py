@@ -82,10 +82,22 @@ NEW = MainScreen(
 BY_NAME = {"classic": CLASSIC, "new": NEW}
 
 
-def detect_style(g, setting: str = "auto") -> str:
+def detect_style(g, setting: str = "auto", previous: str | None = None) -> str:
     """'classic' or 'new'. The setting forces a style; auto probes the main screen (the game
-    must be on the main screen: the blue mode button is only there)."""
+    must be on the main screen: the blue mode button is only there).
+
+    The pointer is moved off the button first (hovered, it turns lighter and the probe
+    missed: a whole run went on in the classic layout, 2026-09-06), the hovered colour is
+    accepted too, and a miss keeps `previous` when one is known: the style does not change
+    between two cycles, a miss is a pop-up or an animation over the button."""
     setting = (setting or "auto").strip().lower()
     if setting in BY_NAME:
         return setting
-    return "new" if g.found(atlas.NS_STYLE_PROBE) else "classic"
+    g.move_to(atlas.NS_MODE_PARK)
+    g.sleep(300)
+    if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
+        return "new"
+    if previous in BY_NAME:
+        g.status(f"Interface style probe missed, keeping {previous}")
+        return previous
+    return "classic"

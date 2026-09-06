@@ -88,6 +88,7 @@ class Runner:
         self.cycles = 0
         self.max_cycles = 0  # 0 = forever (AHK); tools set 1 for a single dry-run cycle
         self.sections: dict[str, int] = {}  # ms per cycle section, see _timed()
+        self._style_seen: str | None = None  # interface style of the previous cycle
         self.on_finished = None  # optional callback, called from the worker when a run ends
         game.heartbeat_cb = self._heartbeat
 
@@ -244,7 +245,8 @@ class Runner:
             g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
             main_menu.main_menu(g)
             g.focus()
-            g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
+            g.style = layouts.detect_style(g, s.get("InterfaceStyle"), self._style_seen)
+            self._style_seen = g.style
             g.status(f"Interface style: {g.style}")
             self._progress_checks()
             if s.flag("Events"):
