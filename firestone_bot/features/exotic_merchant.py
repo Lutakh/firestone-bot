@@ -12,18 +12,12 @@ from firestone_bot.vision import atlas
 def _sell(g: Game, items) -> None:
     for probe, button in items:
         if g.found(probe):
-            g.move_to(button)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(button, 1000)
 
 
 def exotic_merchant(g: Game) -> None:
     # Open exotic merchant
-    g.move_to(atlas.TOWN_EXOTIC_MERCHANT)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.TOWN_EXOTIC_MERCHANT)
     s = g.settings
     if s.flag("SellScrolls") or s.flag("SellAll") or s.flag("SellNoGold"):
         # SellStart:

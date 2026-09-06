@@ -17,10 +17,7 @@ def arena_battle(g: Game) -> bool:
     n = 0
     while True:  # Wait:
         if g.found(atlas.ARENA_BATTLE_DONE):
-            g.move_to(atlas.ARENA_BATTLE_CLAIM)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.ARENA_BATTLE_CLAIM, 1000)
             return True
         g.sleep(2000)
         n += 1
@@ -32,37 +29,23 @@ def arena_battle(g: Game) -> bool:
 def arena(g: Game) -> None:
     g.focus()
     # open battles
-    g.move_to(atlas.TOWN_BATTLES)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.TOWN_BATTLES)
     # choose arena of kings
-    g.move_to(atlas.ARENA_OF_KINGS)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.ARENA_OF_KINGS)
     random_x = random.choice(atlas.ARENA_OPPONENT_COLUMNS)
     g.sleep(6000)
     for _ in range(5):
         # refresh opponents
-        g.move_to(atlas.ARENA_REFRESH)
-        g.sleep(1000)
-        g.click()
-        g.sleep(3000)
+        g.tap(atlas.ARENA_REFRESH, 3000)
         # choose random opponent
-        g.move(random_x, atlas.ARENA_OPPONENT_Y)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap_xy(random_x, atlas.ARENA_OPPONENT_Y, 1000)
         # check for buy more battles popup
         if g.found(atlas.ARENA_BUY_MORE):
             big_close(g)
             big_close(g)
             daily.note_arena_done(g.settings)  # no battles left today
             return
-        g.move_to(atlas.ARENA_FIGHT)
-        g.sleep(1000)
-        g.click()
+        g.tap(atlas.ARENA_FIGHT, 0)
         while not arena_battle(g):
             g.sleep(5000)
     big_close(g)

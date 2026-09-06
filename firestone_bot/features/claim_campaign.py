@@ -10,20 +10,14 @@ from firestone_bot.vision import atlas
 
 def claim_campaign(g: Game) -> None:
     g.focus()
-    g.move_to(atlas.CAMPAIGN_ICON)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.CAMPAIGN_ICON, 1000)
     # failsafe in case player doesn't have engineer unlocked
     if g.found(atlas.CAMPAIGN_LOCKED):
         big_close(g)
         big_close(g)
         return
     if g.found(atlas.CAMPAIGN_CLAIM_READY):
-        g.move_to(atlas.CAMPAIGN_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.CAMPAIGN_CLAIM, 1000)
     if g.settings.flag("Liberation"):
         liberation_missions(g)
     big_close(g)

@@ -65,6 +65,18 @@ def fmt_duration(ms: float) -> str:
     return f"{m}m{sec:02d}s"
 
 
+class _Timed:
+    def __init__(self, runner: Runner, name: str) -> None:
+        self.runner, self.name = runner, name
+
+    def __enter__(self):
+        self.t0 = _ms()
+
+    def __exit__(self, *exc):
+        self.runner.sections[self.name] = self.runner.sections.get(self.name, 0) + _ms() - self.t0
+        return False
+
+
 class Runner:
     def __init__(self, settings: Settings, game: Game) -> None:
         self.settings = settings
@@ -73,6 +85,7 @@ class Runner:
         self.thread: threading.Thread | None = None
         self.cycles = 0
         self.max_cycles = 0  # 0 = forever (AHK); tools set 1 for a single dry-run cycle
+        self.sections: dict[str, int] = {}  # ms per cycle section, see _timed()
         self.on_finished = None  # optional callback, called from the worker when a run ends
         game.heartbeat_cb = self._heartbeat
 
@@ -111,6 +124,20 @@ class Runner:
                     log.exception("on_finished callback failed")
 
     # -- MainScript() -----------------------------------------------------------------------
+    def _timed(self, name: str):
+        """Context manager: accumulate the duration of a cycle section (logged at cycle end)."""
+        return _Timed(self, name)
+
+    def _log_sections(self, g: Game) -> None:
+        """One line per cycle with where the time went, and what the fast timing saved."""
+        if self.sections:
+            parts = ", ".join(f"{k} {fmt_duration(v)}" for k, v in self.sections.items())
+            saved = g.stats.get("wait_saved_ms", 0.0)
+            extra = f"; fast timing saved {fmt_duration(saved)}" if saved else ""
+            g.status(f"Cycle sections: {parts}{extra}")
+        self.sections.clear()
+        g.stats.clear()
+
     def _progress_checks(self) -> None:
         """Read the account level on the main screen (skipped once everything is unlocked)."""
         g = self.g
@@ -154,95 +181,103 @@ class Runner:
                 g.status("The game could not be started; stopping")
                 return
             g.focus()
-            # do main screen sections
-            g.heartbeat("Starting Bot", important=True)
-            g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
-            main_menu.main_menu(g)
-            g.focus()
-            g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
-            g.status(f"Interface style: {g.style}")
-            self._progress_checks()
-            if s.flag("Events"):
-                claim_events.claim_events(g)
-            if s.flag("BattlePass"):
-                battle_pass.battle_pass(g)
-            if s.flag("Quests"):
-                g.heartbeat("ClaimQuests")
-                quests.claim_quests(g)
-            g.toast(
-                "Main Menu Check",
-                "Checking to ensure we are on main screen after claiming quests",
-                2,
-            )
-            main_menu.main_menu(g)
-            g.focus()
-            # always: the shop visit also detects the daily reset (free mystery box)
-            g.heartbeat("Shop")
-            shop.shop(g)
-            if s.flag("Mail"):
-                g.heartbeat("CheckMail")
-                check_mail.check_mail(g)
-            if s.flag("Chests"):
-                g.heartbeat("OpenChests")
-                open_chests.open_chests(g)
-            elif s.flag("Bless"):
-                g.heartbeat("OpenBlessChests")
-                open_chests.open_bless_chests(g)
-            # start town section
-            open_town.open_town(g)
-            g.heartbeat("Guardian")
-            guardian.guardian(g)
-            g.heartbeat("ClaimBeer")
-            claim_beer.claim_beer(g)
-            if not g.locked("scarab"):
-                g.heartbeat("ScarabToken")
-                scarab_token.scarab_token(g)
-                g.heartbeat("Scarab")
-                scarab.scarab(g)
-            if not s.flag("SkipOracle") and not g.locked("oracle"):
-                g.heartbeat("ClaimRituals")
-                claim_rituals.claim_rituals(g)
-            # Engineer:
-            if not s.flag("NoEng") and not g.locked("engineer"):
-                g.heartbeat("ClaimEngineer")
-                claim_engineer.claim_engineer(g)
-            # ExoticSection:
-            if s.flag("SellEx"):
-                g.heartbeat("ExoticMerchant")
-                exotic_merchant.exotic_merchant(g)
-            if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
-                now = _ms()
-                if last_arena <= 0 or now - last_arena >= 6 * 60 * 60 * 1000:
-                    g.heartbeat("Arena")
-                    arena.arena(g)
-                    last_arena = now
-            if not s.flag("Alch") and not g.locked("alchemist"):
-                g.heartbeat("Alchemist")
-                alchemist.alchemist(g)
-            # ResearchStart:
-            if not s.flag("Research"):
-                g.heartbeat("GoResearch")
-                research.go_research(g)
-            # FinishTown:
-            big_close.big_close(g)
-            if not s.flag("NoGuild"):
-                guild.guild(g)
-                if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
-                    # Python-only: spend the chaos-rift rewards on the guardians right away
-                    guardian_chaos.upgrade_after_chaos(g)
-            # MapStartUp:
-            if s.flag("MapMissions"):
-                go_map.go_map(g)
-                g.heartbeat("MapRedeem")
-                map_redeem.map_redeem(g)
-            # UpgradeHero:
-            if not s.flag("NoHero"):
-                g.heartbeat("HeroUpgrade")
-                hero_upgrade.hero_upgrade(g)
+            with self._timed("main screen"):
+                # do main screen sections
+                g.heartbeat("Starting Bot", important=True)
+                g.toast(
+                    "Main Menu Check", "Checking to ensure we are on main screen at loop start", 2
+                )
+                main_menu.main_menu(g)
+                g.focus()
+                g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
+                g.status(f"Interface style: {g.style}")
+                self._progress_checks()
+                if s.flag("Events"):
+                    claim_events.claim_events(g)
+                if s.flag("BattlePass"):
+                    battle_pass.battle_pass(g)
+                if s.flag("Quests"):
+                    g.heartbeat("ClaimQuests")
+                    quests.claim_quests(g)
+                g.toast(
+                    "Main Menu Check",
+                    "Checking to ensure we are on main screen after claiming quests",
+                    2,
+                )
+                main_menu.main_menu(g)
+                g.focus()
+                # always: the shop visit also detects the daily reset (free mystery box)
+                g.heartbeat("Shop")
+                shop.shop(g)
+                if s.flag("Mail"):
+                    g.heartbeat("CheckMail")
+                    check_mail.check_mail(g)
+                if s.flag("Chests"):
+                    g.heartbeat("OpenChests")
+                    open_chests.open_chests(g)
+                elif s.flag("Bless"):
+                    g.heartbeat("OpenBlessChests")
+                    open_chests.open_bless_chests(g)
+            with self._timed("town"):
+                # start town section
+                open_town.open_town(g)
+                g.heartbeat("Guardian")
+                guardian.guardian(g)
+                g.heartbeat("ClaimBeer")
+                claim_beer.claim_beer(g)
+                if not g.locked("scarab"):
+                    g.heartbeat("ScarabToken")
+                    scarab_token.scarab_token(g)
+                    g.heartbeat("Scarab")
+                    scarab.scarab(g)
+                if not s.flag("SkipOracle") and not g.locked("oracle"):
+                    g.heartbeat("ClaimRituals")
+                    claim_rituals.claim_rituals(g)
+                # Engineer:
+                if not s.flag("NoEng") and not g.locked("engineer"):
+                    g.heartbeat("ClaimEngineer")
+                    claim_engineer.claim_engineer(g)
+                # ExoticSection:
+                if s.flag("SellEx"):
+                    g.heartbeat("ExoticMerchant")
+                    exotic_merchant.exotic_merchant(g)
+                if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
+                    now = _ms()
+                    if last_arena <= 0 or now - last_arena >= 6 * 60 * 60 * 1000:
+                        g.heartbeat("Arena")
+                        arena.arena(g)
+                        last_arena = now
+                if not s.flag("Alch") and not g.locked("alchemist"):
+                    g.heartbeat("Alchemist")
+                    alchemist.alchemist(g)
+                # ResearchStart:
+                if not s.flag("Research"):
+                    g.heartbeat("GoResearch")
+                    research.go_research(g)
+                # FinishTown:
+                big_close.big_close(g)
+            with self._timed("guild"):
+                if not s.flag("NoGuild"):
+                    guild.guild(g)
+                    if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
+                        # Python-only: spend the chaos-rift rewards on the guardians right away
+                        guardian_chaos.upgrade_after_chaos(g)
+            with self._timed("map"):
+                # MapStartUp:
+                if s.flag("MapMissions"):
+                    go_map.go_map(g)
+                    g.heartbeat("MapRedeem")
+                    map_redeem.map_redeem(g)
+            with self._timed("heroes"):
+                # UpgradeHero:
+                if not s.flag("NoHero"):
+                    g.heartbeat("HeroUpgrade")
+                    hero_upgrade.hero_upgrade(g)
             # EndingMouseMove:
             g.heartbeat("Delay ending bot")
             self.cycles += 1
             took = fmt_duration(_ms() - cycle_start)
+            self._log_sections(g)
             if self.max_cycles and self.cycles >= self.max_cycles:
                 g.status(f"Cycle {self.cycles} done in {took} (max cycles reached)")
                 return

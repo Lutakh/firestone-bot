@@ -16,16 +16,11 @@ def guardian(g: Game) -> None:
         return
     g.focus()
     # open Magic Quarter
-    g.move_to(atlas.TOWN_MAGIC_QUARTER)
-    g.sleep(1000)
-    g.click()
+    g.tap(atlas.TOWN_MAGIC_QUARTER, 0)
     g.sleep(6500)  # the guardian screen comes up slower at times
     # check for evolve
     if g.settings.flag("GuardianEvolve") and g.found(atlas.GUARDIAN_EVOLVE_DOT):
-        g.move_to(atlas.GUARDIAN_EVOLVE_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.GUARDIAN_EVOLVE_TAB, 1000)
         g.move_to(atlas.GUARDIAN_EVOLVE_BUTTON)
         g.click()
         g.sleep(10500)
@@ -46,10 +41,7 @@ def guardian(g: Game) -> None:
             g.sleep(100)
             g.key_up("right")
             g.sleep(100)
-        g.move_to(atlas.GUARDIAN_TRAIN_BUTTON)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.GUARDIAN_TRAIN_BUTTON, 1000)
     # Python-only: spend the chaos-rift currency on the third tab when its bell shows
     if g.settings.flag("GuardianChaosUpgrades"):
         upgrade_on_guardian_screen(g)

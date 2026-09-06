@@ -19,33 +19,21 @@ from firestone_bot.vision.atlas import Probe
 def level_only(g: Game) -> None:
     if g.found(atlas.WM_LEVEL_DOT):
         # open anvil tab
-        g.move_to(atlas.WM_ANVIL_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.WM_ANVIL_TAB, 1000)
         # click upgrade
-        g.move_to(atlas.WM_LEVEL_UPGRADE)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.WM_LEVEL_UPGRADE, 1000)
 
 
 def bp_only(g: Game) -> None:
     # Open Blueprint tab
-    g.move_to(atlas.WM_BLUEPRINT_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.WM_BLUEPRINT_TAB, 1000)
     stats = atlas.WM_BLUEPRINT_CHOICES.get(
         g.settings.Blueprints, atlas.WM_BLUEPRINT_CHOICES["Upgrade All"]
     )
     for stat in stats:
         probe, button = atlas.WM_BLUEPRINT_STATS[stat]
         if g.found(probe):
-            g.move_to(button)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(button, 1000)
 
 
 def wm_upgrade(g: Game) -> None:
@@ -62,10 +50,7 @@ def wm_upgrade(g: Game) -> None:
         # select war machine
         hit = g.search(Probe(*atlas.WM_ROSTER, color, 3, f"wm_{_name}"))
         if hit is not None:
-            g.move_screen(hit.sx, hit.sy)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap_screen(hit.sx, hit.sy)
         if options == "Level Only":
             level_only(g)
             return

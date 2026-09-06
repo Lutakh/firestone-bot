@@ -14,33 +14,18 @@ def awaken_run(g: Game) -> None:
     if not g.found(atlas.AWAKEN_DOT):
         return
     g.heartbeat("AwakenRun (Improved): found notif", important=True)
-    g.move_to(atlas.AWAKEN_OPEN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.AWAKEN_OPEN)
     # First check that the Awaken Button Is Enabled
-    g.move_to(atlas.AWAKEN_X1)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.AWAKEN_X1, 1000)
     if g.found(atlas.AWAKEN_BUTTON_ORANGE):
         for probe, button in atlas.AWAKEN_MULTIPLIERS:  # x160 .. x1
             if g.found(probe):
-                g.move_to(button)
-                g.sleep(1000)
-                g.click()
-                g.sleep(1000)
+                g.tap(button, 1000)
                 if g.found(atlas.AWAKEN_AUTO_READY):
                     break  # Goto, Automatic
         # Automatic:
         g.heartbeat("AwakenRun: auto button")
-        g.move_to(atlas.AWAKEN_AUTO)
-        g.sleep(1000)
-        g.click()
-        g.sleep(20000)
+        g.tap(atlas.AWAKEN_AUTO, 20000)
     elif g.found(atlas.AWAKEN_BUTTON_GREEN):
-        g.move_to(atlas.AWAKEN_BUTTON)
-        g.sleep(1000)
-        g.click()
-        g.sleep(3000)
+        g.tap(atlas.AWAKEN_BUTTON, 3000)
     big_close(g)

@@ -179,6 +179,23 @@ attaches everything to the GitHub release with the tag message as body (the tag 
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
 `python -m firestone_bot --start` starts the bot as soon as the window is up.
 
+## Click timing (fast / safe)
+
+The AHK bot hovered every button for 1 s before clicking and waited a fixed 1-1.5 s after
+each click, plus 1.5-2 s per MsgBox. Advanced > Cycle > **Click timing** (`Timing`):
+
+- **Fast** (default): 150 ms hover, and after a click the bot polls the screen (a coarse
+  thumbnail of the game client, resolution independent) and goes on as soon as enough of it
+  has changed, plus a 250 ms settle. The old fixed delay stays the upper bound, so a click
+  that changes nothing costs exactly what it used to and a slow game gets the same patience
+  as before. MsgBox delays become a 300 ms line in the Activity log.
+- **Safe**: the exact AutoHotkey timings, for a setup where the fast mode misses.
+
+Each cycle ends with a "Cycle sections" line (main screen, town, guild, map, heroes) and the
+time the fast timing saved, to see where a cycle spends its time. Dry runs keep the safe
+timings. Feature code uses `g.tap(point, settle_ms)` for the move / hover / click / wait
+sequence; a click whose reaction is known (an entry probe) can wait for it explicitly.
+
 ## Activity overlay over the game
 
 While the bot runs, its last activity lines ("Account level 36", "Engineer: needs account

@@ -10,13 +10,7 @@ from firestone_bot.vision import atlas
 def oracle_daily(g: Game) -> None:
     # Look for oracle gift notification
     if g.found(atlas.ORACLE_GIFT_DOT):
-        g.move_to(atlas.ORACLE_GIFT_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.ORACLE_GIFT_TAB)
         # Claim Oracle's gift
-        g.move_to(atlas.ORACLE_GIFT_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.ORACLE_GIFT_CLAIM)
         big_close(g)

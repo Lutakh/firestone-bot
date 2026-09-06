@@ -12,23 +12,14 @@ from firestone_bot.vision import atlas
 def claim_rituals(g: Game) -> None:
     g.focus()
     # open Oracle in town
-    g.move_to(atlas.TOWN_ORACLE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.TOWN_ORACLE)
     # open Rituals tab in Oracle if ready
     if g.settings.flag("Rituals") and g.found(atlas.RITUALS_DOT):
-        g.move_to(atlas.RITUALS_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.RITUALS_TAB)
         # cycle through rituals
         for probe, button in atlas.RITUAL_CLAIMS:
             if g.found(probe):
-                g.move_to(button)
-                g.sleep(1000)
-                g.click()
-                g.sleep(1000)
+                g.tap(button, 1000)
     # check if upgradeBlessings box was checked
     if g.settings.flag("Bless"):
         upgrade_blessings(g)

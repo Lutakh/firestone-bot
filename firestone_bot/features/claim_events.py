@@ -22,10 +22,7 @@ def _claim_challenges(g: Game) -> int:
     claimed = 0
     for probe, button in atlas.EVENTS_CHALLENGE_CLAIMS:
         if g.found(probe):
-            g.move_to(button)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(button)
             claimed += 1
     return claimed
 
@@ -42,43 +39,25 @@ def claim_events(g: Game) -> None:
     if not g.found(g.ms.events_bell):
         return
     # open events
-    g.move_to(g.ms.events_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(g.ms.events_icon)
     total = 0
     for _ in range(MAX_EVENT_VISITS):
         idx = _first_card_with_bell(g)
         if idx is None:
             break
-        g.move_to(atlas.EVENTS_CARDS[idx])
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.EVENTS_CARDS[idx])
         if g.found(atlas.EVENTS_CHALLENGES_TAB_BELL):
-            g.move_to(atlas.EVENTS_CHALLENGES_TAB)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.EVENTS_CHALLENGES_TAB)
             n = _claim_challenges(g)
             total += n
             g.status(f"Events: card {idx + 1}, {n} challenge reward(s) claimed")
-            g.move_to(atlas.EVENTS_PAGE_CLOSE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.EVENTS_PAGE_CLOSE)
             if n == 0:
                 break  # bell but nothing green: avoid looping on the same card
         else:
             g.status(f"Events: card {idx + 1} has no Challenges tab (other event type), skipping")
-            g.move_to(atlas.EVENTS_PAGE_CLOSE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.EVENTS_PAGE_CLOSE)
             break
-    g.move_to(atlas.EVENTS_LIST_CLOSE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.EVENTS_LIST_CLOSE)
     g.toast("Main Menu Check", "Checking to ensure we are on main screen after claiming events", 2)
     main_menu(g)

@@ -15,10 +15,7 @@ def liberation_in_progress(g: Game) -> bool:
     n = 0
     while True:  # Search:
         if g.found(atlas.LIB_DONE):
-            g.move_to(atlas.LIB_DONE_CLAIM)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.LIB_DONE_CLAIM, 1000)
             return True
         g.sleep(2000)
         g.move_to(atlas.LIB_HOVER)
@@ -30,10 +27,7 @@ def liberation_in_progress(g: Game) -> bool:
 
 def _mission(g: Game, point: atlas.Point) -> bool:
     """Click a mission; True when it was already done (orange marker), else run it."""
-    g.move_to(point)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(point)
     if g.found(atlas.LIB_ALREADY_DONE):
         return True
     while not liberation_in_progress(g):
@@ -46,15 +40,9 @@ def liberation_missions(g: Game) -> None:
     # open daily missions if notification present
     if not g.found(atlas.LIB_DOT):
         return
-    g.move_to(atlas.LIB_OPEN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.LIB_OPEN)
     # open Liberation
-    g.move_to(atlas.LIB_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.LIB_TAB)
     g.wheel(-70)
     for point in atlas.LIB_MISSIONS_PAGE2:  # 319, 190, 155, 110, 80 stars
         _mission(g, point)
@@ -64,10 +52,7 @@ def liberation_missions(g: Game) -> None:
     big_close(g)
     # CheckDungeon:
     if g.settings.flag("DungeonQuest"):
-        g.move_to(atlas.LIB_DUNGEON)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.LIB_DUNGEON)
         _mission(g, atlas.LIB_DUNGEON_120)
         if _mission(g, atlas.LIB_DUNGEON_70):
             return  # AHK returns without the closing BigCloses

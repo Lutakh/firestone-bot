@@ -33,44 +33,29 @@ def upgrade_on_guardian_screen(g: Game) -> int:
     """Guardian screen must be open. Returns the number of upgrades bought."""
     if not g.found(atlas.GUARDIAN_CHAOS_TAB_BELL):
         return 0
-    g.move_to(atlas.GUARDIAN_CHAOS_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUARDIAN_CHAOS_TAB)
     total = 0
     for idx in guardian_order(g):
         bell, portrait = atlas.GUARDIAN_ROSTER[idx - 1]
         if not g.found(bell):
             continue
-        g.move_to(portrait)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(portrait)
         bought = 0
         while bought < MAX_UPGRADES_PER_GUARDIAN and g.found(atlas.GUARDIAN_CHAOS_UPGRADE_READY):
-            g.move_to(atlas.GUARDIAN_CHAOS_UPGRADE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.GUARDIAN_CHAOS_UPGRADE)
             bought += 1
         if bought:
             g.status(f"Guardian {idx}: {bought} chaos-rift upgrade(s)")
         total += bought
     # back to the first tab, where the training probes of guardian() live
-    g.move_to(atlas.GUARDIAN_BACK_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.GUARDIAN_BACK_TAB, 1000)
     return total
 
 
 def upgrade_after_chaos(g: Game) -> None:
     """From the main screen: open town > Magic Quarter, upgrade, back to the main screen."""
     open_town(g)
-    g.move_to(atlas.TOWN_MAGIC_QUARTER)
-    g.sleep(1000)
-    g.click()
-    g.sleep(6500)
+    g.tap(atlas.TOWN_MAGIC_QUARTER, 6500)
     upgrade_on_guardian_screen(g)
     big_close(g)  # guardian screen -> town
     big_close(g)  # town -> main screen

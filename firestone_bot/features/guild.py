@@ -19,10 +19,7 @@ log = logging.getLogger("firestone_bot")
 def guild(g: Game) -> None:
     g.focus()
     # open guild
-    g.move_to(g.ms.guild_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(g.ms.guild_icon)
     if not _guild_level_check(g):
         # no banner: most likely not on the main screen when the icon was clicked (a live
         # cycle still had the town open after the library, 2026-09-06). Back to the main
@@ -33,22 +30,13 @@ def guild(g: Game) -> None:
         big_close(g)
         main_menu(g)
         g.focus()
-        g.move_to(g.ms.guild_icon)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(g.ms.guild_icon)
         _guild_level_check(g, final=True)
     # check if expeditions are ready
     if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
         g.heartbeat("Guild expedition start", important=True)
-        g.move_to(atlas.GUILD_EXPEDITIONS)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
-        g.move_to(atlas.GUILD_EXPEDITION_START)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.GUILD_EXPEDITIONS)
+        g.tap(atlas.GUILD_EXPEDITION_START)
         g.click()
         g.sleep(1000)
         big_close(g)
@@ -62,10 +50,7 @@ def guild(g: Game) -> None:
     if g.settings.flag("Crystal") and not g.locked("guild_crystal"):
         hit_crystal(g)
     if g.settings.flag("PTree"):
-        g.move_to(atlas.GUILD_PTREE_ENTRY)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.GUILD_PTREE_ENTRY)
         personal_tree(g)
     if g.settings.flag("GNotif"):
         clear_notifications(g)
@@ -117,21 +102,12 @@ def _save_diagnostic(g: Game, name: str) -> None:
 
 def claim_axes(g: Game) -> None:
     # Guild Shop
-    g.move_to(atlas.GUILD_SHOP)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUILD_SHOP)
     # Supplies
-    g.move_to(atlas.GUILD_SHOP_SUPPLIES)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUILD_SHOP_SUPPLIES)
     if g.found(atlas.GUILD_AXE_READY):
         g.heartbeat("ClaimAxe", important=True)
-        g.move_to(atlas.GUILD_AXE_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.GUILD_AXE_CLAIM)
     big_close(g)
 
 
@@ -147,10 +123,7 @@ def hit_crystal(g: Game) -> None:
     """
     if daily.crystal_left(g.settings) == 0:
         return
-    g.move_to(atlas.GUILD_CRYSTAL)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUILD_CRYSTAL)
     hits = 0
     while hits < MAX_CRYSTAL_HITS_PER_VISIT and daily.crystal_left(g.settings) != 0:
         g.move_to(atlas.GUILD_CRYSTAL_PARK)  # off the button: hover would lighten it
@@ -159,10 +132,7 @@ def hit_crystal(g: Game) -> None:
             break
         g.heartbeat("HitCrystal", important=True)
         before = g.region_image(atlas.GUILD_PICKAXE_COUNTER)
-        g.move_to(atlas.GUILD_CRYSTAL_HIT)
-        g.sleep(1000)
-        g.click()
-        g.sleep(500)
+        g.tap(atlas.GUILD_CRYSTAL_HIT, 500)
         g.move_to(atlas.GUILD_CRYSTAL_PARK)
         if not g.wait_region_change(atlas.GUILD_PICKAXE_COUNTER, before):
             # the hit animation swallows clicks: the counter did not move, do not count it
@@ -178,13 +148,7 @@ def hit_crystal(g: Game) -> None:
 
 
 def clear_notifications(g: Game) -> None:
-    g.move_to(atlas.GUILD_NOTIF_1)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUILD_NOTIF_1)
     big_close(g)
-    g.move_to(atlas.GUILD_NOTIF_2)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.GUILD_NOTIF_2)
     big_close(g)

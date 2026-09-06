@@ -25,7 +25,7 @@ from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP
 def test_every_key_is_editable_or_read_only():
     assert set(OPTIONS) | READ_ONLY_KEYS == set(SETTINGS_MAP) | set(EXTRA_SETTINGS)
     assert not set(OPTIONS) & READ_ONLY_KEYS
-    assert len(OPTIONS) == 113 and len(READ_ONLY_KEYS) == 10
+    assert len(OPTIONS) == 114 and len(READ_ONLY_KEYS) == 10
 
 
 def test_options_have_label_help_and_kind():

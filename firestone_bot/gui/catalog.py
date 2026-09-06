@@ -498,6 +498,17 @@ OPTIONS: dict[str, Option] = {
     "DisableWarning": Option(
         "Dismiss the Steam warning", "Closes the Steam warning pop-up if it appears.", "switch"
     ),
+    "Timing": Option(
+        "Click timing",
+        "Fast: the bot hovers a button for 150 ms instead of 1 s before clicking, and after a "
+        "click it waits only until the screen has actually changed (then a short settle) "
+        "instead of a fixed delay; the fixed delay stays the upper bound, so a slow game gets "
+        "the same patience as before. Safe: the exact AutoHotkey timings (1 s hover, fixed "
+        "delays) if the fast mode ever misses.",
+        "choice",
+        ("fast", "safe"),
+        {"fast": "Fast (screen-change waits)", "safe": "Safe (AHK timings)"},
+    ),
     "Overlay": Option(
         "Show the activity overlay over the game",
         "While the bot runs, its last activity lines are drawn in a small translucent panel over "

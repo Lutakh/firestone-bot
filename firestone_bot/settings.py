@@ -87,6 +87,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "NextMilestone": ("QoL/RareOptions", "0"),
     "DisableWarning": ("QoL/RareOptions", "1"),
     "Overlay": ("QoL/RareOptions", "1"),
+    "Timing": ("QoL/RareOptions", "fast"),
     # --- Other Options ---
     "Shop": ("OtherOptions", "0"),
     "DailyOracle": ("OtherOptions", "1"),

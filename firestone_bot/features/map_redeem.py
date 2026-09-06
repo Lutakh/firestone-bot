@@ -29,16 +29,10 @@ def _checks(g: Game) -> None:
             g.toast("Mission Check", "Mission is already complete!", 1.5)
             g.click()
             g.sleep(1000)
-            g.move_to(atlas.MR_DIALOG_OK)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.MR_DIALOG_OK, 1000)
         else:
             # look for greater than 3 minutes left
-            g.move_to(atlas.MR_FIRST_MISSION)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.MR_FIRST_MISSION, 1000)
             if g.found(atlas.MR_MORE_THAN_3_MIN):
                 g.toast("Mission Check", "Mission has more than 3 minutes reamining", 1.5)
                 map_close(g)
@@ -48,10 +42,7 @@ def _checks(g: Game) -> None:
                 g.toast("Mission Check", "Mission can be completed early for free", 1.5)
                 g.click()
                 g.sleep(1000)
-                g.move_to(atlas.MR_DIALOG_OK)
-                g.sleep(1000)
-                g.click()
-                g.sleep(1000)
+                g.tap(atlas.MR_DIALOG_OK, 1000)
             else:
                 # check 2nd mission in case of greyed out first mission bug
                 if g.found(atlas.MR_SECOND_MISSION_NOT_DONE):

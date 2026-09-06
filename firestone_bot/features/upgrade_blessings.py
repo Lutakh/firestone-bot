@@ -13,28 +13,16 @@ from firestone_bot.vision import atlas
 def click_bless(g: Game) -> None:
     for _ in range(5):
         if g.found(atlas.BLESS_UPGRADE_READY):
-            g.move_to(atlas.BLESS_UPGRADE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
-    g.move_to(atlas.BLESS_CLOSE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+            g.tap(atlas.BLESS_UPGRADE, 1000)
+    g.tap(atlas.BLESS_CLOSE, 1000)
 
 
 def upgrade_blessings(g: Game) -> None:
     # open blessings page if ready
     if not g.found(atlas.BLESSINGS_DOT):
         return
-    g.move_to(atlas.BLESSINGS_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.BLESSINGS_TAB)
     for probe, button in atlas.BLESSING_SLOTS:
         if g.found(probe):
-            g.move_to(button)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(button, 1000)
             click_bless(g)

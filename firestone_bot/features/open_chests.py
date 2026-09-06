@@ -25,21 +25,13 @@ def _open_group(g: Game, group: tuple[tuple[str, int], ...], start: int | None) 
 
 def _open_bag_chests_tab(g: Game) -> None:
     # open bag
-    g.move_to(g.ms.bag_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(g.ms.bag_icon, 1000)
     # click chests tab
-    g.move_to(g.ms.bag_chests_tab)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(g.ms.bag_chests_tab, 1000)
 
 
 def _close_bag(g: Game, after_ms: int) -> None:
-    g.move_to(g.ms.bag_close)
-    g.sleep(1000)
-    g.click()
+    g.tap(g.ms.bag_close, 0)
     g.sleep(after_ms)
 
 

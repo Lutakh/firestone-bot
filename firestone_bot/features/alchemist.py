@@ -11,10 +11,7 @@ from firestone_bot.vision import atlas
 def alchemist(g: Game) -> None:
     g.focus()
     # open Alchemist
-    g.move_to(atlas.TOWN_ALCHEMIST)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.TOWN_ALCHEMIST)
     # collect completed experiments (only when the slot is running)
     collect = g.settings.flag("AlchCollect")
     for slot in atlas.ALCHEMY_SLOTS if collect else ():

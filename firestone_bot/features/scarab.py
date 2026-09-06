@@ -76,9 +76,7 @@ def play_scarab(g: Game) -> int:
             g.status(f"Scarab: no free token in the Play button ({token}), leaving")
             break
         before = _counter_image(g)
-        g.move_to(atlas.TAVERN_USE_TOKEN)
-        g.sleep(1000)
-        g.click()
+        g.tap(atlas.TAVERN_USE_TOKEN, 0)
         g.sleep(500)  # let Unity process the click before the pointer leaves the button
         g.move_to(atlas.SCARAB_PLAY_PARK)  # leave the button so the hover colour goes away
         if not _wait_counter_change(g, before):
@@ -99,13 +97,7 @@ def scarab(g: Game) -> None:
         return  # limit reached for today: no need to open the tavern game
     g.focus()
     # open Tavern
-    g.move_to(atlas.TOWN_TAVERN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
-    g.move_to(atlas.TAVERN_SCARAB_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.TOWN_TAVERN, 1000)
+    g.tap(atlas.TAVERN_SCARAB_TAB, 1000)
     play_scarab(g)
     big_close(g)

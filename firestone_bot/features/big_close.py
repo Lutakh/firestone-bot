@@ -7,7 +7,4 @@ from firestone_bot.vision.atlas import BIG_CLOSE
 
 
 def big_close(g: Game) -> None:
-    g.move_to(BIG_CLOSE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(BIG_CLOSE)

@@ -29,9 +29,7 @@ def claim_free_mystery_box(g: Game) -> bool:
     g.sleep(1000)
     if not g.found(atlas.SHOP_MYSTERY_CLAIM_READY):
         return False
-    g.move_to(atlas.SHOP_MYSTERY_CLAIM)
-    g.sleep(1000)
-    g.click()
+    g.tap(atlas.SHOP_MYSTERY_CLAIM, 0)
     g.sleep(2000)  # the box goes to the bag (opened later by open_chests), no pop-up
     return True
 
@@ -42,19 +40,13 @@ def shop(g: Game) -> None:
     # detected one, or never detected) the shop is opened anyway so the reset is not missed.
     if not g.found(g.ms.shop_bell) and 0 < hours_since(g.settings.LastTokenReset) < 23:
         return
-    g.move_to(g.ms.shop_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(g.ms.shop_icon)
     if claim_free_mystery_box(g):
         daily.mark_daily_reset(g.settings)
         g.status("Daily shop: free mystery box claimed, daily counters reset")
     if g.settings.flag("Shop"):
         # open daily check-in
-        g.move_to(atlas.SHOP_CHECKIN_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.SHOP_CHECKIN_TAB, 1000)
         # check in
         g.move_to(atlas.SHOP_CHECKIN_CLAIM)
         g.sleep(3000)

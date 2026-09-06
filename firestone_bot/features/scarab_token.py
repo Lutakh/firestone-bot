@@ -13,25 +13,13 @@ def scarab_token(g: Game) -> None:
     g.toast("Scarab's Token", "Claiming Scarab's Token", 2)
     g.focus()
     # open Tavern
-    g.move_to(atlas.TOWN_TAVERN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.TOWN_TAVERN, 1000)
     if g.found(atlas.SCARAB_GAME_DOT):
         # Open Scarab's Game
-        g.move_to(atlas.TAVERN_SCARAB_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.TAVERN_SCARAB_TAB, 1000)
         if g.found(atlas.SCARAB_TOKEN_DOT):
-            g.move_to(atlas.SCARAB_TOKEN_TAB)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.SCARAB_TOKEN_TAB)
             # claim Pharaoh's Token
-            g.move_to(atlas.SCARAB_TOKEN_CLAIM)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.SCARAB_TOKEN_CLAIM, 1000)
             big_close(g)
     big_close(g)

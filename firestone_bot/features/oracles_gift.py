@@ -17,26 +17,18 @@ def _open_gift(g: Game, title: str, color: int, variation: int) -> None:
     hit = g.search(Probe(*g.ms.chest_grid, color, variation, f"gift_{color:06X}"))
     if hit is None:
         return
-    g.move_screen(hit.sx, hit.sy)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap_screen(hit.sx, hit.sy)
     target = None
     for probe, button in atlas.GIFT_OPEN_BUTTONS:
         if g.found(probe):
             target = button
             break
     if target is not None:
-        g.move_to(target)
-        g.sleep(1000)
-        g.click()
+        g.tap(target, 0)
         g.sleep(10000)  # long delay in case 10 or more are opened
         for _ in range(5):
             if g.found(atlas.CHEST_OPEN_MORE_READY, variation=3):
-                g.move_to(atlas.CHEST_OPEN_MORE)
-                g.sleep(1000)
-                g.click()
-                g.sleep(10000)
+                g.tap(atlas.CHEST_OPEN_MORE, 10000)
             else:
                 break  # Goto, ...Close
             g.sleep(100)

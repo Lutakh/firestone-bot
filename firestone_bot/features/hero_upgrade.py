@@ -144,8 +144,5 @@ def hero_upgrade(g: Game) -> None:
         # Standard Single Check Mode
         for setting, rect, click in atlas.HERO_UPGRADE_SLOTS:
             if s.flag(setting) and g.found(Probe(*rect, atlas.GREEN_BUTTON, 3, f"hero_{setting}")):
-                g.move_to(click)
-                g.sleep(1000)
-                g.click()
-                g.sleep(1000)
+                g.tap(click, 1000)
     big_close(g)

@@ -74,21 +74,12 @@ def battle_pass(g: Game) -> None:
     g.focus()
     if not g.found(g.ms.bp_bell):
         return
-    g.move_to(g.ms.bp_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(2500)
+    g.tap(g.ms.bp_icon, 2500)
     if g.found(atlas.BP_REWARDS_BADGE):
-        g.move_to(atlas.BP_REWARDS_TAB)
-        g.sleep(1000)
-        g.click()
-        g.sleep(2500)
+        g.tap(atlas.BP_REWARDS_TAB, 2500)
         claim_rewards(g)
     else:
         g.status("Battle pass: no reward badge on the Rewards tab, leaving")
-    g.move_to(atlas.BP_CLOSE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.BP_CLOSE)
     g.toast("Main Menu Check", "Checking to ensure we are on main screen after the battle pass", 2)
     main_menu(g)

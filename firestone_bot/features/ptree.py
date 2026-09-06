@@ -9,24 +9,12 @@ from firestone_bot.vision import atlas
 
 
 def personal_tree(g: Game) -> None:
-    g.move_to(atlas.PTREE_OPEN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1500)
+    g.tap(atlas.PTREE_OPEN)
     for setting, node in atlas.PTREE_NODES:
         if not g.settings.flag(setting):
             continue
-        g.move_to(node)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
-        g.move_to(atlas.PTREE_CONFIRM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(node, 1000)
+        g.tap(atlas.PTREE_CONFIRM, 1000)
         for _ in range(2):
-            g.move_to(atlas.PTREE_UPGRADE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.PTREE_UPGRADE, 1000)
     big_close(g)

@@ -57,10 +57,7 @@ def hit_chaos(g: Game) -> None:
         if token != "free":
             g.status(f"Chaos rift: no free token in the Hit button ({token}), leaving")
             break
-        g.move_to(atlas.CHAOS_HIT)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1500)
+        g.tap(atlas.CHAOS_HIT)
         daily.note_chaos_hit(g.settings)
         hits += 1
         g.status(f"Chaos rift: hit {hits} ({g.settings.ChaosCountDaily} today)")

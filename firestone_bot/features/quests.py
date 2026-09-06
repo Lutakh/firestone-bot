@@ -12,31 +12,16 @@ from firestone_bot.vision import atlas
 
 
 def _claim_tab(g: Game, tab: atlas.Point) -> None:
-    g.move_to(tab)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(tab, 1000)
     if g.found(atlas.QUESTS_CLAIM_READY):
-        g.move_to(atlas.QUESTS_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
-        g.move_to(atlas.QUESTS_REWARD_OK)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.QUESTS_CLAIM, 1000)
+        g.tap(atlas.QUESTS_REWARD_OK, 1000)
 
 
 def claim_quests(g: Game) -> None:
     # open character window
-    g.move_to(g.ms.character_icon)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(g.ms.character_icon, 1000)
     # open quests tab
-    g.move_to(atlas.QUESTS_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.QUESTS_TAB, 1000)
     _claim_tab(g, atlas.QUESTS_DAILY_TAB)
     _claim_tab(g, atlas.QUESTS_WEEKLY_TAB)

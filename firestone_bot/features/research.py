@@ -34,10 +34,7 @@ def research_slot_test(g: Game) -> None:
         v[S2] = 0
     elif g.found(atlas.RS_SLOT2_DONE):
         g.toast("Slot 2 Status", "Slot 2 is completed and ready to claim.", 1.5)
-        g.move_to(atlas.RS_SLOT2_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.RS_SLOT2_CLAIM, 1000)
         v[S2] = 0
     else:
         g.toast("Slot 2 Status", "Slot 2 is not in progress.", 1.5)
@@ -64,10 +61,7 @@ def research_slot_test(g: Game) -> None:
             return
     if g.found(atlas.RS_SLOT1_DONE):
         g.toast("Slot 1 Status", "Slot 1 is completed and ready to claim.", 1.5)
-        g.move_to(atlas.RS_SLOT1_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.RS_SLOT1_CLAIM, 1000)
         v[S1] = 0
         if v.get(S2) == 1:
             v[S1], v[S2] = 1, 0
@@ -83,10 +77,7 @@ def research_slot_test(g: Game) -> None:
 
 def research_clicks(g: Game) -> None:
     # start or safely click away from spend gems
-    g.move_to(atlas.RS_START_OR_DISMISS)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.RS_START_OR_DISMISS, 1000)
     research_slot_test(g)
 
 
@@ -126,15 +117,9 @@ def research_start(g: Game) -> None:
 def go_research(g: Game) -> None:
     g.focus()
     # open Library
-    g.move_to(atlas.TOWN_LIBRARY)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.TOWN_LIBRARY, 1000)
     # select Firestone tree
-    g.move_to(atlas.RS_FIRESTONE_TREE)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.RS_FIRESTONE_TREE, 1000)
     research_slot_test(g)
     if g.vars.get(S1, 0) == 0:
         research_start(g)
@@ -150,10 +135,7 @@ def research_after_start_test(g: Game) -> None:
     """ResearchAfterStartTest.ahk `RAST()`; not reachable from the AHK main loop."""
     v = g.vars
     g.toast("Slot 2 Status", "Checking status of slot 2...", 1.5)
-    g.move_to(atlas.RAST_SLOT2)
-    g.sleep(1000)
-    g.click()
-    g.sleep(500)
+    g.tap(atlas.RAST_SLOT2, 500)
     if g.found(atlas.RAST_IN_PROGRESS):
         g.toast("Slot 2 Status", "Slot 2 is in progress.", 1.5)
         v[S2] = 1
@@ -165,10 +147,7 @@ def research_after_start_test(g: Game) -> None:
         g.toast("Slot 1 Status", "Slot 1 is in Progress - skipping test", 1.5)
         return
     g.toast("Slot 1 Status", "Checking status of slot 1... ", 1.5)
-    g.move_to(atlas.RAST_SLOT1)
-    g.sleep(1000)
-    g.click()
-    g.sleep(500)
+    g.tap(atlas.RAST_SLOT1, 500)
     if g.found(atlas.RAST_IN_PROGRESS):
         g.toast("Slot 1 Status", "Slot 1 is in progress.", 1.5)
         v[S1] = 1

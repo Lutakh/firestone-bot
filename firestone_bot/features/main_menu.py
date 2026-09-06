@@ -26,10 +26,7 @@ def main_menu(g: Game) -> None:
             big_close(g)
             return
         if g.found(atlas.MM_RATE_POPUP):
-            g.move_to(atlas.MM_RATE_POPUP_CLOSE)
-            g.sleep(1000)
-            g.click()
-            g.sleep(1500)
+            g.tap(atlas.MM_RATE_POPUP_CLOSE)
         big_close(g)
         n += 1
         if cap and n >= cap:

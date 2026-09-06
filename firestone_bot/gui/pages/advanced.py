@@ -30,6 +30,7 @@ def build(parent, ctx: PageContext):
         ),
     )
     cycle.option("SafetyCap")
+    cycle.option("Timing")
 
     launch = place_card(Card(content, ctx, "Game launch"))
     launch.option("GamePlatform")

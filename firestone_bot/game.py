@@ -7,6 +7,7 @@ that ported functions read like the originals:
     g.move(x, y); g.sleep(1000)     MouseMove x, y  /  Sleep, 1000
     g.click()                       Click
     g.click_at(x, y)                Click x, y
+    g.tap(p, 1500)                  MouseMove; Sleep 1000; Click; Sleep 1500  (see tap())
     g.search(probe) -> hit | None   PixelSearch ... ErrorLevel = 0
     g.toast(title, text, seconds)   MsgBox , , title, text, seconds   (non-blocking + same delay)
     g.key("m")                      Send, M
@@ -80,6 +81,8 @@ class Game:
         self.style = "classic"  # main-screen layout, detected at each cycle start (layouts.py)
         self.progress = None  # progress.Progress, set by the runner / app
         self._digits = None
+        self.timing = str(settings.get("Timing") or "fast").strip().lower()
+        self.stats: dict[str, float] = {}  # per-cycle counters (waits saved, ...)
 
     @property
     def ms(self):
@@ -135,9 +138,17 @@ class Game:
         if self.heartbeat_cb:
             self.heartbeat_cb(msg, is_stop, important)
 
+    TOAST_FAST_S = 0.3
+
     def toast(self, title: str, text: str, seconds: float) -> None:
-        """AHK timed MsgBox: shown as a status line, then the same delay."""
+        """AHK timed MsgBox: shown as a status line, then the same delay (fast timing: the
+        line only, the MsgBox delay was never needed by the game)."""
         self.status(f"{title}: {text}")
+        if self.fast() and seconds > self.TOAST_FAST_S:
+            self.stats["wait_saved_ms"] = (
+                self.stats.get("wait_saved_ms", 0.0) + (seconds - self.TOAST_FAST_S) * 1000
+            )
+            seconds = self.TOAST_FAST_S
         self.sleep(seconds * 1000)
 
     def _trace(self, s: str) -> None:
@@ -211,6 +222,87 @@ class Game:
             if not self.dry_run:
                 inp.wheel(step, interval=0)
             self.sleep(interval_ms)
+
+    # -- timed clicks (plan: robustness + speed, owner request 2026-09-06) -------------------
+    HOVER_SAFE_MS = 1000  # AHK: MouseMove, Sleep 1000, Click
+    HOVER_FAST_MS = 150
+    CHANGE_POLL_MS = 100
+    CHANGE_SETTLE_MS = 250  # after the screen changed: let the transition finish
+    CHANGE_FRACTION = 0.30  # of thumbnail cells that must differ (a dialog covers far more)
+    CHANGE_LEVELS = 40  # per-cell mean absolute difference (0-255) that counts as changed
+
+    def fast(self) -> bool:
+        return self.timing != "safe" and not self.dry_run
+
+    def hover(self) -> None:
+        """The pause between moving onto a button and clicking it."""
+        self.sleep(self.HOVER_FAST_MS if self.fast() else self.HOVER_SAFE_MS)
+
+    def _thumbnail(self) -> np.ndarray | None:
+        """Client capture reduced to a coarse grid (block means), for change detection."""
+        if self.window is None:
+            return None
+        img = capture.grab(self.window.client)[:, :, :3]
+        h, w = img.shape[:2]
+        gh, gw = 27, 48
+        bh, bw = h // gh, w // gw
+        if bh == 0 or bw == 0:
+            return None
+        cropped = img[: bh * gh, : bw * gw].astype(np.float32)
+        return cropped.reshape(gh, bh, gw, bw, 3).mean(axis=(1, 3))
+
+    def wait_change(self, max_ms: float, before: np.ndarray | None = None) -> bool:
+        """Wait until the game screen differs from `before` (or from now), at most `max_ms`.
+
+        Safe timing (or dry run): a plain sleep of `max_ms`, the AHK behaviour. Fast timing:
+        poll the screen; as soon as enough of it changed, a short settle and return True.
+        Nothing changing by `max_ms` returns False after exactly the old delay, so the fast
+        mode is never slower than the safe one on a click that changes nothing."""
+        if not self.fast():
+            self.sleep(max_ms)
+            return False
+        if before is None:
+            before = self._thumbnail()
+        if before is None:
+            self.sleep(max_ms)
+            return False
+        end = time.monotonic() + max_ms / 1000
+        while True:
+            self.sleep(self.CHANGE_POLL_MS)
+            now = self._thumbnail()
+            if now is not None and now.shape == before.shape:
+                diff = np.abs(now - before).mean(axis=2)
+                if (diff > self.CHANGE_LEVELS).mean() >= self.CHANGE_FRACTION:
+                    left = (end - time.monotonic()) * 1000
+                    self.stats["wait_saved_ms"] = self.stats.get("wait_saved_ms", 0.0) + max(
+                        0.0, left - self.CHANGE_SETTLE_MS
+                    )
+                    self.sleep(self.CHANGE_SETTLE_MS)
+                    return True
+            if time.monotonic() >= end:
+                return False
+
+    def tap(self, p: Point, settle_ms: float = 1500) -> None:
+        """AHK `MouseMove x, y; Sleep 1000; Click; Sleep settle`: move onto the point, hover,
+        click, then wait for the screen to react (fast timing) or `settle_ms` (safe)."""
+        self.move_to(p)
+        self.hover()
+        before = self._thumbnail() if self.fast() and settle_ms else None
+        self.click()
+        if settle_ms:
+            self.wait_change(settle_ms, before)
+
+    def tap_xy(self, x: int, y: int, settle_ms: float = 1500, anchor=None) -> None:
+        self.tap(Point(x, y, anchor), settle_ms)
+
+    def tap_screen(self, sx: int, sy: int, settle_ms: float = 1000) -> None:
+        """tap() on a screen pixel (a PixelSearch hit)."""
+        self.move_screen(sx, sy)
+        self.hover()
+        before = self._thumbnail() if self.fast() and settle_ms else None
+        self.click()
+        if settle_ms:
+            self.wait_change(settle_ms, before)
 
     # -- vision -----------------------------------------------------------------------------
     def search(self, p: Probe, variation: int | None = None) -> Hit | None:

@@ -23,27 +23,19 @@ def buy_books(g: Game) -> int:
     if not g.found(atlas.RIFT_SHOP_BELL):
         g.status("Chaos rift shop: no notification, nothing to buy")
         return 0
-    g.move_to(atlas.RIFT_SHOP)
-    g.sleep(1000)
-    g.click()
-    g.sleep(2000)
+    g.tap(atlas.RIFT_SHOP, 2000)
     if not g.found(atlas.RIFT_SUPPLIES_BELL):
         g.status("Chaos rift shop: Supplies has no notification, leaving")
         big_close(g)
         return 0
-    g.move_to(atlas.RIFT_SUPPLIES)
-    g.sleep(1000)
-    g.click()
-    g.sleep(2000)
+    g.tap(atlas.RIFT_SUPPLIES, 2000)
     bought = 0
     while bought < MAX_BOOKS_PER_VISIT:
         g.move_to(atlas.RIFT_BOOKS_PARK)  # hover would turn the button lighter green
         g.sleep(500)
         if not g.found(atlas.RIFT_BOOKS_READY):
             break
-        g.move_to(atlas.RIFT_BOOKS_BUY)
-        g.sleep(1000)
-        g.click()
+        g.tap(atlas.RIFT_BOOKS_BUY, 0)
         g.sleep(500)  # let Unity process the click before the pointer leaves the button
         g.move_to(atlas.RIFT_BOOKS_PARK)
         g.sleep(1500)

@@ -39,24 +39,12 @@ def claim_beer(g: Game) -> None:
         return
     g.focus()
     # open Tavern
-    g.move_to(atlas.TOWN_TAVERN)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
-    g.move_to(atlas.TAVERN_BEER_TAB)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.TOWN_TAVERN, 1000)
+    g.tap(atlas.TAVERN_BEER_TAB, 1000)
     # check for enough beer to claim tokens
-    g.move_to(atlas.TAVERN_TOKEN_SHOP)
-    g.sleep(1000)
-    g.click()
-    g.sleep(1000)
+    g.tap(atlas.TAVERN_TOKEN_SHOP, 1000)
     if g.settings.flag("TavernBeerTokens") and g.found(atlas.TAVERN_BEER_CLAIM_READY):
-        g.move_to(atlas.TAVERN_BEER_CLAIM)
-        g.sleep(1000)
-        g.click()
-        g.sleep(1000)
+        g.tap(atlas.TAVERN_BEER_CLAIM, 1000)
     big_close(g)
     # check if Use Tavern Token is checked
     if g.settings.flag("Token"):
