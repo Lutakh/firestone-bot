@@ -39,7 +39,7 @@ def claim_events(g: Game) -> None:
     if not g.found(g.ms.events_bell):
         return
     # open events
-    g.tap(g.ms.events_icon)
+    g.open_screen(g.ms.events_icon, atlas.EVENTS_CLOSE_X)
     total = 0
     for _ in range(MAX_EVENT_VISITS):
         idx = _first_card_with_bell(g)

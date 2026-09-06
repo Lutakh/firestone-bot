@@ -25,7 +25,7 @@ def _open_group(g: Game, group: tuple[tuple[str, int], ...], start: int | None) 
 
 def _open_bag_chests_tab(g: Game) -> None:
     # open bag
-    g.tap(g.ms.bag_icon, 1000)
+    g.open_screen(g.ms.bag_icon, atlas.BAG_CLOSE_X, 1000)
     # click chests tab
     g.tap(g.ms.bag_chests_tab, 1000)
 

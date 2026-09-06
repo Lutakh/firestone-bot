@@ -14,14 +14,15 @@ from firestone_bot.vision import atlas
 def arena_battle(g: Game) -> bool:
     """Wait (unbounded, like AHK) for the battle's claim button, click it, return True."""
     cap = int(g.settings.get("SafetyCap") or 0)
-    n = 0
+    waited_ms = 0
     while True:  # Wait:
         if g.found(atlas.ARENA_BATTLE_DONE):
             g.tap(atlas.ARENA_BATTLE_CLAIM, 1000)
             return True
-        g.sleep(2000)
-        n += 1
-        if cap and n >= cap:
+        step = 2000 if not g.fast() else g.poll_ms()
+        g.sleep(step)
+        waited_ms += step
+        if cap and waited_ms >= cap * 2000:  # the cap counts AHK iterations of 2 s
             g.status(f"ArenaBattle: safety cap of {cap} iterations reached")
             return True
 

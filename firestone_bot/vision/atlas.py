@@ -1133,3 +1133,15 @@ GUILD_LEVEL_REGION = (193, 122, 480, 152)  # "Guild level 24" bar under the guil
 # with a hole in the middle (pink background), so the probe tells "a dialog is open" from
 # "main screen". Measured on the Mac (town X centre 255,249,206; gear 225,151,66).
 DIALOG_CLOSE_X = Probe(1849, 81, 1858, 90, 0xFFF9CE, 30, "dialog_close_x")
+# Dialogs whose X sits elsewhere (entry probes for `expect=` / open_screen, measured on the
+# Mac 2026-09-06). They look at the orange ring 20 logical px left of the cross centre: the
+# cream centre alone matched cream text and icons of the main screen, the orange never does.
+# Centred dialogs use the centre anchor.
+DIALOG_RING = 0xFF6109
+MAIL_CLOSE_X = Probe(1588, 71, 1592, 75, DIALOG_RING, 20, "mail_close_x", ANCHOR_CENTER)
+BAG_CLOSE_X = Probe(
+    1888, 93, 1892, 97, DIALOG_RING, 20, "bag_close_x"
+)  # right of the cross: the town X is close by
+EVENTS_CLOSE_X = Probe(1467, 75, 1471, 79, DIALOG_RING, 20, "events_close_x", ANCHOR_CENTER)
+BP_CLOSE_X = Probe(1857, 124, 1861, 128, DIALOG_RING, 20, "bp_close_x")
+TAVERN_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "tavern_close_x", ANCHOR_CENTER)

@@ -245,8 +245,15 @@ class Game:
     CHANGE_FRACTION = 0.30  # of thumbnail cells that must differ (a dialog covers far more)
     CHANGE_LEVELS = 40  # per-cell mean absolute difference (0-255) that counts as changed
 
+    POLL_SAFE_MS = 1000  # AHK loops: Sleep 1000 between two PixelSearch
+    POLL_FAST_MS = 250
+
     def fast(self) -> bool:
         return self.timing != "safe" and not self.dry_run
+
+    def poll_ms(self) -> int:
+        """Interval of the "wait until the screen shows X" loops (scarab, arena, crystal)."""
+        return self.POLL_FAST_MS if self.fast() else self.POLL_SAFE_MS
 
     def hover(self) -> None:
         """The pause between moving onto a button and clicking it."""
@@ -298,12 +305,17 @@ class Game:
 
     EXPECT_TIMEOUT_MS = 4000  # patience for an expected screen (slow game / server)
 
+    EXPECT_STABLE_MS = 100  # a dialog scaling in can match for one frame: confirm once
+
     def wait_for(self, p: Probe, timeout_ms: float = EXPECT_TIMEOUT_MS) -> bool:
-        """Poll until `p` is found (True) or `timeout_ms` elapsed (False)."""
+        """Poll until `p` is found twice EXPECT_STABLE_MS apart (True) or `timeout_ms`
+        elapsed (False)."""
         end = time.monotonic() + timeout_ms / 1000
         while True:
             if self.found(p):
-                return True
+                self.sleep(self.EXPECT_STABLE_MS)
+                if self.found(p):
+                    return True
             if time.monotonic() >= end:
                 return False
             self.sleep(self.CHANGE_POLL_MS)
@@ -427,8 +439,9 @@ class Game:
         """Poll a logical rect until enough pixels differ from `before` (digits redrawn)."""
         waited = 0
         while waited < timeout_ms:
-            self.sleep(1000)
-            waited += 1000
+            step = self.poll_ms()
+            self.sleep(step)
+            waited += step
             after = self.region_image(rect)
             if after.shape == before.shape:
                 changed = (np.abs(after.astype(int) - before.astype(int)) > 60).any(axis=2).sum()

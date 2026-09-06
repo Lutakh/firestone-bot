@@ -13,7 +13,7 @@ def scarab_token(g: Game) -> None:
     g.toast("Scarab's Token", "Claiming Scarab's Token", 2)
     g.focus()
     # open Tavern
-    g.tap(atlas.TOWN_TAVERN, 1000)
+    g.tap(atlas.TOWN_TAVERN, 1000, expect=atlas.TAVERN_CLOSE_X)
     if g.found(atlas.SCARAB_GAME_DOT):
         # Open Scarab's Game
         g.tap(atlas.TAVERN_SCARAB_TAB, 1000)

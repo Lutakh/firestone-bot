@@ -74,7 +74,7 @@ def battle_pass(g: Game) -> None:
     g.focus()
     if not g.found(g.ms.bp_bell):
         return
-    g.tap(g.ms.bp_icon, 2500)
+    g.open_screen(g.ms.bp_icon, atlas.BP_CLOSE_X, 2500)
     if g.found(atlas.BP_REWARDS_BADGE):
         g.tap(atlas.BP_REWARDS_TAB, 2500)
         claim_rewards(g)

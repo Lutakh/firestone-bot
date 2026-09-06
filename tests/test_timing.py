@@ -70,3 +70,17 @@ def test_safe_timing_never_captures(monkeypatch):
     g.tap(Point(10, 10), 500)
     assert fake.grabs == 0
     assert not g.fast()
+
+
+def test_poll_interval_follows_the_timing_mode(monkeypatch):
+    g, _ = _game(monkeypatch, "fast")
+    assert g.poll_ms() == Game.POLL_FAST_MS
+    g, _ = _game(monkeypatch, "safe")
+    assert g.poll_ms() == Game.POLL_SAFE_MS
+
+
+def test_wait_region_change_polls_faster_in_fast_timing(monkeypatch):
+    g, fake = _game(monkeypatch, "fast")
+    before = g.region_image((0, 31, 100, 60))
+    assert g.wait_region_change((0, 31, 100, 60), before, timeout_ms=1000) is False
+    assert fake.grabs >= 4  # 250 ms polls: four captures in one second, one in safe timing

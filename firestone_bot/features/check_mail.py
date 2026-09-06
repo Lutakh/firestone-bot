@@ -10,7 +10,7 @@ from firestone_bot.vision import atlas
 def check_mail(g: Game) -> None:
     g.focus()
     # open mail
-    g.tap(g.ms.mail_icon, 1000)
+    g.open_screen(g.ms.mail_icon, atlas.MAIL_CLOSE_X, 1000)
     # attempt to click claim
     if g.found(atlas.MAIL_CLAIM_ALL):
         g.tap(atlas.MAIL_CLAIM_BUTTON, 1000)

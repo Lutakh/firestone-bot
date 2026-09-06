@@ -31,8 +31,9 @@ def _counter_image(g: Game) -> np.ndarray:
 def _wait_counter_change(g: Game, before: np.ndarray, timeout_ms: int = 15000) -> bool:
     waited = 0
     while waited < timeout_ms:
-        g.sleep(1000)
-        waited += 1000
+        step = g.poll_ms()
+        g.sleep(step)
+        waited += step
         after = _counter_image(g)
         if (
             after.shape == before.shape
@@ -56,8 +57,9 @@ def _wait_play_button(g: Game, timeout_ms: int = 20000) -> bool:
     while waited < timeout_ms:
         if g.found(atlas.TAVERN_USE_TOKEN_READY) or g.found(atlas.SCARAB_PLAY_READY_HOVER):
             return True
-        g.sleep(1000)
-        waited += 1000
+        step = g.poll_ms()
+        g.sleep(step)
+        waited += step
     return False
 
 
@@ -97,7 +99,7 @@ def scarab(g: Game) -> None:
         return  # limit reached for today: no need to open the tavern game
     g.focus()
     # open Tavern
-    g.tap(atlas.TOWN_TAVERN, 1000)
+    g.tap(atlas.TOWN_TAVERN, 1000, expect=atlas.TAVERN_CLOSE_X)
     g.tap(atlas.TAVERN_SCARAB_TAB, 1000)
     play_scarab(g)
     big_close(g)
