@@ -23,7 +23,21 @@ def guild(g: Game) -> None:
     g.sleep(1000)
     g.click()
     g.sleep(1500)
-    _guild_level_check(g)
+    if not _guild_level_check(g):
+        # no banner: most likely not on the main screen when the icon was clicked (a live
+        # cycle still had the town open after the library, 2026-09-06). Back to the main
+        # screen and one more try.
+        from firestone_bot.features.main_menu import main_menu
+
+        g.status("Guild: no guild map, returning to the main screen and retrying")
+        big_close(g)
+        main_menu(g)
+        g.focus()
+        g.move_to(g.ms.guild_icon)
+        g.sleep(1000)
+        g.click()
+        g.sleep(1500)
+        _guild_level_check(g, final=True)
     # check if expeditions are ready
     if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
         g.heartbeat("Guild expedition start", important=True)
@@ -58,11 +72,12 @@ def guild(g: Game) -> None:
     big_close(g)
 
 
-def _guild_level_check(g: Game) -> bool:
+def _guild_level_check(g: Game, final: bool = False) -> bool:
     """Read "Guild level N" on the guild map (progress.py); skipped once the guild reached
-    the level that unlocks everything. The banner can take a moment after the town closes
-    (a live cycle missed it once at 1.5 s, 2026-09-06), so the read is retried. An
-    unreadable banner never gates anything: the guild features run as they always did."""
+    the level that unlocks everything. The read is retried a few times as the map settles.
+    Returns False when no banner was read (the caller retries once from the main screen);
+    on the final attempt an unreadable banner only logs a line and saves a capture: the
+    guild features run as they always did."""
     if g.progress is None or not g.progress.need_guild_check():
         return True
     level = None
@@ -72,12 +87,13 @@ def _guild_level_check(g: Game) -> bool:
             break
         g.sleep(1000)
     g.progress.set_guild_level(level)
-    if level is None:
+    if level is not None:
+        g.status(f"Guild level {level}")
+        return True
+    if final:
         g.status("Guild level: banner not readable (not in a guild?), guild features run as usual")
         _save_diagnostic(g, "guild-banner-miss.png")
-    else:
-        g.status(f"Guild level {level}")
-    return True
+    return False
 
 
 GUILD_LEVEL_READ_TRIES = 3
