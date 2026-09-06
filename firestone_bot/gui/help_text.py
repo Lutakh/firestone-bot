@@ -30,7 +30,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
     (
         "Gameplay settings",
         (
-            "- Adventure button style: Mobile or PC (NOT the new Adventure style).\n"
+            "- Adventure button style: Mobile, PC or the new Adventure style (detected at each cycle).\n"
             '- Activate "Confirmation for purchase with jewels" (safety).'
         ),
     ),
