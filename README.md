@@ -246,7 +246,9 @@ archives attached. Plan, progress and measurements: `docs/`.
 
 ## Icon
 
-The exe, the `.app` and the bot window use the game's own icon (the 256 px image of
-`FirestoneEos.ico` from the Epic install, in `assets/icon-256.png`). `assets/icon.ico` and
-`assets/icon.icns` are generated from it by `python -m firestone_bot.tools.make_icons`
-(needs Pillow, development only), so Windows and macOS show the same icon.
+The exe, the `.app` and the bot window share one icon, `assets/icon-256.png` (the owner's
+bot icon, deliberately different from the game's so the two are told apart in the taskbar).
+`assets/icon.ico` and `assets/icon.icns` are generated from it by
+`python -m firestone_bot.tools.make_icons` (needs Pillow, development only). Windows caches
+exe icons: after an icon change, `ie4uinit.exe -show` or a log-off refreshes the desktop
+shortcut.

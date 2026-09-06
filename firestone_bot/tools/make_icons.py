@@ -2,7 +2,7 @@
 
     python -m firestone_bot.tools.make_icons
 
-The PNG is the 256 px image of the game's own icon (FirestoneEos.ico next to Firestone.exe,
+The PNG is the bot icon chosen by the owner (distinct from the game icon).
 Epic install), so the bot shows the same icon as the game on Windows and macOS. Needs Pillow
 (`pip install pillow`, not a runtime dependency). The .icns is written by hand with PNG
 entries (icp4 .. ic09), which every macOS since 10.7 reads; no iconutil needed.
