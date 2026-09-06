@@ -150,10 +150,15 @@ class Runner:
             g.progress = Progress.load(os.path.join(folder, "progress.json"))
         if not g.progress.need_account_check():
             return
-        level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
-        if level is None:  # a toast or the end of the last cycle's animation over the avatar
-            g.sleep(700)
+        # A closing dialog (the settings window of the main-menu check), a toast or the end
+        # of the last cycle's animation can still cover the avatar: read again for 2 s.
+        level = None
+        for attempt in range(5):
+            if attempt:
+                g.sleep(500)
             level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
+            if level is not None:
+                break
         known = g.progress.account_level
         g.progress.set_account_level(level)
         if level is not None:

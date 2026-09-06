@@ -690,8 +690,11 @@ HU_MILESTONE_TOGGLE = Point(
 HU_MODE_TEXT = (1480, 949, 1720, 999)
 HU_MODE_ORDER = ("x1", "x10", "x100", "next", "max")
 HU_MODE_PARK = Point(1200, 600)
+# 2026-09-06: the classic references were recorded one click behind the cycle (the label
+# of each state was the previous one, verified live on the Mac: "Upgrade max" matched the
+# entry then called "next" with a distance of 0.03); keys re-labelled, values unchanged.
 HU_MODE_SIGNATURES = {
-    "x1": (
+    "x10": (
         (30, 211),
         (
             0.0,
@@ -720,7 +723,7 @@ HU_MODE_SIGNATURES = {
             0.0,
         ),
     ),
-    "x10": (
+    "x100": (
         (19, 222),
         (
             0.0,
@@ -749,7 +752,7 @@ HU_MODE_SIGNATURES = {
             0.0,
         ),
     ),
-    "x100": (
+    "next": (
         (11, 230),
         (
             0.0,
@@ -778,7 +781,7 @@ HU_MODE_SIGNATURES = {
             0.001,
         ),
     ),
-    "next": (
+    "max": (
         (23, 218),
         (
             0.0,
@@ -807,7 +810,7 @@ HU_MODE_SIGNATURES = {
             0.0,
         ),
     ),
-    "max": (
+    "x1": (
         (40, 200),
         (
             0.0,
