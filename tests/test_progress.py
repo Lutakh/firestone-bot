@@ -52,3 +52,15 @@ def test_segment_words_and_row_run():
     assert digits.DigitReader({"7": [glyphs[0].cell]}).read(img) == 77
     assert digits.DigitReader({"7": [glyphs[0].cell]}).read(img, last_word=True) == 7
     assert digits.DigitReader({"7": [np.zeros((20, 12), np.float32)]}).read(img) is None
+
+
+def test_locked_short_forms():
+    from firestone_bot.progress import Progress
+
+    p = Progress()
+    p.account_level, p.guild_level = 37, 4
+    assert p.locked_short("guild_chaos") == "level 100"
+    assert p.locked_short("guild_crystal") == "level 50"
+    p.account_level = 60
+    assert p.locked_short("guild_crystal") == "guild level 5"
+    assert p.locked_short("arena") is None
