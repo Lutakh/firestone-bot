@@ -43,6 +43,10 @@
   happens, to extend the references from a real screen. The main-menu safety cap was also
   reached twice at the start of a cycle without a visible cause (something left open after
   the shop step?).
+- Classic interface style on macOS (owner, 2026-09-07): the battle pass and the events
+  rewards are not claimed correctly. Not investigated yet (no capture taken, the owner wants
+  to save the game's quota): capture both dialogs in classic style, check the claim probes
+  and buttons (BP_* and EVENTS_* in atlas.py were measured in the new-adventure style).
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic
