@@ -351,16 +351,23 @@ def activate(win: WindowInfo) -> None:
     app = _running_app(win.pid)
     if app is None:
         return
-    was_active = bool(app.isActive()) and _window_onscreen(win.handle)
+    onscreen = _window_onscreen(win.handle)
+    was_active = bool(app.isActive()) and onscreen
     _bring_front(app, win)
-    if not was_active:
-        end = time.monotonic() + 3.0
-        while time.monotonic() < end and not _window_onscreen(win.handle):
-            time.sleep(0.05)
-        time.sleep(SPACE_SWITCH_SETTLE)
+    if was_active:
+        return
+    if onscreen:
+        # same Space, no transition animation: a short settle is enough
+        time.sleep(ACTIVATE_SETTLE)
+        return
+    end = time.monotonic() + 3.0
+    while time.monotonic() < end and not _window_onscreen(win.handle):
+        time.sleep(0.05)
+    time.sleep(SPACE_SWITCH_SETTLE)
 
 
 SPACE_SWITCH_SETTLE = 0.7  # s after the window is on screen (Space transition animation)
+ACTIVATE_SETTLE = 0.15  # s when the window was already on screen (plain activation)
 
 
 def _window_onscreen(window_id: int) -> bool:

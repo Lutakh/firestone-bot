@@ -53,7 +53,6 @@ class App:
         self.window.on_rollback_update = self.rollback_update
         self.window.on_import_settings = self.import_settings
         self._close_splash()
-        self.window.root.after(800, self._startup_dialogs)
         # Screenshot / test helpers: open the GUI on a given page or appearance.
         if page := os.environ.get("FIRESTONE_GUI_PAGE"):
             self.window.show_page(page)
@@ -103,13 +102,17 @@ class App:
 
     def _startup_dialogs(self) -> None:
         """One after the other (each is modal): move to Applications (macOS), settings import,
-        macOS permissions."""
+        macOS permissions. Runs BEFORE the bot side is wired, so the game is not brought to
+        the front (hiding the dialog) until the user has answered."""
         if sys.platform == "darwin" and self._offer_move_to_applications():
             return  # relaunching from /Applications
         if not os.path.exists(self.settings.path):
             self._offer_settings_import()
         if sys.platform == "darwin":
             self._mac_permissions_guide()
+        self.window.root.after(50, self._late_init)
+        if self.autostart:
+            self.window.root.after(1100, self.start)
 
     def _offer_move_to_applications(self) -> bool:
         """First launch of the bundle from Downloads or elsewhere: offer to move it into
@@ -271,7 +274,7 @@ class App:
         self.game = Game(self.settings, status_cb=self._status)
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)
-        self.runner.on_finished = lambda: self.window.root.after(600, self.present)
+        self.runner.on_finished = lambda: self.window.root.after(150, self.present)
         self.window.on_env_restored = self._raise_window
         self._install_hotkey()
         self.window.root.after(100, self.present)
@@ -292,7 +295,7 @@ class App:
         except GameWindowNotFound:
             pass
         root = self.window.root
-        root.after(350, self._raise_window)
+        root.after(120, self._raise_window)
 
     def _raise_window(self) -> None:
         root = self.window.root
@@ -676,10 +679,9 @@ class App:
         self._hotkey_listener.start()
 
     def run(self) -> None:
-        # wire the bot side shortly after the first frame; START/DRY RUN also do it on demand
-        self.window.root.after(400, self._late_init)
-        if self.autostart:
-            self.window.root.after(1500, self.start)
+        # start-up dialogs shortly after the first frame, then the bot side (game to front);
+        # START / DRY RUN also wire it on demand
+        self.window.root.after(400, self._startup_dialogs)
         self.window.run()
         if self._exit_heartbeat is not None:
             self._exit_heartbeat.join(timeout=2)
