@@ -311,3 +311,14 @@ def staging_dir(target: str | None = None) -> str:
     """Where the new build is unpacked: next to the install (same volume, so a rename works)."""
     target = target or install_target() or os.getcwd()
     return os.path.join(os.path.dirname(os.path.abspath(target)), "FirestoneBot.update")
+
+
+def cleanup(target: str | None = None) -> None:
+    """Delete the staging dir of a finished update (best effort, called at start-up)."""
+    target = target or install_target()
+    if target is None:
+        return
+    staging = staging_dir(target)
+    if os.path.isdir(staging):
+        shutil.rmtree(staging, ignore_errors=True)
+        log.info("removed update staging dir %s", staging)

@@ -65,6 +65,8 @@ class App:
     @staticmethod
     def _close_splash() -> None:
         """Close the PyInstaller splash (present only in the packaged build)."""
+        if sys.platform == "darwin":
+            return  # no Splash on macOS; importing pyi_splash there logs a KeyError traceback
         try:
             import pyi_splash  # type: ignore[import-not-found]
         except ImportError:
@@ -116,6 +118,7 @@ class App:
         self.window.on_env_restored = self._raise_window
         self._install_hotkey()
         self.window.root.after(100, self.present)
+        self.window.root.after(2000, self._update_cleanup)
         self.window.root.after(3000, self.check_updates)
         self.window.root.after(60_000, self._update_tick)
 
@@ -283,6 +286,12 @@ class App:
 
     # -- self-update (firestone_bot.update) --------------------------------------------------
     UPDATE_CHECK_INTERVAL_S = 24 * 3600
+
+    def _update_cleanup(self) -> None:
+        """Remove the staging dir a previous update left next to the install."""
+        from firestone_bot import update
+
+        threading.Thread(target=update.cleanup, name="update-cleanup", daemon=True).start()
 
     def _update_tick(self) -> None:
         if time.monotonic() - self._update["last"] > self.UPDATE_CHECK_INTERVAL_S:
