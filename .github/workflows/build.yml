@@ -105,3 +105,7 @@ jobs:
             artifacts/FirestoneBot-linux.tar.gz
             artifacts/FirestoneBot-macos.zip
             artifacts/SHA256SUMS.txt
+      - name: Release body from the tag message (also when the release already existed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
