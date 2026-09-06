@@ -123,6 +123,13 @@ class Runner:
                 g.heartbeat("Initiating 24h Game Restart", important=True)
                 restart_game_routine.restart_game_routine(g)
                 last_restart = _ms()
+                if s.flag("RestartGameTest"):
+                    # "restart once at the next start" is a one-shot test switch: AHK left it
+                    # on and restarted at EVERY cycle (63 kill / relaunch in one night on the
+                    # Mac, 2026-09-06); the rework clears it after the test restart.
+                    s.set("RestartGameTest", "0")
+                    s.save()
+                    g.status("Game restart test done; RestartGameTest switched off")
             # Python-only: launch the game if it is closed, restore it if minimised
             if not game_launch.ensure_game_running(g):
                 g.status("The game could not be started; stopping")
