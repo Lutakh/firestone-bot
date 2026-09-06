@@ -37,13 +37,19 @@ def test_bot_own_events_are_ignored(monkeypatch):
     assert guard.triggered.is_set() and guard.reason == "mouse moved"
 
 
-def test_injected_flag_wins_and_disarmed_guard_ignores_everything(monkeypatch):
+def test_injected_events_use_the_heuristic_and_disarmed_guard_ignores_everything(monkeypatch):
     guard = inputguard.InputGuard(lambda g: "continue")
     guard.arm()
-    monkeypatch.setattr(inp, "last_injection", lambda: (0.0, None))
-    guard._on_move(300, 300, True)  # Windows: pynput says injected
+    monkeypatch.setattr(
+        inp, "last_injection", lambda: (inputguard.time.monotonic(), (100.0, 100.0))
+    )
+    guard._on_move(101, 101, True)  # injected right where/when the bot acted: the bot's
     assert not guard.triggered.is_set()
-    guard._on_click(1, 1, None, True, False)
+    monkeypatch.setattr(inp, "last_injection", lambda: (0.0, (100.0, 100.0)))
+    guard._on_move(300, 300, True)  # injected far away, long after: a remote desktop user
+    assert guard.triggered.is_set() and guard.reason == "mouse moved"
+    guard.triggered.clear()
+    guard._on_click(1, 1, None, True, False)  # not injected: hardware, always the user
     assert guard.triggered.is_set() and guard.reason == "mouse clicked"
     guard.disarm()
     guard._on_press("a")

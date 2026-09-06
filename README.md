@@ -216,12 +216,13 @@ pauses it at once (Advanced > Mouse guard, on by default; not in dry runs). A po
 **Start a new cycle** (the bot closes what is open, gets back to the main screen by itself
 and starts from the beginning) or **Continue the cycle** (the pointer goes back where the
 bot left it and the cycle resumes exactly where it stopped). Without an answer a new cycle
-starts after 30 s; every new movement restarts the countdown. On Windows the bot's own
-events are recognised by the `injected` flag of the input hook; elsewhere by timing (within
-250 ms of a bot action) and position (the pointer still where the bot put it). macOS also
-flags synthetic events, so a script cannot stand in for the user there unless the bot is
-started with `FIRESTONE_GUARD_IGNORE_INJECTED_FLAG=1` (test hook: only timing and position
-are used then).
+starts after 30 s; every new movement restarts the countdown. The bot's own events are
+recognised by timing (within 250 ms of a bot action) and position (the pointer still where
+the bot put it). The `injected` flag of the Windows input hook only confirms a hardware
+event as the user's; it cannot exclude events, because a remote desktop (Parsec, RDP)
+injects the user's mouse exactly like the bot does. macOS flags synthetic events too, so a
+test script can stand in for the user; `FIRESTONE_GUARD_IGNORE_INJECTED_FLAG=1` ignores the
+flag altogether (test hook).
 
 ### macOS notification banners
 

@@ -1,9 +1,12 @@
 """Pause the bot when the user touches the mouse or the keyboard (owner spec, 2026-09-04).
 
-pynput listeners watch the physical mouse and keyboard. The bot's own events are told apart
-by the `injected` flag pynput 1.8 reports on Windows, and elsewhere by timing and position:
-an event within IGNORE_AFTER_INJECTION_S of the bot's last injection, or a pointer position
-within MOVE_TOLERANCE of where the bot last put it, is the bot's. Any other event while a
+pynput listeners watch the mouse and keyboard. The bot's own events are told apart by timing
+and position: an event within IGNORE_AFTER_INJECTION_S of the bot's last injection, or a
+pointer position within MOVE_TOLERANCE of where the bot last put it, is the bot's. The
+`injected` flag pynput 1.8 reports on Windows only strengthens the other direction: an event
+NOT flagged injected is certainly the user's. It cannot exclude events, because a remote
+desktop (Parsec, RDP) injects the user's real mouse the same way the bot does: the owner
+moved the mouse through Parsec on 2026-09-06 and nothing happened. Any user event while a
 run is armed sets `triggered`; the bot thread notices it in Game.sleep() (every wait goes
 through it) and calls `check()`, which hands over to the GUI (`on_pause`): a pop-up offers to
 start a new cycle or to continue where the bot stopped, and starts a new cycle by itself
@@ -96,12 +99,14 @@ class InputGuard:
         return False
 
     def _event(self, what: str, injected, pos=None) -> None:
+        if not self.active:
+            return
         if IGNORE_INJECTED_FLAG:
             injected = None
-        if injected or not self.active:
-            return
-        if injected is None and self._bot_own(pos):
-            return
+        if injected is False:
+            pass  # hardware event: the user's for sure
+        elif self._bot_own(pos):
+            return  # injected (the bot, or a remote desktop) and where/when the bot acted
         self.last_activity = time.monotonic()
         self.reason = what
         self.triggered.set()
