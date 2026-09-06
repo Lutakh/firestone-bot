@@ -6,6 +6,7 @@ from firestone_bot import game as game_mod
 from firestone_bot.game import Game
 from firestone_bot.platform.window import Rect, WindowInfo
 from firestone_bot.settings import Settings
+from firestone_bot.vision.viewport import Viewport
 
 
 class _FakeCapture:
@@ -32,6 +33,7 @@ def _game(monkeypatch, timing="fast"):
         maximized=False,
         fullscreen=False,
     )
+    g.vp = Viewport(g.window.client)
     fake = _FakeCapture()
     monkeypatch.setattr(game_mod, "capture", fake)
     monkeypatch.setattr(
