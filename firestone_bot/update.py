@@ -34,6 +34,7 @@ import os
 import posixpath
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -102,9 +103,28 @@ def asset_name(platform: str = sys.platform) -> str:
 
 
 # -- GitHub ------------------------------------------------------------------------------
+def _ssl_context() -> ssl.SSLContext:
+    """TLS with certifi's root certificates: the python.org / GitHub-runner Python that the
+    packaged bundle ships has no CA bundle on macOS ("CERTIFICATE_VERIFY_FAILED: unable to
+    get local issuer certificate", seen 2026-09-06), and Linux builds depend on the distro.
+    The OS store stays in use too (Windows adds its own roots)."""
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+
+        ctx.load_verify_locations(cafile=certifi.where())
+    except (ImportError, OSError, ssl.SSLError):
+        log.debug("certifi not available, system certificates only", exc_info=True)
+    return ctx
+
+
+def _urlopen(req: urllib.request.Request):
+    return urllib.request.urlopen(req, timeout=TIMEOUT_S, context=_ssl_context())
+
+
 def _get(url: str, accept: str = "application/vnd.github+json") -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept})
-    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+    with _urlopen(req) as r:
         return r.read()
 
 
@@ -177,7 +197,7 @@ def download(
     path = os.path.join(dest_dir, asset_name())
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r, open(path, "wb") as f:
+        with _urlopen(req) as r, open(path, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             done = 0
             while chunk := r.read(256 * 1024):
