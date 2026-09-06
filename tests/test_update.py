@@ -1,7 +1,6 @@
 """Self-update: version comparison, release parsing, checksums, payload lookup, updater script."""
 
 import os
-import sys
 
 import pytest
 
@@ -77,18 +76,74 @@ def test_safe_members_rejects_escapes():
         update._safe_members(["/abs"])
 
 
-def test_updater_script_waits_swaps_and_relaunches():
-    text, runner = update.updater_script(
-        4242, "/inst/FirestoneBot", "/inst/FirestoneBot.update", ["/inst/FirestoneBot/FirestoneBot"]
+def test_swap_script_posix_moves_only_program_files_and_keeps_previous():
+    text, runner = update.swap_script(
+        4242,
+        "/inst",
+        "/FirestoneBot.update",
+        ["FirestoneBot", "_internal"],
+        ["/inst/FirestoneBot"],
+        platform="linux",
     )
-    assert "4242" in text
-    assert "FirestoneBot.old" in text
-    if sys.platform == "win32":
-        assert runner == ["cmd", "/c"] and "tasklist" in text
-    else:
-        assert runner == ["/bin/sh"] and "kill -0 4242" in text
-        # the old install is put back when the move of the new one fails
-        assert "mv '/inst/FirestoneBot.old' '/inst/FirestoneBot'; exit 1" in text
+    assert runner == ["/bin/sh"] and "kill -0 4242" in text
+    # settings.ini lives in /inst: only the program entries move
+    assert "mv '/inst/FirestoneBot' '/inst/FirestoneBot.swap/FirestoneBot' || undo" in text
+    assert "mv '/inst/_internal' '/inst/FirestoneBot.swap/_internal' || undo" in text
+    assert "mv '/FirestoneBot.update/FirestoneBot' '/inst/FirestoneBot' || undo" in text
+    assert "mv '/inst'" not in text
+    # the replaced version is kept for a rollback, and put back on failure
+    assert "mv '/inst/FirestoneBot.swap' '/inst/FirestoneBot.previous'" in text
+    assert "mv '/inst/FirestoneBot.swap/_internal' '/inst/_internal'" in text
+
+
+def test_swap_script_macos_swaps_the_bundle_and_reopens_it():
+    text, _ = update.swap_script(
+        7, "/Apps/FirestoneBot.app", "/Apps/FirestoneBot.update", ["FirestoneBot.app"], [], "darwin"
+    )
+    assert "mv '/Apps/FirestoneBot.app' '/Apps/FirestoneBot.swap/FirestoneBot.app' || undo" in text
+    assert "mv '/Apps/FirestoneBot.update/FirestoneBot.app' '/Apps/FirestoneBot.app'" in text
+    assert "open -n '/Apps/FirestoneBot.app' &" in text
+    assert "mv '/Apps/FirestoneBot.swap' '/Apps/FirestoneBot.previous'" in text
+
+
+def test_swap_script_windows_has_undo_label():
+    text, runner = update.swap_script(
+        99,
+        r"C:\Bot",
+        r"C:\FirestoneBot.update",
+        ["FirestoneBot.exe", "_internal"],
+        [r"C:\Bot\FirestoneBot.exe"],
+        "win32",
+    )
+    assert runner == ["cmd", "/c"] and "tasklist" in text
+    assert (
+        r'move "C:\Bot\FirestoneBot.exe" "C:\Bot\FirestoneBot.swap\FirestoneBot.exe" || goto undo'
+        in text
+    )
+    assert r'move "C:\FirestoneBot.update\_internal" "C:\Bot\_internal" || goto undo' in text
+    assert r'move "C:\Bot\FirestoneBot.swap" "C:\Bot\FirestoneBot.previous"' in text
+    assert text.index(":undo") > text.index('start ""')
+
+
+def test_program_entries_per_platform():
+    assert update.program_entries("/x/FirestoneBot.app", "darwin") == ["FirestoneBot.app"]
+    assert update.program_entries(r"C:\Bot", "win32") == ["FirestoneBot.exe", "_internal"]
+    assert update.program_entries("/inst", "linux") == ["FirestoneBot", "_internal"]
+
+
+def test_previous_version_reads_marker(tmp_path, monkeypatch):
+    monkeypatch.setattr(update.sys, "platform", "linux")
+    inst = tmp_path / "inst"
+    inst.mkdir()
+    assert update.previous_version(str(inst)) is None
+    prev = inst / "FirestoneBot.previous"
+    (prev / "_internal").mkdir(parents=True)
+    (prev / "FirestoneBot").write_text("")
+    assert update.previous_version(str(inst)) == "unknown"
+    (inst / "FirestoneBot.previous.json").write_text('{"version": "0.1.9"}')
+    assert update.previous_version(str(inst)) == "0.1.9"
+    with pytest.raises(update.UpdateError):
+        update.rollback(str(tmp_path / "nothing"))
 
 
 def test_install_target_is_none_from_source():

@@ -116,12 +116,21 @@ The bot checks the project's GitHub releases at start-up and once a day (public 
 account). When a newer version exists the Dashboard's Control card shows "Version X is
 available" with an **Update** button: the archive for the current OS is downloaded, its
 SHA256 checked against the release's `SHA256SUMS.txt`, unpacked next to the install, and
-after a last confirmation the bot closes, a small script swaps the old install aside
-(renamed, never deleted first) and puts the new one in place, then relaunches the bot.
-`settings.ini`, `MapStartState.ini`, `gui_state.json` and the log are outside the install and
-are never touched. Advanced > Updates has a "Check for updates now" button. Running from
-source only gets the notification (update with `git pull`). Nothing is downloaded or
-installed without a click.
+after a last confirmation the bot closes, a small script moves the program files aside
+(renamed, never deleted first), puts the new ones in place and relaunches the bot. Only the
+program files move: the `.app` on macOS, `FirestoneBot.exe` + `_internal/` on Windows
+(`FirestoneBot` + `_internal/` on Linux), so `settings.ini`, `MapStartState.ini`,
+`gui_state.json` and the log, which sit next to the exe, are never touched. Advanced >
+Updates has a "Check for updates now" button. Running from source only gets the
+notification (update with `git pull`). Nothing is downloaded or installed without a click.
+
+**Going back.** The version you had before the update is kept next to the install as
+`FirestoneBot.previous` (the exact one that was running, whatever its number, with its
+version recorded in `FirestoneBot.previous.json`). Advanced > Updates then shows
+"Restore previous version (X)": one click, a confirmation, and the bot swaps the program
+files back and restarts; the newer version takes the `.previous` place, so the same button
+brings it back again. Each update replaces the kept copy, so exactly one older version is
+kept at a time (a full build, about the size of the install).
 
 Releasing: bump `__version__` in `firestone_bot/__init__.py`, tag `vX.Y.Z` and push the tag;
 CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and

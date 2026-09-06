@@ -6,12 +6,15 @@ Flow (all steps are explicit user clicks in the GUI, nothing happens on its own)
                      SHA256SUMS.txt attached to the release
   extract()       -> the payload (FirestoneBot/ folder, or FirestoneBot.app on macOS) into a
                      staging dir next to the install
-  apply()         -> a small detached script waits for this process to exit, swaps the old
-                     install aside by rename (never deleted first, same idea as
-                     tools/build_exe.py), moves the new one in and relaunches the bot.
+  apply()         -> a small detached script waits for this process to exit, moves the
+                     program files aside by rename (never deleted first, same idea as
+                     tools/build_exe.py), moves the new ones in and relaunches the bot.
+  rollback()      -> same script the other way round: the version the user had before the
+                     last update (kept as FirestoneBot.previous) comes back with one click.
 
-The user's files (settings.ini, MapStartState.ini, gui_state.json, the log) live next to the
-install, so a swap never touches them. Runs from source only get the notification: the
+Only the program files move (the .app on macOS, FirestoneBot.exe + _internal/ elsewhere):
+the user's files (settings.ini, MapStartState.ini, gui_state.json, the log) sit in the same
+folder as the exe on Windows/Linux and are never touched. Runs from source only get the notification: the
 install step needs the packaged layout.
 
 Layouts handled (what the CI archives contain):
@@ -25,13 +28,16 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import ntpath
 import os
+import posixpath
 import re
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.request
 import zipfile
 from collections.abc import Callable
@@ -224,6 +230,15 @@ def find_payload(root: str) -> str:
 
 
 # -- install -------------------------------------------------------------------------------
+PROGRAM_ENTRIES = {
+    "win32": ("FirestoneBot.exe", "_internal"),
+    "linux": ("FirestoneBot", "_internal"),
+}
+PREVIOUS_NAME = "FirestoneBot.previous"
+PREVIOUS_MARKER = "FirestoneBot.previous.json"
+SWAP_NAME = "FirestoneBot.swap"
+
+
 def install_target() -> str | None:
     """What the updater replaces: the .app bundle on macOS, the one-dir folder elsewhere.
     None when running from source."""
@@ -236,62 +251,117 @@ def install_target() -> str | None:
     return exe_dir
 
 
-def updater_script(
-    pid: int, target: str, payload: str, relaunch: list[str]
+def user_dir(target: str) -> str:
+    """Folder holding the user's files: next to the .app on macOS, the install folder itself
+    on Windows/Linux (settings.ini sits next to FirestoneBot.exe there)."""
+    return os.path.dirname(target) if sys.platform == "darwin" else target
+
+
+def previous_dir(target: str) -> str:
+    return os.path.join(user_dir(target), PREVIOUS_NAME)
+
+
+def program_entries(target: str, platform: str | None = None) -> list[str]:
+    """Names of what gets swapped: the whole bundle on macOS, exe + _internal elsewhere, so
+    the user's files in the same folder are never moved."""
+    platform = platform or sys.platform
+    if platform == "darwin":
+        return [os.path.basename(target)]
+    return list(PROGRAM_ENTRIES.get(platform, PROGRAM_ENTRIES["linux"]))
+
+
+def swap_script(
+    pid: int,
+    target: str,
+    incoming: str,
+    entries: list[str],
+    relaunch: list[str],
+    platform: str | None = None,
 ) -> tuple[str, list[str]]:
     """Text of the detached script and the command that runs it (pure, unit-tested).
 
-    The script: wait for `pid` to exit, rename `target` to `target.old` (a rename of a
-    still-open folder fails cleanly and nothing is lost), move `payload` to `target`, remove
-    the .old copy, relaunch. Any failure leaves the .old copy in place."""
-    if sys.platform == "win32":
+    `target` is the install (the .app on macOS, the folder holding the exe elsewhere),
+    `incoming` the folder holding the new program entries. The script: wait for `pid` to
+    exit, move each entry of the install into a swap folder (a rename of a still-open
+    folder fails cleanly and nothing is lost), move the incoming entries in (on failure,
+    the swap folder is moved back), then keep the swap folder as FirestoneBot.previous
+    for a one-click rollback (the version it holds is recorded by apply()) and relaunch.
+
+    Used for updates (incoming = staging dir) and rollbacks (incoming = the previous
+    folder), so after a rollback the newer version is the one kept as previous."""
+    platform = platform or sys.platform
+    pj = ntpath.join if platform == "win32" else posixpath.join
+    inst = posixpath.dirname(target) if platform == "darwin" else target
+    swap = pj(inst, SWAP_NAME)
+    previous = pj(inst, PREVIOUS_NAME)
+    if platform == "win32":
         q = " ".join(f'"{a}"' for a in relaunch)
-        text = "\r\n".join(
-            [
-                "@echo off",
-                ":wait",
-                f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL',
-                "if not errorlevel 1 (timeout /t 1 /nobreak >NUL & goto wait)",
-                f'if exist "{target}.old" rmdir /s /q "{target}.old"',
-                f'move "{target}" "{target}.old" || exit /b 1',
-                f'move "{payload}" "{target}" || (move "{target}.old" "{target}" & exit /b 1)',
-                f'rmdir /s /q "{target}.old"',
-                f'start "" {q}',
-                'del "%~f0"',
-            ]
-        )
-        return text, ["cmd", "/c"]
+        lines = [
+            "@echo off",
+            ":wait",
+            f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL',
+            "if not errorlevel 1 (timeout /t 1 /nobreak >NUL & goto wait)",
+            f'if exist "{swap}" rmdir /s /q "{swap}"',
+            f'mkdir "{swap}"',
+        ]
+        for e in entries:
+            lines.append(f'move "{pj(inst, e)}" "{pj(swap, e)}" || goto undo')
+        for e in entries:
+            lines.append(f'move "{pj(incoming, e)}" "{pj(inst, e)}" || goto undo')
+        lines += [
+            f'if exist "{previous}" rmdir /s /q "{previous}"',
+            f'move "{swap}" "{previous}"',
+            f'start "" {q}',
+            'del "%~f0"',
+            "exit /b 0",
+            ":undo",
+        ]
+        for e in entries:
+            lines.append(f'if exist "{pj(swap, e)}" move "{pj(swap, e)}" "{pj(inst, e)}"')
+        lines.append("exit /b 1")
+        return "\r\n".join(lines), ["cmd", "/c"]
     q = " ".join(f"'{a}'" for a in relaunch)
-    launch = f"open -n '{target}'" if sys.platform == "darwin" and target.endswith(".app") else q
-    text = "\n".join(
-        [
-            "#!/bin/sh",
-            f"while kill -0 {pid} 2>/dev/null; do sleep 0.5; done",
-            f"rm -rf '{target}.old'",
-            f"mv '{target}' '{target}.old' || exit 1",
-            f"mv '{payload}' '{target}' || {{ mv '{target}.old' '{target}'; exit 1; }}",
-            f"rm -rf '{target}.old'",
-            f"{launch} &",
-            'rm -f "$0"',
-        ]
+    launch = f"open -n '{target}'" if platform == "darwin" and target.endswith(".app") else q
+    undo = "; ".join(
+        f"[ -e '{pj(swap, e)}' ] && mv '{pj(swap, e)}' '{pj(inst, e)}'" for e in entries
     )
-    return text, ["/bin/sh"]
+    lines = [
+        "#!/bin/sh",
+        f"while kill -0 {pid} 2>/dev/null; do sleep 0.5; done",
+        f"undo() {{ {undo}; exit 1; }}",
+        f"rm -rf '{swap}'",
+        f"mkdir -p '{swap}' || exit 1",
+    ]
+    for e in entries:
+        lines.append(f"mv '{pj(inst, e)}' '{pj(swap, e)}' || undo")
+    for e in entries:
+        lines.append(f"mv '{pj(incoming, e)}' '{pj(inst, e)}' || undo")
+    lines += [
+        f"rm -rf '{previous}'",
+        f"mv '{swap}' '{previous}'",
+        f"{launch} &",
+        'rm -f "$0"',
+    ]
+    return "\n".join(lines), ["/bin/sh"]
 
 
-def apply(payload: str, target: str | None = None) -> None:
-    """Write the updater script and start it detached; the caller must exit right after."""
-    target = target or install_target()
-    if target is None:
-        raise UpdateError("running from source: update with git pull")
-    payload = os.path.abspath(payload)
-    target = os.path.abspath(target)
+def _relaunch_command(target: str) -> list[str]:
     if sys.platform == "darwin":
-        relaunch = ["open", "-n", target]
-    else:
-        relaunch = [
-            os.path.join(target, "FirestoneBot.exe" if sys.platform == "win32" else "FirestoneBot")
-        ]
-    text, runner = updater_script(os.getpid(), target, payload, relaunch)
+        return ["open", "-n", target]
+    exe = "FirestoneBot.exe" if sys.platform == "win32" else "FirestoneBot"
+    return [os.path.join(target, exe)]
+
+
+def _start_swap(target: str, incoming: str, kept_version: str, replaced_by: str) -> None:
+    """Record which version the previous folder will hold, then start the detached script."""
+    marker = os.path.join(user_dir(target), PREVIOUS_MARKER)
+    with open(marker, "w", encoding="utf-8") as f:
+        json.dump(
+            {"version": kept_version, "replaced_by": replaced_by, "at": time.time()}, f, indent=2
+        )
+    text, runner = swap_script(
+        os.getpid(), target, incoming, program_entries(target), _relaunch_command(target)
+    )
     suffix = ".bat" if sys.platform == "win32" else ".sh"
     fd, script = tempfile.mkstemp(prefix="firestone-update-", suffix=suffix)
     with os.fdopen(fd, "w", newline="") as f:
@@ -304,7 +374,55 @@ def apply(payload: str, target: str | None = None) -> None:
     else:
         kwargs["start_new_session"] = True
     subprocess.Popen([*runner, script], **kwargs)
-    log.info("updater started: %s -> %s", payload, target)
+    log.info("updater started: %s -> %s (keeping %s as previous)", incoming, target, kept_version)
+
+
+def apply(payload: str, target: str | None = None, new_version: str = "?") -> None:
+    """Install `payload` (a folder holding the program entries) over the running install;
+    the caller must exit right after. The running version is kept as FirestoneBot.previous."""
+    target = target or install_target()
+    if target is None:
+        raise UpdateError("running from source: update with git pull")
+    payload = os.path.abspath(payload)
+    if sys.platform == "darwin" and payload.endswith(".app"):
+        payload = os.path.dirname(payload)
+    _start_swap(os.path.abspath(target), payload, __version__, new_version)
+
+
+def previous_marker(target: str | None = None) -> dict | None:
+    """The marker apply() wrote ({version, replaced_by, at}) when a complete previous install
+    is kept next to this one; None otherwise (an unreadable marker gives version "unknown")."""
+    target = target or install_target()
+    if target is None:
+        return None
+    prev = previous_dir(target)
+    if not all(os.path.exists(os.path.join(prev, e)) for e in program_entries(target)):
+        return None
+    try:
+        with open(os.path.join(user_dir(target), PREVIOUS_MARKER), encoding="utf-8") as f:
+            data = json.load(f)
+        return {**data, "version": str(data.get("version") or "unknown")}
+    except (OSError, ValueError):
+        return {"version": "unknown"}
+
+
+def previous_version(target: str | None = None) -> str | None:
+    """Version kept in FirestoneBot.previous, None if none is there."""
+    marker = previous_marker(target)
+    return marker["version"] if marker else None
+
+
+def rollback(target: str | None = None) -> str:
+    """Swap FirestoneBot.previous back in (the current version becomes the previous one);
+    the caller must exit right after. Returns the version being restored."""
+    target = target or install_target()
+    if target is None:
+        raise UpdateError("running from source: use git to change version")
+    version = previous_version(target)
+    if version is None:
+        raise UpdateError("no previous version kept next to this install")
+    _start_swap(os.path.abspath(target), previous_dir(target), __version__, version)
+    return version
 
 
 def staging_dir(target: str | None = None) -> str:
@@ -314,11 +432,11 @@ def staging_dir(target: str | None = None) -> str:
 
 
 def cleanup(target: str | None = None) -> None:
-    """Delete the staging dir of a finished update (best effort, called at start-up)."""
+    """Delete the staging and swap dirs of a finished update (best effort, at start-up)."""
     target = target or install_target()
     if target is None:
         return
-    staging = staging_dir(target)
-    if os.path.isdir(staging):
-        shutil.rmtree(staging, ignore_errors=True)
-        log.info("removed update staging dir %s", staging)
+    for path in (staging_dir(target), os.path.join(user_dir(target), SWAP_NAME)):
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+            log.info("removed update leftover %s", path)

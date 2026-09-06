@@ -127,6 +127,10 @@ class MainWindow:
         self._tick_fns: list[Callable[[], None]] = []
         self.on_check_updates: Callable[[], None] | None = None  # set by App
         self.on_install_update: Callable[[], None] | None = None
+        self.on_rollback_update: Callable[[], None] | None = None
+        from firestone_bot import update
+
+        self.previous_version = update.previous_version()  # None from source
 
         self.ctx = PageContext(
             settings=settings,
@@ -146,6 +150,9 @@ class MainWindow:
                 "install_update": lambda: (
                     self.on_install_update() if self.on_install_update else None
                 ),
+                "rollback_update": lambda: (
+                    self.on_rollback_update() if self.on_rollback_update else None
+                ),
             },
             show_page=self.show_page,
             base_dir=self.base_dir,
@@ -155,6 +162,7 @@ class MainWindow:
             extras={
                 "appearance_var": self.appearance_var,
                 "settings_existed": os.path.exists(settings.path),
+                "previous_version": self.previous_version,
             },
         )
 

@@ -52,9 +52,9 @@ class App:
         self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
         self.window.on_check_updates = lambda: self.check_updates(manual=True)
         self.window.on_install_update = self.install_update
+        self.window.on_rollback_update = self.rollback_update
         self._close_splash()
-        if sys.platform == "darwin":
-            self.window.root.after(800, self._mac_permissions_guide)
+        self.window.root.after(800, self._startup_dialogs)
         # Screenshot / test helpers: open the GUI on a given page or appearance.
         if page := os.environ.get("FIRESTONE_GUI_PAGE"):
             self.window.show_page(page)
@@ -102,6 +102,10 @@ class App:
             permissions.accessibility_granted(prompt=True)
         permissions.open_settings_pane(missing[0])
 
+    def _startup_dialogs(self) -> None:
+        if sys.platform == "darwin":
+            self._mac_permissions_guide()
+
     def _late_init(self) -> None:
         """Import and wire the bot side once the window is on screen."""
         if self.runner is not None:
@@ -119,6 +123,7 @@ class App:
         self._install_hotkey()
         self.window.root.after(100, self.present)
         self.window.root.after(2000, self._update_cleanup)
+        self.window.root.after(2500, self._announce_previous)
         self.window.root.after(3000, self.check_updates)
         self.window.root.after(60_000, self._update_tick)
 
@@ -293,6 +298,51 @@ class App:
 
         threading.Thread(target=update.cleanup, name="update-cleanup", daemon=True).start()
 
+    def _announce_previous(self) -> None:
+        """Right after an update: say that the old version is one click away."""
+        from firestone_bot import update
+
+        marker = update.previous_marker()
+        if not marker or marker.get("replaced_by") != update.__version__:
+            return
+        self.window.show_update(
+            f"Updated to {update.__version__}. Version {marker.get('version')} is kept: "
+            "Advanced > Updates restores it in one click.",
+            None,
+        )
+        self.window.root.after(30_000, lambda: self.window.show_update("", None))
+
+    def rollback_update(self) -> None:
+        """Advanced > Updates: swap FirestoneBot.previous back in and restart."""
+        from tkinter import messagebox
+
+        from firestone_bot import update
+
+        if self.runner is not None and self.runner.running:
+            messagebox.showinfo(
+                "Restore", "Stop the bot first, then restore.", parent=self.window.root
+            )
+            return
+        prev = update.previous_version()
+        if prev is None:
+            messagebox.showinfo("Restore", "No previous version is kept.", parent=self.window.root)
+            return
+        if not messagebox.askyesno(
+            "Restore previous version",
+            f"Go back to version {prev}? The bot closes, the program files are swapped back "
+            f"(your settings.ini stays), and version {update.__version__} is kept in its place "
+            "so you can return to it the same way.",
+            parent=self.window.root,
+        ):
+            return
+        try:
+            update.rollback()
+        except Exception as e:
+            log.exception("rollback failed")
+            messagebox.showerror("Restore failed", str(e), parent=self.window.root)
+            return
+        self.window.request_exit()
+
     def _update_tick(self) -> None:
         if time.monotonic() - self._update["last"] > self.UPDATE_CHECK_INTERVAL_S:
             self.check_updates()
@@ -405,7 +455,7 @@ class App:
         ):
             return
         try:
-            update.apply(payload)
+            update.apply(payload, new_version=rel.version)
         except Exception as e:
             log.exception("update apply failed")
             self.window.show_update(f"Update failed: {e}", "Retry")

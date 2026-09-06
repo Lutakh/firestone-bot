@@ -127,7 +127,20 @@ def build(parent, ctx: PageContext):
         f"checksum, install, restart). Releases: {RELEASES_PAGE}",
         kind="grey",
     )
-    upd.buttons(("Check for updates now", lambda: ctx.call("check_updates")))
+    prev = ctx.extras.get("previous_version")
+    if prev:
+        upd.note(
+            f"The version you had before the last update ({prev}) is kept next to this "
+            "install as FirestoneBot.previous. Restore it in one click: the bot closes, swaps "
+            "the program files back (your settings.ini stays) and restarts.",
+            kind="grey",
+        )
+        upd.buttons(
+            ("Check for updates now", lambda: ctx.call("check_updates")),
+            (f"Restore previous version ({prev})", lambda: ctx.call("rollback_update")),
+        )
+    else:
+        upd.buttons(("Check for updates now", lambda: ctx.call("check_updates")))
 
     files = place_card(Card(content, ctx, "Files"))
     if not ctx.extras.get("settings_existed", True):
