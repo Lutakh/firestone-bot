@@ -53,6 +53,9 @@ jobs:
           rm cert.p12
           echo "FIRESTONE_CODESIGN_IDENTITY=Firestone Bot" >> "$GITHUB_ENV"
       - run: pyinstaller firestone-bot.spec
+      - name: Re-sign the bundle deep (macOS, certificate available)
+        if: runner.os == 'macOS' && env.FIRESTONE_CODESIGN_IDENTITY != ''
+        run: python -m firestone_bot.tools.mac_codesign sign dist/FirestoneBot.app
       - name: Add example settings
         if: runner.os != 'macOS'
         run: cp settings.ini.example dist/FirestoneBot/settings.ini.example
