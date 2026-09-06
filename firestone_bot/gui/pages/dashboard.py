@@ -6,7 +6,6 @@ push state into it from `_tick`.
 
 from __future__ import annotations
 
-import json
 import os
 import time
 from collections import deque
@@ -206,15 +205,15 @@ class DashboardView:
         )
         self.cycle_value.pack(side="right")
         today.add(cyc, pady=(2, 6), always_enabled=True)
-        lvl = ctk.CTkFrame(today.body, fg_color="transparent")
-        ctk.CTkLabel(lvl, text="Account / guild level", anchor="w", font=theme.font(13)).pack(
-            side="left"
-        )
-        self.level_value = ctk.CTkLabel(
-            lvl, text="-", anchor="e", font=theme.font(13, "bold"), text_color=theme.MUTED
-        )
-        self.level_value.pack(side="right")
-        today.add(lvl, pady=(2, 6), always_enabled=True)
+        self.level_values = {}
+        for key, label in (("account_level", "Account level"), ("guild_level", "Guild level")):
+            lvl = ctk.CTkFrame(today.body, fg_color="transparent")
+            ctk.CTkLabel(lvl, text=label, anchor="w", font=theme.font(13)).pack(side="left")
+            self.level_values[key] = ctk.CTkLabel(
+                lvl, text="-", anchor="e", font=theme.font(13, "bold"), text_color=theme.MUTED
+            )
+            self.level_values[key].pack(side="right")
+            today.add(lvl, pady=(2, 6), always_enabled=True)
         arena = ctk.CTkFrame(today.body, fg_color="transparent")
         arena.grid_columnconfigure(1, weight=1)
         self.arena_dot = StatusDot(arena, "grey")
@@ -331,18 +330,29 @@ class DashboardView:
     # -- today --------------------------------------------------------------------------------
     def refresh_today(self) -> None:
         s = self.ctx.settings
+        progress = _load_progress(os.path.join(self.ctx.base_dir, "progress.json"))
         self.meter_tokens.set(daily._int(s, "TokenCountDaily"), daily._int(s, "MaxTokens"))
-        self.meter_chaos.set(daily._int(s, "ChaosCountDaily"), daily._int(s, "MaxChaos"))
-        self.meter_scarab.set(daily._int(s, "ScarabCountDaily"), daily._int(s, "MaxScarab"))
-        self.meter_crystal.set(daily._int(s, "CrystalCountDaily"), daily._int(s, "MaxCrystals"))
-        done = daily.arena_done(s)
+        for meter, feature, used, limit in (
+            (self.meter_chaos, "guild_chaos", "ChaosCountDaily", "MaxChaos"),
+            (self.meter_scarab, "scarab", "ScarabCountDaily", "MaxScarab"),
+            (self.meter_crystal, "guild_crystal", "CrystalCountDaily", "MaxCrystals"),
+        ):
+            reason = progress.locked_short(feature)
+            if reason:
+                meter.set_locked(reason)  # "0 / 10" on a locked feature only frustrates
+            else:
+                meter.set(daily._int(s, used), daily._int(s, limit))
+        reason = progress.locked_short("arena")
+        done = daily.arena_done(s) and not reason
         self.arena_dot.set("ok" if done else "grey")
-        text = "Done" if done else "Pending"
+        text = f"Locked ({reason})" if reason else "Done" if done else "Pending"
         if self.arena_value.cget("text") != text:
             self.arena_value.configure(text=text, text_color=theme.OK if done else theme.MUTED)
-        text = _levels_text(os.path.join(self.ctx.base_dir, "progress.json"))
-        if self.level_value.cget("text") != text:
-            self.level_value.configure(text=text)
+        for key, label in self.level_values.items():
+            value = getattr(progress, key)
+            text = "-" if value is None else str(value)
+            if label.cget("text") != text:
+                label.configure(text=text)
         reset = format_ahk_stamp(s.get("LastTokenReset"), "not detected yet")
         text = f"Last daily reset: {reset}"
         if self.reset_label.cget("text") != text:
@@ -399,14 +409,8 @@ def build(parent, ctx: PageContext):
     return view.frame
 
 
-def _levels_text(path: str) -> str:
-    """ "36 / 24" from progress.json (written by the bot, see progress.py), "-" when unknown."""
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, ValueError):
-        return "-"
-    acc, gld = data.get("account_level"), data.get("guild_level")
-    if acc is None and gld is None:
-        return "-"
-    return f"{acc if acc is not None else '?'} / {gld if gld is not None else '?'}"
+def _load_progress(path: str):
+    """The account / guild levels read by the bot (progress.py), empty when not written yet."""
+    from firestone_bot.progress import Progress
+
+    return Progress.load(path)

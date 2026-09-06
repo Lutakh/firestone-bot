@@ -123,6 +123,16 @@ class Progress:
             return f"needs guild level {need} (now {self.guild_level})"
         return None
 
+    def locked_short(self, feature: str) -> str | None:
+        """Short form for the dashboard: "level 100" / "guild level 5", None when not locked."""
+        need = ACCOUNT_LEVELS.get(feature)
+        if need and self.account_level is not None and self.account_level < need:
+            return f"level {need}"
+        need = GUILD_LEVELS.get(feature)
+        if need and self.guild_level is not None and self.guild_level < need:
+            return f"guild level {need}"
+        return None
+
     def summary(self) -> str:
         acc = "?" if self.account_level is None else str(self.account_level)
         gld = "?" if self.guild_level is None else str(self.guild_level)

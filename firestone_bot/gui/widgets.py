@@ -683,6 +683,16 @@ class Meter:
         self._text = None
         self.set(0, 0)
 
+    def set_locked(self, reason: str) -> None:
+        """The feature cannot run yet (account / guild level): no counter, the reason instead."""
+        text = f"Locked ({reason})"
+        if self._bar_shown:
+            self.bar.grid_remove()
+            self._bar_shown = False
+        if text != self._text:
+            self._text = text
+            self.value.configure(text=text)
+
     def set(self, used: int, limit: int) -> None:
         if limit <= 0:
             text = f"{used} used, no limit"
