@@ -113,7 +113,30 @@ def check_latest() -> Release:
         data = json.loads(_get(API_LATEST))
     except Exception as e:
         raise UpdateError(f"cannot reach GitHub: {e}") from e
-    return release_from_api(data)
+    rel = release_from_api(data)
+    if not rel.notes and rel.tag:
+        rel.notes = tag_message(rel.tag)  # release created without a body: the tag annotation
+    return rel
+
+
+def tag_message(tag: str) -> str:
+    """Annotation of an annotated tag (the release notes live there when the release itself
+    has no body). Empty on a lightweight tag or any error."""
+    try:
+        ref = json.loads(_get(f"https://api.github.com/repos/{REPO}/git/ref/tags/{tag}"))
+        obj = ref.get("object") or {}
+        if obj.get("type") != "tag":
+            return ""
+        data = json.loads(_get(f"https://api.github.com/repos/{REPO}/git/tags/{obj['sha']}"))
+        text = str(data.get("message") or "").strip()
+        # drop a first line that only repeats the tag name
+        lines = text.splitlines()
+        if lines and lines[0].strip() == tag:
+            text = chr(10).join(lines[1:]).strip()
+        return text
+    except (OSError, ValueError, KeyError) as e:  # notes are optional
+        log.info("tag message for %s unavailable: %s", tag, e)
+        return ""
 
 
 def release_from_api(data: dict) -> Release:

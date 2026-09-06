@@ -89,8 +89,14 @@ jobs:
           merge-multiple: true
       - name: Checksums (read by the bot's self-update)
         run: cd artifacts && sha256sum FirestoneBot-*.zip FirestoneBot-*.tar.gz > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Release notes from the tag annotation
+        run: git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > notes.md && cat notes.md
       - uses: softprops/action-gh-release@v2
         with:
+          body_path: notes.md
           files: |
             artifacts/FirestoneBot-windows.zip
             artifacts/FirestoneBot-linux.tar.gz

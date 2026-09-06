@@ -141,9 +141,12 @@ copy it (with `MapStartState.ini` and `gui_state.json`), leaving the old folder 
 and never overwriting a file already there. Advanced > Files > "Import settings from another
 folder…" does the same for any folder you pick.
 
-Releasing: bump `__version__` in `firestone_bot/__init__.py`, tag `vX.Y.Z` and push the tag;
+Releasing: bump `__version__` in `firestone_bot/__init__.py` (and `pyproject.toml`), create an
+annotated tag whose message is the changelog, `git tag -a vX.Y.Z --cleanup=verbatim -F notes.md`
+(without `--cleanup=verbatim` git drops the `## Heading` lines as comments), push the tag;
 CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and
-attaches everything to the GitHub release (the tag must equal `v` + `__version__`).
+attaches everything to the GitHub release with the tag message as body (the tag must equal
+`v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
 `python -m firestone_bot --start` starts the bot as soon as the window is up.
 
 ## GUI
