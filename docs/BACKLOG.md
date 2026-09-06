@@ -1,5 +1,11 @@
 # Backlog (owner requests, not yet done)
 
+- Activity overlay not visible on Windows (owner, 2026-09-07): the log says "overlay ready
+  (capture-safe: True)" and the panel hides for clicks under it, so it exists but the owner
+  never sees it over the game; to check on the Windows machine (topmost / click-through
+  flags, placement over the maximised game window, WDA_EXCLUDEFROMCAPTURE also hiding it
+  from a Parsec stream?). Owner uses the machine through Parsec: a window excluded from
+  capture is invisible in a remote-desktop stream, which may be the whole explanation.
 - Robustness against network / server slowness (mostly done 2026-09-06): `Game.tap(expect=)`,
   `open_screen()` (main-menu recovery), `wait_for` / `wait_gone` and the `DIALOG_CLOSE_X`
   probe cover the shop, character window, map, town, town buildings with the standard close
