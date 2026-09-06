@@ -11,8 +11,11 @@ from firestone_bot.features import map_align
 def test_landmark_reference_is_bundled_and_consistent():
     with open(map_align.LANDMARK_PATH, encoding="utf-8") as f:
         d = json.load(f)
-    assert len(d["gray"]) == d["w"] * d["h"]
-    assert d["rect"][2] > d["rect"][0] and d["rect"][3] > d["rect"][1]
+    refs = d.get("refs", [d])
+    for r in refs:
+        assert len(r["gray"]) == r["w"] * r["h"]
+        assert r["rect"][2] > r["rect"][0] and r["rect"][3] > r["rect"][1]
+    assert all(isinstance(r["gray"], np.ndarray) for r in map_align.load_landmark())
 
 
 def test_best_match_finds_the_shift():

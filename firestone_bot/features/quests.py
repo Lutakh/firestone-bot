@@ -23,7 +23,7 @@ def claim_quests(g: Game) -> None:
         g.status("Quests: no notification badge, nothing to claim")
         return
     # open character window
-    g.open_screen(g.ms.character_icon, atlas.DIALOG_CLOSE_X, 1000)
+    g.open_screen(g.ms.character_icon, g.ms.character_close_x, 1000)
     # open quests tab
     g.tap(atlas.QUESTS_TAB, 1000)
     _claim_tab(g, atlas.QUESTS_DAILY_TAB)

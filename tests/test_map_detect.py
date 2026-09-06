@@ -7,7 +7,7 @@ import numpy as np
 from firestone_bot.features import map_detect
 
 
-def _digit(img, x, y, w=12, h=22):
+def _digit(img, x, y, w=12, h=18):
     """A white block with a 2 px dark outline, like one bold digit."""
     img[y - 2 : y + h + 2, x - 2 : x + w + 2] = (40, 40, 40)
     img[y : y + h, x : x + w] = (255, 255, 255)
@@ -24,10 +24,10 @@ def test_labels_found_and_isolated_shapes_ignored():
     _label(img, 400, 300, digits=3)  # "4:57"-like
     _digit(img, 300, 200)  # a single outlined block: not a label
     img[20:40, 500:560] = (255, 255, 255)  # plain white without outline: ignored
-    labels = map_detect.find_labels(img)
+    labels = map_detect.find_labels(img, 1.0)
     assert len(labels) == 2
     (x0, y0, x1, y1), (a0, b0, _a1, _b1) = sorted(labels)
-    assert (x0, y0) == (100, 100) and x1 == 100 + 3 * 16 + 12 and y1 == 122
+    assert (x0, y0) == (100, 100) and x1 == 100 + 3 * 16 + 12 and y1 == 118
     assert (a0, b0) == (400, 300)
 
 
@@ -45,4 +45,27 @@ def test_find_missions_maps_labels_to_logical_icon_centres():
     x1, y1, x2, y2 = map_detect.atlas.MAP_DETECT_AREA
     fx, fy = (x2 - x1) / 1600, (y2 - y1) / 800
     assert x == x1 + int((200 + 200 + 3 * 16 + 12) / 2 * fx)
-    assert y == y1 + int(411 * fy) - map_detect.atlas.MAP_LABEL_TO_ICON
+    assert y == y1 + int(409 * fy) - map_detect.atlas.MAP_LABEL_TO_ICON
+
+
+def test_panel_labels_are_not_missions():
+    """The remaining-time labels of the left HUD panel (running missions) are dropped."""
+    img = np.full((800, 1600, 3), (60, 120, 200), np.uint8)
+    _label(img, 40, 150)  # far left: the panel
+    _label(img, 600, 400)  # on the map
+
+    class G:
+        def region_image(self, rect):
+            return img
+
+    points = map_detect.find_missions(G())
+    assert len(points) == 1 and points[0][0] > map_detect.PANEL_MAX_X
+
+
+def test_thresholds_follow_the_capture_factor():
+    """Retina-like capture: digits twice as tall are still labels with factor 2."""
+    img = np.full((400, 600, 3), (60, 120, 200), np.uint8)
+    for i in range(4):
+        _digit(img, 100 + i * 32, 100, w=24, h=36)
+    assert map_detect.find_labels(img, 1.0) == []
+    assert len(map_detect.find_labels(img, 2.0)) == 1

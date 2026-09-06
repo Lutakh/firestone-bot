@@ -1160,6 +1160,9 @@ GUILD_LEVEL_REGION = (193, 122, 480, 152)  # "Guild level 24" bar under the guil
 # with a hole in the middle (pink background), so the probe tells "a dialog is open" from
 # "main screen". Measured on the Mac (town X centre 255,249,206; gear 225,151,66).
 DIALOG_CLOSE_X = Probe(1849, 81, 1858, 90, 0xFFF9CE, 30, "dialog_close_x")
+# New style: the character page's X sits lower and left (ring at logical (1780..1810, 90..118),
+# measured 2026-09-06); the classic probe never matched and every quests visit was retried.
+NS_CHARACTER_CLOSE_X = Probe(1793, 101, 1802, 110, 0xFFF9CE, 30, "ns_character_close_x")
 # Dialogs whose X sits elsewhere (entry probes for `expect=` / open_screen, measured on the
 # Mac 2026-09-06). They look at the orange ring 20 logical px left of the cross centre: the
 # cream centre alone matched cream text and icons of the main screen, the orange never does.

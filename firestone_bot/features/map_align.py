@@ -54,11 +54,16 @@ def _gray_logical(g: Game, rect, scale: float) -> np.ndarray:
     return _resample(img, round((rect[2] - rect[0]) * scale), round((rect[3] - rect[1]) * scale))
 
 
-def load_landmark(path: str = LANDMARK_PATH) -> dict:
+def load_landmark(path: str = LANDMARK_PATH) -> list[dict]:
+    """The bundled references (one per client the map was recorded on: the title's size
+    differs between the Mac and the Windows clients, so the best-correlating reference is
+    used). Old single-reference files are read too."""
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    d["gray"] = np.array(d["gray"], dtype=float).reshape(d["h"], d["w"])
-    return d
+    refs = d.get("refs", [d])
+    for r in refs:
+        r["gray"] = np.array(r["gray"], dtype=float).reshape(r["h"], r["w"])
+    return refs
 
 
 def best_match(big: np.ndarray, ref: np.ndarray, step: int = 1) -> tuple[float, int, int]:
@@ -78,14 +83,18 @@ def best_match(big: np.ndarray, ref: np.ndarray, step: int = 1) -> tuple[float, 
     return best
 
 
-def landmark_offset(g: Game, landmark: dict | None = None) -> tuple[float, int, int]:
-    """(correlation, dx, dy): how far (logical px) the landmark sits from its reference place."""
-    lm = landmark or load_landmark()
-    x1, y1, x2, y2 = lm["rect"]
-    s, m = lm["scale"], atlas.MAP_LANDMARK_SEARCH
-    big = _gray_logical(g, (x1 - m, y1 - m, x2 + m, y2 + m), s)
-    c, dx, dy = best_match(big, lm["gray"])
-    return c, round(dx / s) - m, round(dy / s) - m
+def landmark_offset(g: Game, landmark: list[dict] | None = None) -> tuple[float, int, int]:
+    """(correlation, dx, dy): how far (logical px) the landmark sits from its reference place
+    (the reference that correlates best wins)."""
+    best = (-2.0, 0, 0)
+    for lm in landmark or load_landmark():
+        x1, y1, x2, y2 = lm["rect"]
+        s, m = lm["scale"], atlas.MAP_LANDMARK_SEARCH
+        big = _gray_logical(g, (x1 - m, y1 - m, x2 + m, y2 + m), s)
+        c, dx, dy = best_match(big, lm["gray"])
+        if c > best[0]:
+            best = (c, round(dx / s) - m, round(dy / s) - m)
+    return best
 
 
 def align_map(g: Game) -> bool:
