@@ -10,6 +10,7 @@ import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 MAC = sys.platform == "darwin"
+VERSION = __import__("firestone_bot").__version__  # keeps the bundle version in sync
 # macOS: identity of the self-signed code-signing certificate (tools/mac_codesign.py); empty =
 # ad-hoc. A stable identity keeps the Screen Recording / Accessibility grants across updates.
 CODESIGN_IDENTITY = os.environ.get("FIRESTONE_CODESIGN_IDENTITY") or None
@@ -17,7 +18,8 @@ CODESIGN_IDENTITY = os.environ.get("FIRESTONE_CODESIGN_IDENTITY") or None
 a = Analysis(
     ["firestone_bot/__main__.py"],
     pathex=["."],
-    datas=collect_data_files("customtkinter"),  # theme JSON + fonts under _internal/customtkinter/assets
+    datas=collect_data_files("customtkinter")  # theme JSON + fonts under _internal/customtkinter/assets
+    + [("assets/icon-256.png", "assets")],  # window icon (tk.PhotoImage)
     hiddenimports=collect_submodules("firestone_bot.features")
     + collect_submodules("firestone_bot.gui")
     + collect_submodules("firestone_bot.platform")
@@ -36,20 +38,20 @@ if MAC:
         name="FirestoneBot",
         console=False,
         upx=False,
-        icon=None,
+        icon="assets/icon.icns",
         codesign_identity=CODESIGN_IDENTITY,
     )
     coll = COLLECT(exe, a.binaries, a.datas, name="FirestoneBot", upx=False)
     app = BUNDLE(
         coll,
         name="FirestoneBot.app",
-        icon=None,
+        icon="assets/icon.icns",
         bundle_identifier="com.lutakh.firestone-bot",
         info_plist={
             "NSHighResolutionCapable": True,
             "LSMinimumSystemVersion": "13.0",
             "NSAppleEventsUsageDescription": "Firestone Bot brings the game window to the front.",
-            "CFBundleShortVersionString": "0.2.1",
+            "CFBundleShortVersionString": VERSION,
         },
     )
 else:
@@ -74,6 +76,6 @@ else:
         name="FirestoneBot",
         console=False,
         upx=False,
-        icon=None,
+        icon="assets/icon.ico",
     )
     coll = COLLECT(exe, splash.binaries, a.binaries, a.datas, name="FirestoneBot", upx=False)

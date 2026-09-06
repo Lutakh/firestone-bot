@@ -112,27 +112,6 @@ class DashboardView:
         )
         self.cycle_label.pack(side="left", padx=(10, 0))
         control.add(state_row, always_enabled=True, pady=(8, 2))
-        # self-update banner (hidden until App finds a newer release)
-        self.update_row = ctk.CTkFrame(control.body, fg_color="transparent")
-        self.update_label = ctk.CTkLabel(
-            self.update_row,
-            text="",
-            anchor="w",
-            justify="left",
-            wraplength=250,
-            font=theme.font(12),
-        )
-        self.update_label.pack(side="top", anchor="w")
-        self.update_btn = ctk.CTkButton(
-            self.update_row,
-            text="Update",
-            command=lambda: ctx.call("install_update"),
-            height=28,
-            width=90,
-            font=theme.font(12, "bold"),
-        )
-        control.add(self.update_row, always_enabled=True, pady=(2, 2))
-        self.update_row.grid_remove()
         self.activity_label = ctk.CTkLabel(
             control.body,
             text="Idle",
@@ -281,20 +260,6 @@ class DashboardView:
 
         self.refresh_today()
         ctx.register_tick(self.refresh_today)
-
-    def show_update(self, text: str, button: str | None = None) -> None:
-        """Show the update banner with `text`; `button` labels the action (None hides it)."""
-        self.update_label.configure(text=text)
-        if button:
-            self.update_btn.configure(text=button)
-            if not self.update_btn.winfo_manager():
-                self.update_btn.pack(side="top", anchor="w", pady=(4, 0))
-        elif self.update_btn.winfo_manager():
-            self.update_btn.pack_forget()
-        if text and not self.update_row.winfo_manager():
-            self.update_row.grid()
-        elif not text and self.update_row.winfo_manager():
-            self.update_row.grid_remove()
 
     # -- state ------------------------------------------------------------------------------
     def set_state(self, text: str, kind: str, cycle: int | None, duration: str = "") -> None:

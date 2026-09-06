@@ -300,7 +300,8 @@ def swap_script(
             "@echo off",
             ":wait",
             f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL',
-            "if not errorlevel 1 (timeout /t 1 /nobreak >NUL & goto wait)",
+            # ping as a 1 s sleep: timeout.exe refuses to run without a console
+            "if not errorlevel 1 (ping -n 2 127.0.0.1 >NUL & goto wait)",
             f'if exist "{swap}" rmdir /s /q "{swap}"',
             f'mkdir "{swap}"',
         ]
@@ -368,9 +369,19 @@ def _start_swap(target: str, incoming: str, kept_version: str, replaced_by: str)
         f.write(text)
     if sys.platform != "win32":
         os.chmod(script, 0o700)
-    kwargs: dict = {"cwd": os.path.dirname(target), "close_fds": True}
+    # The script must outlive this process and must not show a console. Measured on Windows
+    # (2026-09-06): a DETACHED_PROCESS cmd with no standard handles never gets past the
+    # `tasklist | find` pipe of the wait loop (nothing swapped, no relaunch); CREATE_NO_WINDOW
+    # with the three handles on NUL runs it to the end in about a second.
+    kwargs: dict = {
+        "cwd": os.path.dirname(target),
+        "close_fds": True,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
     if sys.platform == "win32":
-        kwargs["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | NEW_PROCESS_GROUP
+        kwargs["creationflags"] = 0x08000000 | 0x00000200  # CREATE_NO_WINDOW | NEW_PROCESS_GROUP
     else:
         kwargs["start_new_session"] = True
     subprocess.Popen([*runner, script], **kwargs)

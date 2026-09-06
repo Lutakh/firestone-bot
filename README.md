@@ -113,10 +113,12 @@ notarised (that needs a paid Apple developer account).
 ## Updates
 
 The bot checks the project's GitHub releases at start-up and once a day (public API, no
-account). When a newer version exists the Dashboard's Control card shows "Version X is
-available" with an **Update** button: the archive for the current OS is downloaded, its
+account). When a newer version exists an orange banner across the top of the window says
+"Version X is available" with an **Update** button that opens the release notes; **Download**
+fetches the archive for the current OS, its
 SHA256 checked against the release's `SHA256SUMS.txt`, unpacked next to the install, and
-after a last confirmation the bot closes, a small script moves the program files aside
+the banner turns green and a last dialog offers **Install and restart**: the bot closes, a
+small script moves the program files aside
 (renamed, never deleted first), puts the new ones in place and relaunches the bot. Only the
 program files move: the `.app` on macOS, `FirestoneBot.exe` + `_internal/` on Windows
 (`FirestoneBot` + `_internal/` on Linux), so `settings.ini`, `MapStartState.ini`,
@@ -214,3 +216,10 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 `ruff check .`, `pytest -q`, `pyinstaller firestone-bot.spec`. GitHub Actions runs the tests
 and builds the Windows ZIP and Linux tarball on every push; tagged `v*` releases get the
 archives attached. Plan, progress and measurements: `docs/`.
+
+## Icon
+
+The exe, the `.app` and the bot window use the game's own icon (the 256 px image of
+`FirestoneEos.ico` from the Epic install, in `assets/icon-256.png`). `assets/icon.ico` and
+`assets/icon.icns` are generated from it by `python -m firestone_bot.tools.make_icons`
+(needs Pillow, development only), so Windows and macOS show the same icon.

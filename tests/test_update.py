@@ -116,6 +116,7 @@ def test_swap_script_windows_has_undo_label():
         "win32",
     )
     assert runner == ["cmd", "/c"] and "tasklist" in text
+    assert "ping -n 2" in text and "timeout" not in text  # timeout.exe needs a console
     assert (
         r'move "C:\Bot\FirestoneBot.exe" "C:\Bot\FirestoneBot.swap\FirestoneBot.exe" || goto undo'
         in text
@@ -148,4 +149,17 @@ def test_previous_version_reads_marker(tmp_path, monkeypatch):
 
 def test_install_target_is_none_from_source():
     assert update.install_target() is None
-    assert update.staging_dir("/x/FirestoneBot") == os.path.join("/x", "FirestoneBot.update")
+    assert update.staging_dir("/x/FirestoneBot") == os.path.abspath(
+        os.path.join("/x", "FirestoneBot.update")
+    )
+
+
+def test_render_notes_headings_bullets_bold():
+    from firestone_bot.gui.update_dialog import render_notes
+
+    runs = render_notes("## Updates\n- The **updater** moves files.\n\nPlain line\n")
+    assert runs[0] == ("Updates\n", "h2")
+    assert runs[1] == ("•  ", "bullet")
+    assert ("updater", "bold") in runs
+    assert runs[-1] == ("Plain line", "text")  # trailing newline runs are dropped
+    assert render_notes("") == []

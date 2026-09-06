@@ -22,6 +22,19 @@ NUMBER_WIDTH = 80
 HELP_WRAP = 520
 
 
+def assets_dir() -> str:
+    """Folder of the bundled images: assets/ in the source tree, _internal/assets (or
+    Contents/Resources/assets) in a PyInstaller build."""
+    import os
+
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return os.path.join(base, "assets")
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets"
+    )
+
+
 def _state(enabled: bool) -> str:
     return "normal" if enabled else "disabled"
 
@@ -610,9 +623,9 @@ class Banner(ctk.CTkFrame):
 
 
 class StatusDot:
-    def __init__(self, parent, kind: str = "grey") -> None:
+    def __init__(self, parent, kind: str = "grey", size: int = 14) -> None:
         self.widget = ctk.CTkLabel(
-            parent, text="●", text_color=theme.colour(kind), font=theme.font(14), width=16
+            parent, text="●", text_color=theme.colour(kind), font=theme.font(size), width=16
         )
         self.kind = kind
 

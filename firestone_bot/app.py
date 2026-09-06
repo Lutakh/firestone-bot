@@ -450,12 +450,14 @@ class App:
                 if not frozen:
                     text += " Running from source: update with git pull."
                 win.post_call(
-                    lambda: win.show_update(text, "Update" if frozen else "Open releases page")
+                    lambda: win.show_update(
+                        text, "Update" if frozen else "Open releases page", "warn"
+                    )
                 )
             elif manual:
                 win.post_call(
                     lambda: win.show_update(
-                        f"You run the latest version ({update.__version__}).", None
+                        f"You run the latest version ({update.__version__}).", None, "ok"
                     )
                 )
                 win.root.after(8000, lambda: win.show_update("", None))
@@ -472,6 +474,9 @@ class App:
         rel = self._update["release"]
         if rel is None or self._update["busy"]:
             return
+        if self._update["payload"] is not None:
+            self._ask_install()  # already downloaded: the banner button installs
+            return
         target = update.install_target()
         if target is None:
             webbrowser.open(rel.page)
@@ -481,15 +486,30 @@ class App:
                 "Update", "Stop the bot first, then update.", parent=self.window.root
             )
             return
-        notes = (rel.notes or "").strip()
-        notes = (notes[:1200] + "…") if len(notes) > 1200 else notes
-        if not messagebox.askyesno(
-            "Update",
-            f"Download version {rel.version} now?\n\nThe bot will ask again before installing "
-            f"and restarting.\n\n{notes}",
-            parent=self.window.root,
-        ):
+        from firestone_bot.gui.update_dialog import UpdateDialog
+
+        UpdateDialog(
+            self.window.root,
+            title="Update available",
+            headline=f"Version {rel.version} is available",
+            subtitle=f"You run {update.__version__}. The download is verified (SHA256) and "
+            "the bot asks again before installing.",
+            notes=rel.notes,
+            buttons=[
+                ("Download", self._download_update, True),
+                ("Release page", lambda: webbrowser.open(rel.page), False),
+                ("Later", None, False),
+            ],
+        )
+
+    def _download_update(self) -> None:
+        """Download + verify on a worker thread, then offer to install."""
+        from firestone_bot import update
+
+        rel = self._update["release"]
+        if rel is None or self._update["busy"]:
             return
+        target = update.install_target()
         self._update["busy"] = True
         win = self.window
 
@@ -510,31 +530,45 @@ class App:
             except Exception as e:
                 msg = str(e)
                 log.exception("update failed")
-                win.post_call(lambda: win.show_update(f"Update failed: {msg}", "Retry"))
+                win.post_call(lambda: win.show_update(f"Update failed: {msg}", "Retry", "err"))
             finally:
                 self._update["busy"] = False
 
         threading.Thread(target=worker, name="update-download", daemon=True).start()
 
     def _ask_install(self) -> None:
-        from tkinter import messagebox
+        """The archive is unpacked: green banner and a modal to install now or later."""
+        from firestone_bot.gui.update_dialog import UpdateDialog
 
+        rel = self._update["release"]
+        self.window.show_update(
+            f"Version {rel.version} is downloaded and verified.", "Install and restart", "ok"
+        )
+        UpdateDialog(
+            self.window.root,
+            title="Install update",
+            headline=f"Install version {rel.version}?",
+            subtitle="The bot closes, the new version replaces the program files (your "
+            "settings.ini and counters stay) and starts again. The current version is kept "
+            "for a one-click rollback (Advanced > Updates).",
+            notes=rel.notes,
+            buttons=[("Install and restart", self._install_now, True), ("Later", None, False)],
+        )
+
+    def _install_now(self) -> None:
         from firestone_bot import update
 
         rel, payload = self._update["release"], self._update["payload"]
-        self.window.show_update(f"Version {rel.version} ready to install.", "Install and restart")
-        if not messagebox.askyesno(
-            "Update",
-            f"Install version {rel.version} now? The bot closes, the new version replaces the "
-            "current one (your settings.ini stays) and starts again.",
-            parent=self.window.root,
-        ):
+        if self.runner is not None and self.runner.running:
+            self.window.show_update(
+                "Stop the bot first, then install.", "Install and restart", "warn"
+            )
             return
         try:
             update.apply(payload, new_version=rel.version)
         except Exception as e:
             log.exception("update apply failed")
-            self.window.show_update(f"Update failed: {e}", "Retry")
+            self.window.show_update(f"Update failed: {e}", "Retry", "err")
             return
         self.window.request_exit()
 

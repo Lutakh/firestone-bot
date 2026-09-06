@@ -28,7 +28,7 @@ from firestone_bot.gui.binding import Binder
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.logging_bridge import QueueLogHandler
 from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
-from firestone_bot.gui.widgets import StatePill, StatusDot
+from firestone_bot.gui.widgets import StatePill, StatusDot, assets_dir
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
@@ -171,10 +171,12 @@ class MainWindow:
         )
 
         self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
+        self._set_window_icon()
+        self._build_top_banner()
         self._build_sidebar()
         self.content = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
-        self.content.grid(row=0, column=1, sticky="nsew")
+        self.content.grid(row=1, column=1, sticky="nsew")
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
         self._build_status_strip()
@@ -203,7 +205,7 @@ class MainWindow:
 
     def _build_sidebar(self) -> None:
         side = ctk.CTkFrame(self.root, corner_radius=0, width=SIDEBAR_WIDTH)
-        side.grid(row=0, column=0, sticky="nsew")
+        side.grid(row=1, column=0, sticky="nsew")
         side.grid_propagate(False)
         side.grid_columnconfigure(0, weight=1)
         side.grid_rowconfigure(1, weight=1)
@@ -283,9 +285,59 @@ class MainWindow:
             font=theme.font(12),
         ).pack(fill="x")
 
+    def _set_window_icon(self) -> None:
+        """The game's icon (assets/icon-256.png, same image as the exe / .app icon)."""
+        path = os.path.join(assets_dir(), "icon-256.png")
+        if not os.path.exists(path):
+            return
+        try:
+            self._icon_image = tk.PhotoImage(file=path)
+            self.root.iconphoto(True, self._icon_image)
+        except Exception:
+            log.debug("window icon not set", exc_info=True)
+
+    def _build_top_banner(self) -> None:
+        """Full-width coloured banner above the sidebar and pages, used for updates."""
+        self.top_banner = ctk.CTkFrame(self.root, corner_radius=0, fg_color=theme.BANNER_BG["info"])
+        self.top_banner.grid(row=0, column=0, columnspan=2, sticky="ew")
+        self.top_banner.grid_columnconfigure(1, weight=1)
+        self.top_banner_dot = StatusDot(self.top_banner, "info", size=10)
+        self.top_banner_dot.widget.grid(row=0, column=0, padx=(16, 0), pady=10)
+        self.top_banner_text = ctk.CTkLabel(
+            self.top_banner,
+            text="",
+            anchor="w",
+            justify="left",
+            font=theme.font(13, "bold"),
+            text_color=theme.INFO,
+        )
+        self.top_banner_text.grid(row=0, column=1, sticky="ew", padx=(8, 12), pady=8)
+        self.top_banner_btn = ctk.CTkButton(
+            self.top_banner,
+            text="Update",
+            width=120,
+            height=30,
+            font=theme.font(13, "bold"),
+            command=lambda: self.ctx.call("install_update"),
+        )
+        self.top_banner_btn.grid(row=0, column=2, padx=(0, 8), pady=6)
+        self.top_banner_close = ctk.CTkButton(
+            self.top_banner,
+            text="✕",
+            width=30,
+            height=30,
+            fg_color="transparent",
+            hover=False,
+            text_color=theme.MUTED,
+            font=theme.font(13),
+            command=lambda: self.show_update("", None),
+        )
+        self.top_banner_close.grid(row=0, column=3, padx=(0, 10), pady=6)
+        self.top_banner.grid_remove()
+
     def _build_status_strip(self) -> None:
         strip = ctk.CTkFrame(self.root, corner_radius=0, height=28)
-        strip.grid(row=1, column=0, columnspan=2, sticky="ew")
+        strip.grid(row=2, column=0, columnspan=2, sticky="ew")
         strip.grid_propagate(False)
         strip.grid_columnconfigure(1, weight=1)
         self.strip_dot = StatusDot(strip, "grey")
@@ -409,10 +461,25 @@ class MainWindow:
         """Run `fn` on the Tk thread (from any thread)."""
         self.ui_queue.put(("call", fn))
 
-    def show_update(self, text: str, button: str | None = None) -> None:
-        """Update banner in the Dashboard's Control card (Tk thread)."""
-        if hasattr(self, "dash"):
-            self.dash.show_update(text, button)
+    def show_update(self, text: str, button: str | None = None, kind: str = "info") -> None:
+        """Top banner (Tk thread): `text` shows it (empty hides it), `button` labels the action
+        (None: no button), `kind` picks the colour (info / ok / warn / err)."""
+        b = self.top_banner
+        if not text:
+            if b.winfo_manager():
+                b.grid_remove()
+            return
+        b.configure(fg_color=theme.BANNER_BG.get(kind, theme.BANNER_BG["info"]))
+        self.top_banner_dot.set(kind)
+        self.top_banner_text.configure(text=text, text_color=theme.colour(kind))
+        if button:
+            self.top_banner_btn.configure(text=button)
+            if not self.top_banner_btn.winfo_manager():
+                self.top_banner_btn.grid()
+        elif self.top_banner_btn.winfo_manager():
+            self.top_banner_btn.grid_remove()
+        if not b.winfo_manager():
+            b.grid()
 
     def request_exit(self) -> None:
         if threading.current_thread() is threading.main_thread():
