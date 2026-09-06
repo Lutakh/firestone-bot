@@ -40,7 +40,7 @@ def shop(g: Game) -> None:
     # detected one, or never detected) the shop is opened anyway so the reset is not missed.
     if not g.found(g.ms.shop_bell) and 0 < hours_since(g.settings.LastTokenReset) < 23:
         return
-    g.tap(g.ms.shop_icon)
+    g.open_screen(g.ms.shop_icon, atlas.DIALOG_CLOSE_X)
     if claim_free_mystery_box(g):
         daily.mark_daily_reset(g.settings)
         g.status("Daily shop: free mystery box claimed, daily counters reset")

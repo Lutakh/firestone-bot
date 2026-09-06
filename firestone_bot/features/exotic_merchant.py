@@ -17,7 +17,7 @@ def _sell(g: Game, items) -> None:
 
 def exotic_merchant(g: Game) -> None:
     # Open exotic merchant
-    g.tap(atlas.TOWN_EXOTIC_MERCHANT)
+    g.tap(atlas.TOWN_EXOTIC_MERCHANT, expect=atlas.DIALOG_CLOSE_X)
     s = g.settings
     if s.flag("SellScrolls") or s.flag("SellAll") or s.flag("SellNoGold"):
         # SellStart:

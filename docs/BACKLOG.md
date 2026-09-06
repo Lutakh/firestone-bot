@@ -1,10 +1,10 @@
 # Backlog (owner requests, not yet done)
 
-- Robustness against network / server slowness (partly done 2026-09-06): `Game.tap(expect=)`,
-  `wait_for` / `wait_gone` and the `DIALOG_CLOSE_X` probe give patient waits to open_town,
-  big_close and the guild map. Still to do: an entry probe for every other dialog chain
-  (shop, mail, chests, town buildings, map) so each click waits for its screen and recovers
-  through main_menu on a miss instead of a fixed delay.
+- Robustness against network / server slowness (mostly done 2026-09-06): `Game.tap(expect=)`,
+  `open_screen()` (main-menu recovery), `wait_for` / `wait_gone` and the `DIALOG_CLOSE_X`
+  probe cover the shop, character window, map, town, town buildings with the standard close
+  button and the guild map. Still to do: the dialogs without that button (mail, bag, events,
+  battle pass, tavern) need their own entry probes; measure on a slow connection.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through
@@ -17,11 +17,11 @@
   moved and that the bot will restart a NEW cycle from the beginning after 30 s without any
   mouse activity (each new movement restarts the 30 s countdown). Keyboard input should count
   too. Not active in dry runs.
-- Global optimisation (partly done 2026-09-06, "Click timing" fast mode: 150 ms hover,
-  screen-change waits, 300 ms toasts, cycle 5m45s -> 2m30s on the owner's account; per-section
-  timing logged). Still to do: skip modules whose main-screen entry probe says there is
-  nothing to do (mail dot, event bells, guild bell), shorten the remaining fixed sleeps
-  (wheel scroll steps, "wait N s" loops) with probes, measure on a slow connection.
+- Global optimisation (mostly done 2026-09-06, "Click timing" fast mode: 150 ms hover,
+  screen-change waits, 300 ms toasts, 50 ms wheel notches, guardian screen waited for instead
+  of a flat 6.5 s; cycle 5m45s -> about 2m30s on the owner's account; per-section timing
+  logged). Still to do: the remaining polling loops ("wait N s" in scarab / arena / crystal)
+  could poll faster; measure on a slow connection and on an account with everything unlocked.
 - Map alignment: detect that the world map is not centred or is zoomed (zoom slider bottom
   right, drag offset) and re-centre / reset the zoom before clicking the mission points; today a
   moved map silently breaks every fixed mission coordinate.

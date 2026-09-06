@@ -20,7 +20,7 @@ def _claim_tab(g: Game, tab: atlas.Point) -> None:
 
 def claim_quests(g: Game) -> None:
     # open character window
-    g.tap(g.ms.character_icon, 1000)
+    g.open_screen(g.ms.character_icon, atlas.DIALOG_CLOSE_X, 1000)
     # open quests tab
     g.tap(atlas.QUESTS_TAB, 1000)
     _claim_tab(g, atlas.QUESTS_DAILY_TAB)

@@ -194,7 +194,15 @@ each click, plus 1.5-2 s per MsgBox. Advanced > Cycle > **Click timing** (`Timin
 Each cycle ends with a "Cycle sections" line (main screen, town, guild, map, heroes) and the
 time the fast timing saved, to see where a cycle spends its time. Dry runs keep the safe
 timings. Feature code uses `g.tap(point, settle_ms)` for the move / hover / click / wait
-sequence; a click whose reaction is known (an entry probe) can wait for it explicitly.
+sequence. Screens with the standard orange close button (shop, character window, map,
+town and its buildings, guild map) are waited for explicitly through that button's probe
+(`DIALOG_CLOSE_X`, up to 4 s: patience for a slow game): `g.open_screen()` clicks a
+main-screen icon, and when the screen does not come up, goes back to the main screen and
+clicks again; `big_close` waits until the button is gone and clicks once more if the
+dialog stays open; T and M are pressed again when the town or the map does not appear.
+Mouse-wheel scrolls send their notches 50 ms apart instead of 200 (a 35-notch scroll takes
+2 s instead of 7). Modules with a main-screen indicator (event bell, battle-pass bell, shop
+dot) were already skipped when it is off.
 
 ## Activity overlay over the game
 

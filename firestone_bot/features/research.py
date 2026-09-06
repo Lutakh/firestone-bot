@@ -117,7 +117,7 @@ def research_start(g: Game) -> None:
 def go_research(g: Game) -> None:
     g.focus()
     # open Library
-    g.tap(atlas.TOWN_LIBRARY, 1000)
+    g.tap(atlas.TOWN_LIBRARY, 1000, expect=atlas.DIALOG_CLOSE_X)
     # select Firestone tree
     g.tap(atlas.RS_FIRESTONE_TREE, 1000)
     research_slot_test(g)

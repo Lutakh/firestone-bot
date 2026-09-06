@@ -214,14 +214,28 @@ class Game:
         if not self.dry_run:
             inp.key_up(name)
 
+    WHEEL_FAST_MS = 50  # per notch in fast timing (AHK: 200), then WHEEL_SETTLE_MS once
+    WHEEL_SETTLE_MS = 300
+
     def wheel(self, notches: int, interval_ms: int = 200) -> None:
-        """Negative = WheelDown. Each notch is followed by `interval_ms` (AHK Sleep, 200)."""
+        """Negative = WheelDown. Each notch is followed by `interval_ms` (AHK Sleep, 200);
+        fast timing sends notches 50 ms apart and settles once at the end (a 35-notch
+        scroll takes 2 s instead of 7)."""
         self._trace(f"wheel {notches}")
         step = 1 if notches > 0 else -1
+        fast = self.fast() and interval_ms >= 100
+        per = self.WHEEL_FAST_MS if fast else interval_ms
         for _ in range(abs(notches)):
             if not self.dry_run:
                 inp.wheel(step, interval=0)
-            self.sleep(interval_ms)
+            self.sleep(per)
+        if fast:
+            self.stats["wait_saved_ms"] = (
+                self.stats.get("wait_saved_ms", 0.0)
+                + abs(notches) * (interval_ms - per)
+                - self.WHEEL_SETTLE_MS
+            )
+            self.sleep(self.WHEEL_SETTLE_MS)
 
     # -- timed clicks (plan: robustness + speed, owner request 2026-09-06) -------------------
     HOVER_SAFE_MS = 1000  # AHK: MouseMove, Sleep 1000, Click
@@ -324,6 +338,25 @@ class Game:
         self.click()
         if settle_ms:
             self.wait_change(settle_ms, before)
+
+    def open_screen(self, p: Point, expect: Probe, settle_ms: float = 1500) -> bool:
+        """Click a main-screen icon that opens a full-screen dialog. Fast timing: wait for
+        `expect`; when it does not show (the click landed elsewhere, a leftover dialog), go
+        back to the main screen (big X, main-menu check) and click once more. Returns
+        whether the expected screen is there (always True in safe timing, which cannot
+        tell)."""
+        self.tap(p, settle_ms, expect=expect)
+        if not self.fast() or self.found(expect):
+            return True
+        from firestone_bot.features.big_close import big_close
+        from firestone_bot.features.main_menu import main_menu
+
+        self.status("Screen not reached, returning to the main screen and retrying")
+        big_close(self)
+        main_menu(self)
+        self.focus()
+        self.tap(p, settle_ms, expect=expect)
+        return self.found(expect)
 
     def tap_xy(self, x: int, y: int, settle_ms: float = 1500, anchor=None) -> None:
         self.tap(Point(x, y, anchor), settle_ms)

@@ -16,8 +16,14 @@ def guardian(g: Game) -> None:
         return
     g.focus()
     # open Magic Quarter
-    g.tap(atlas.TOWN_MAGIC_QUARTER, 0)
-    g.sleep(6500)  # the guardian screen comes up slower at times
+    if g.fast():
+        # the guardian screen comes up slower at times: wait for its close button, then
+        # a second for its content (AHK: a flat 6.5 s)
+        g.tap(atlas.TOWN_MAGIC_QUARTER, 6500, expect=atlas.DIALOG_CLOSE_X)
+        g.sleep(1000)
+    else:
+        g.tap(atlas.TOWN_MAGIC_QUARTER, 0)
+        g.sleep(6500)
     # check for evolve
     if g.settings.flag("GuardianEvolve") and g.found(atlas.GUARDIAN_EVOLVE_DOT):
         g.tap(atlas.GUARDIAN_EVOLVE_TAB, 1000)
