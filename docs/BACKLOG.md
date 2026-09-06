@@ -1,9 +1,10 @@
 # Backlog (owner requests, not yet done)
 
-- Robustness against network / server slowness: slow UI, clicks landing on the wrong screen,
-  clicks not registered. Ideas: wait-for-probe helpers instead of fixed sleeps at screen
-  transitions, verify the expected screen before clicking, retry once, and a "recover to the
-  main screen" routine (main_menu) when a probe chain fails.
+- Robustness against network / server slowness (partly done 2026-09-06): `Game.tap(expect=)`,
+  `wait_for` / `wait_gone` and the `DIALOG_CLOSE_X` probe give patient waits to open_town,
+  big_close and the guild map. Still to do: an entry probe for every other dialog chain
+  (shop, mail, chests, town buildings, map) so each click waits for its screen and recovers
+  through main_menu on a miss instead of a fixed delay.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through
@@ -16,13 +17,11 @@
   moved and that the bot will restart a NEW cycle from the beginning after 30 s without any
   mouse activity (each new movement restarts the 30 s countdown). Keyboard input should count
   too. Not active in dry runs.
-- Global optimisation (owner request): make the cycles much faster WITHOUT losing reliability
-  (network latency, server hiccups). Ideas: replace fixed 1000 ms sleeps by "wait until the
-  expected screen/probe appears" with a timeout (fast when the game is fast, patient when it is
-  slow); verify the target screen before each click chain and recover through main_menu on a
-  miss; measure per-module durations in the log to find the slow spots; skip modules whose
-  entry probe already says there is nothing to do; keep the AHK timing available as a fallback
-  "safe mode" setting.
+- Global optimisation (partly done 2026-09-06, "Click timing" fast mode: 150 ms hover,
+  screen-change waits, 300 ms toasts, cycle 5m45s -> 2m30s on the owner's account; per-section
+  timing logged). Still to do: skip modules whose main-screen entry probe says there is
+  nothing to do (mail dot, event bells, guild bell), shorten the remaining fixed sleeps
+  (wheel scroll steps, "wait N s" loops) with probes, measure on a slow connection.
 - Map alignment: detect that the world map is not centred or is zoomed (zoom slider bottom
   right, drag offset) and re-centre / reset the zoom before clicking the mission points; today a
   moved map silently breaks every fixed mission coordinate.
