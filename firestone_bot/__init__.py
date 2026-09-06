@@ -1,3 +1,3 @@
 """Firestone Idle RPG bot: Python port of the AutoHotkey v1.1 bot."""
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
