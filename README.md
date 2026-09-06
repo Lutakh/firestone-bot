@@ -85,30 +85,52 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 
 or double-click `firestone-bot-mac.command` (creates `.venv` on first use). Build the bundle
 with `pyinstaller firestone-bot.spec`: `dist/FirestoneBot.app` (ad-hoc signed, not
-notarised: right-click > Open the first time). `settings.ini` is read from the current
-directory when run from source and from the directory holding `FirestoneBot.app` when the
-bundle is launched from Finder.
+notarised: see the step-by-step below for the Gatekeeper warning). `settings.ini` is read
+from the current directory when run from source and from the directory holding
+`FirestoneBot.app` when the bundle is launched from Finder.
 
-### Sharing the macOS build with someone else
+### macOS: install from a release (step by step)
 
-1. Build it (`pyinstaller firestone-bot.spec`) and zip `dist/FirestoneBot.app` (zip keeps the
-   ad-hoc signature; do not copy the bare folder through a cloud drive).
-2. The other person unzips it anywhere (their Documents folder for instance) and puts their
-   `settings.ini` NEXT TO `FirestoneBot.app` (the bot reads and writes `settings.ini`,
-   `MapStartState.ini`, `gui_state.json` and the log in the folder that holds the bundle).
-3. First launch: right-click > Open (the bundle is not notarised, macOS warns once).
-4. The bot then guides through the two permissions: it shows a dialog naming what is
-   missing, triggers the system prompts and opens System Settings > Privacy & Security on the
-   right pane. Enable FirestoneBot under **Screen Recording** and **Accessibility**, then
-   quit and relaunch the bot (macOS applies Screen Recording at the next start). The
-   Dashboard's Environment card keeps saying which one is still missing.
-5. In the game: Settings > Graphics > Fullscreen OFF, window zoomed (green button).
+1. Download `FirestoneBot-macos.zip` from the
+   [releases page](https://github.com/Lutakh/firestone-bot/releases/latest) and unzip it.
+   Move `FirestoneBot.app` into a folder of its own (for instance `~/Documents/FirestoneBot`):
+   the bot creates `settings.ini`, `MapStartState.ini`, `gui_state.json` and its log NEXT TO
+   the bundle. Already have a `settings.ini`? Put it in that folder, or let the bot offer to
+   import it at first start.
+2. Double-click `FirestoneBot.app`. macOS refuses: *"Apple could not verify FirestoneBot.app
+   is free of malware"* with **Move to Trash** / **Done**. Click **Done** (never Move to
+   Trash). The app is signed with the project's own certificate but not notarised by Apple,
+   which needs a paid developer account; the warning is expected.
+3. Open **System Settings > Privacy & Security**, scroll down to the *Security* section: a
+   line says *"FirestoneBot.app was blocked to protect your Mac"* with an **Open Anyway**
+   button. Click it and confirm with your password or Touch ID. This is asked once per
+   download. (On macOS 14 and earlier, right-click > Open on the app does the same.)
 
-The bundle is signed with the project's self-signed certificate ("Firestone Bot", see
-`tools/mac_codesign.py`) so the identity, and with it the Screen Recording / Accessibility
-grants, stays the same across updates; an ad-hoc build (no certificate available) would ask
-for them again after each update. Gatekeeper still warns once because the app is not
-notarised (that needs a paid Apple developer account).
+   Terminal alternative, once, on the unzipped app (adapt the path):
+
+   ```bash
+   xattr -dr com.apple.quarantine ~/Documents/FirestoneBot/FirestoneBot.app
+   ```
+
+4. Launch the app again. It names the permissions that are missing, triggers the system
+   prompts and opens System Settings on the right pane. Enable FirestoneBot under
+   **Screen Recording** and **Accessibility**, then quit and relaunch the bot (macOS applies
+   Screen Recording at the next start). The Dashboard's Environment card keeps saying which
+   one is still missing.
+5. In the game: Settings > Graphics > **Fullscreen OFF**, window zoomed (green button),
+   Steam only (no Epic client on macOS).
+6. Start the bot from the Dashboard. Cmd+Esc stops it. Updates arrive through the Dashboard
+   banner (see Updates below) and keep the same signature, so the permissions are not asked
+   again; a manually downloaded new version goes through steps 2 and 3 again.
+
+### Sharing your own macOS build
+
+Build it (`pyinstaller firestone-bot.spec`) and zip `dist/FirestoneBot.app` (zip keeps the
+signature; do not copy the bare folder through a cloud drive). The other person follows the
+steps above. The CI bundle is signed with the project's self-signed certificate ("Firestone
+Bot", see `tools/mac_codesign.py`) so the identity, and with it the Screen Recording /
+Accessibility grants, stays the same across updates; an ad-hoc local build (no certificate)
+would ask for them again after each update.
 
 ## Updates
 

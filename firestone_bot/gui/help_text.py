@@ -16,6 +16,9 @@ HOME_SECTIONS: list[tuple[str, str]] = [
     (
         "macOS",
         (
+            "- First launch of a downloaded FirestoneBot.app: macOS says it could not verify it; "
+            "click Done, then System Settings > Privacy & Security > Security > Open Anyway "
+            "(once). The app is signed by the project, not notarised by Apple.\n"
             "- Game Settings > Graphics: turn Fullscreen OFF (the fullscreen Space letterboxes "
             "the game and hides the menu bar; a zoomed window is the reference setup). Keep "
             "the menu bar and the Dock visible, the bot measures the window.\n"
