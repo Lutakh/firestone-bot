@@ -239,15 +239,19 @@ class Game:
 
     def read_number(self, rect: tuple[int, int, int, int], last_word: bool = False) -> int | None:
         """The white number drawn in a logical rect (top-left anchored), None if unreadable."""
-        if self._digits is None:
-            from firestone_bot.vision.digits import DigitReader
+        try:
+            if self._digits is None:
+                from firestone_bot.vision.digits import DigitReader
 
-            self._digits = DigitReader()
-        vp = self._viewport()
-        sx1, sy1 = vp.to_screen(rect[0], rect[1], (0.0, 0.0))
-        sx2, sy2 = vp.to_screen(rect[2], rect[3], (0.0, 0.0))
-        img = capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3]
-        value = self._digits.read(img, last_word=last_word)
+                self._digits = DigitReader()
+            vp = self._viewport()
+            sx1, sy1 = vp.to_screen(rect[0], rect[1], (0.0, 0.0))
+            sx2, sy2 = vp.to_screen(rect[2], rect[3], (0.0, 0.0))
+            img = capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3]
+            value = self._digits.read(img, last_word=last_word)
+        except Exception:  # a missing template file, a capture error: never end the cycle
+            log.exception("read_number %s failed", rect)
+            value = None
         self._trace(f"read_number {rect} -> {value}")
         return value
 
