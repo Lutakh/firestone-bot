@@ -344,6 +344,9 @@ def swap_script(
         lines += [
             f'if exist "{previous}" rmdir /s /q "{previous}"',
             f'move "{swap}" "{previous}"',
+            # Explorer caches the icon per exe path: refresh it, or the old icon stays in
+            # the taskbar after an update (best effort, present on Windows 10/11)
+            "ie4uinit.exe -show >NUL 2>&1",
             f'start "" {q}',
             'del "%~f0"',
             "exit /b 0",
