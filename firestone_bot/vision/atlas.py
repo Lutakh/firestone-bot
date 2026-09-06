@@ -859,7 +859,7 @@ HERO_UPGRADE_SLOTS = (  # (setting, probe rect, click point) in AHK order
 NS_STYLE_PROBE = Probe(1640, 946, 1800, 966, 0x1089FF, 6, "ns_style_probe")
 # The same button while the pointer hovers it (lighter blue, measured 2026-09-06): with the
 # mouse left on it the style probe missed and a whole run went on in the classic layout.
-NS_STYLE_PROBE_HOVER = Probe(1640, 946, 1800, 966, 0x40C0F0, 12, "ns_style_probe_hover")
+NS_STYLE_PROBE_HOVER = Probe(1640, 946, 1800, 966, 0x54D9F7, 12, "ns_style_probe_hover")
 NS_MAIL_ICON = Point(55, 606)
 NS_EVENTS_ICON = Point(1862, 681)
 NS_EVENTS_BELL = Probe(1885, 636, 1915, 666, RED_DOT, 3, "ns_events_bell")
