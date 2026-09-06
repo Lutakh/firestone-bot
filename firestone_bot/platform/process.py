@@ -141,3 +141,61 @@ def choose_platform(setting: str, last: str = "") -> str | None:
     if last in installed:
         return last
     return installed[0] if installed else None
+
+
+# -- Steam client -----------------------------------------------------------------------------
+STEAM_PROCESS_NAMES = ("steam.exe", "steam_osx", "steam")
+
+
+def find_steam_process() -> psutil.Process | None:
+    for p in psutil.process_iter(["name"]):
+        if (p.info["name"] or "").lower() in STEAM_PROCESS_NAMES:
+            return p
+    return None
+
+
+def restart_steam(quit_timeout: float = 60.0, start_wait: float = 40.0) -> bool:
+    """Quit the Steam client cleanly, kill it if it lingers, start it again and wait.
+
+    Owner request 2026-09-06: after a game restart the Firestone window can stay black
+    forever (Unity stuck on its "Steam Recovery" request; the Steam client keeps a stale
+    state), and only a full Steam restart brings the game back. Returns True when a Steam
+    process is running afterwards."""
+    proc = find_steam_process()
+    if proc is not None:
+        if sys.platform == "darwin":
+            subprocess.run(
+                ["osascript", "-e", 'tell application "Steam" to quit'],
+                check=False,
+                capture_output=True,
+            )
+        elif sys.platform == "win32":
+            try:
+                subprocess.run([proc.exe(), "-shutdown"], check=False, capture_output=True)
+            except (psutil.Error, OSError):
+                pass
+        else:
+            subprocess.run(["steam", "-shutdown"], check=False, capture_output=True)
+        deadline = time.monotonic() + quit_timeout
+        while time.monotonic() < deadline and find_steam_process() is not None:
+            time.sleep(1)
+        for p in psutil.process_iter(["name"]):  # still there: kill the whole client
+            if (p.info["name"] or "").lower() in STEAM_PROCESS_NAMES:
+                try:
+                    p.kill()
+                except psutil.Error:
+                    pass
+        time.sleep(5)
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", "-a", "Steam"])
+    elif sys.platform == "win32":
+        os.startfile("steam://open/main")
+    else:
+        subprocess.Popen(["xdg-open", "steam://open/main"])
+    deadline = time.monotonic() + start_wait
+    while time.monotonic() < deadline:
+        if find_steam_process() is not None:
+            time.sleep(15)  # let the client finish logging in before a game launch
+            return True
+        time.sleep(1)
+    return find_steam_process() is not None

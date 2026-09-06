@@ -46,6 +46,13 @@ def restart_game_routine(g: Game) -> None:
             return
         g.heartbeat("Pixel not found after 5 min. Retrying restart...", important=True)
         attempts += 1
+        if platform == "steam":
+            # a relaunched game can stay on a black window while the Steam client keeps a
+            # stale state (macOS, 2026-09-06): restart the client before the next attempt
+            g.status("Game restart: start screen not found, restarting the Steam client")
+            process.kill_game()
+            if not g.dry_run:
+                process.restart_steam()
         if cap and attempts >= cap:
             g.status(f"RestartGameRoutine: safety cap of {cap} attempts reached")
             return

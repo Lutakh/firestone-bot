@@ -55,6 +55,16 @@ def launch_game(g: Game) -> bool:
     if wait_for_start_button(g):
         g.status("Game launch: start button clicked, resuming")
         return True
+    if platform == "steam":
+        # black window after the launch: restart the Steam client and try once more
+        g.status("Game launch: start button not found, restarting the Steam client")
+        process.kill_game()
+        if not g.dry_run:
+            process.restart_steam()
+            process.launch_game(platform)
+        if process.wait_for_game(timeout=WINDOW_TIMEOUT_S) is not None and wait_for_start_button(g):
+            g.status("Game launch: start button clicked after a Steam restart, resuming")
+            return True
     g.status("Game launch: start button not found in time")
     return False
 
