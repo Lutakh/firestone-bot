@@ -103,10 +103,12 @@ from the current directory when run from source and from the directory holding
    which needs a paid developer account; the warning is expected.
 3. Open **System Settings > Privacy & Security**, scroll down to the *Security* section: a
    line says *"FirestoneBot.app was blocked to protect your Mac"* with an **Open Anyway**
-   button. Click it and confirm with your password or Touch ID. This is asked once per
-   download. (On macOS 14 and earlier, right-click > Open on the app does the same.)
+   button. Click it, confirm with your password or Touch ID, and answer **Open** to the
+   last prompt. (On macOS 14 and earlier, right-click > Open on the app does the same.)
 
-   Terminal alternative, once, on the unzipped app (adapt the path):
+   If the app still does not appear afterwards (no window, no error: macOS sometimes keeps
+   the quarantine flag), clear the flag once from Terminal, adapting the path, then launch
+   the app again:
 
    ```bash
    xattr -dr com.apple.quarantine ~/Documents/FirestoneBot/FirestoneBot.app
