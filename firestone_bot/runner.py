@@ -154,11 +154,33 @@ class Runner:
         if level is None:  # a toast or the end of the last cycle's animation over the avatar
             g.sleep(700)
             level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
+        known = g.progress.account_level
         g.progress.set_account_level(level)
-        if level is None:
+        if level is not None:
+            g.status(f"Account level {level}")
+            return
+        self._save_level_diagnostic()
+        if known is None:
             g.status("Account level: not readable on the avatar, no feature is skipped")
         else:
-            g.status(f"Account level {level}")
+            g.status(f"Account level: not readable now, keeping {known} from the last read")
+
+    def _save_level_diagnostic(self) -> None:
+        """Keep the avatar region of a failed read next to progress.json (account-level-miss.png)."""
+        g = self.g
+        try:
+            from firestone_bot.platform import capture
+            from firestone_bot.platform.types import Rect
+
+            folder = os.path.dirname(os.path.abspath(g.map_state_path))
+            vp = g._viewport()
+            x1, y1, x2, y2 = atlas.ACCOUNT_LEVEL_REGION
+            sx1, sy1 = vp.to_screen(x1, y1, (0.0, 0.0))  # same anchor as read_number
+            sx2, sy2 = vp.to_screen(x2, y2, (0.0, 0.0))
+            img = capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))
+            capture.save_png(img, os.path.join(folder, "account-level-miss.png"))
+        except Exception:
+            log.debug("level diagnostic not saved", exc_info=True)
 
     def main_script(self) -> None:
         g, s = self.g, self.settings

@@ -22,7 +22,7 @@ def arena_battle(g: Game) -> bool:
         step = 2000 if not g.fast() else g.poll_ms()
         g.sleep(step)
         waited_ms += step
-        if cap and waited_ms >= cap * 2000:  # the cap counts AHK iterations of 2 s
+        if cap and waited_ms >= cap * 20000:  # a battle takes a while: 20 s per cap unit
             g.status(f"ArenaBattle: safety cap of {cap} iterations reached")
             return True
 

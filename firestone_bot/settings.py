@@ -132,7 +132,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
 
 # Python-only additions (never written unless changed from default).
 EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
-    "SafetyCap": ("PythonOptions", "0"),  # optional cap on unbounded loops (plan 3.2)
+    "SafetyCap": ("PythonOptions", "3"),  # cap on unbounded loops (owner: 3 by default, 2026-09-06)
     "GamePlatform": ("PythonOptions", "auto"),  # store used to launch the game: auto/steam/epic
     "InterfaceStyle": ("PythonOptions", "auto"),  # main-screen layout: auto/classic/new
     "LastPlatform": ("PythonOptions", ""),  # store detected the last time (read-only)

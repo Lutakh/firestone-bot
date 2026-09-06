@@ -476,7 +476,8 @@ OPTIONS: dict[str, Option] = {
     "SafetyCap": Option(
         "Safety cap on unbounded loops",
         "Some loops wait forever for a screen change (arena, liberation, hero upgrades, "
-        "main-menu finder); N stops them after N iterations.",
+        "main-menu finder); N stops them after N iterations (the arena battle wait counts "
+        "20 s per iteration). Default 3.",
         "num",
         zero_means="0 = off (AHK behaviour)",
     ),

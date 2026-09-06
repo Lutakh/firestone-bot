@@ -177,7 +177,7 @@ class GameOverlay:
         if self._hidden_until is not None:
             self.top.after_cancel(self._hidden_until)
         self.top.withdraw()
-        self.top.update_idletasks()
+        self.top.update()  # flush the unmap to the window server now
 
         def back() -> None:
             self._hidden_until = None

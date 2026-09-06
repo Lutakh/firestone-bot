@@ -354,6 +354,7 @@ class App:
 
         self.window.post_call(hide)
         done.wait(0.5)
+        time.sleep(0.25)  # let the window server actually remove the panel before the click
         log.info("overlay hidden for a click under it at (%s, %s)", sx, sy)
 
     def _overlay_start(self) -> None:
