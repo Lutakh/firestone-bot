@@ -179,6 +179,22 @@ attaches everything to the GitHub release with the tag message as body (the tag 
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
 `python -m firestone_bot --start` starts the bot as soon as the window is up.
 
+## Account progress (locked features)
+
+A new account has features locked behind its level: engineer and arena at 50, scarab game
+at 60, emblem chests of the exotic merchant at 65, alchemist at 120, oracle at 200; in the
+guild, hero awakening and the arcane crystal at 50 (the crystal also needs guild level 5)
+and the chaos rift at 100. The bot reads the account level on the avatar at every cycle
+start and the guild level on the guild map, and skips a locked feature with a line in the
+activity log ("Engineer: needs account level 50 (now 36), skipped") instead of opening its
+"reach level N" popup. Your options are untouched: the feature runs as soon as the account
+qualifies. Once the account reaches 200 (everything unlocked) and the guild level 5, the
+reads stop. Numbers are read with a small template matcher on the game's font
+(`vision/digits.py`, templates from `tools/digit_templates.py`), independent of the screen
+resolution; an unreadable number never disables anything, it is only logged. Levels are kept
+in `progress.json` next to `settings.ini`. Not being in a guild shows no level banner: the
+guild features are then skipped for the cycle.
+
 ## GUI
 
 The window (customtkinter, "dark-blue" theme) has a sidebar with seven pages and the

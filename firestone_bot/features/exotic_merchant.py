@@ -40,6 +40,6 @@ def exotic_merchant(g: Game) -> None:
     # ExChecks:
     if s.flag("ExoticUpgrades"):
         exotic_upgrades(g)
-    if s.flag("BuyEx"):
+    if s.flag("BuyEx") and not g.locked("emblem_chests"):
         buy_exotic(g)
     big_close(g)

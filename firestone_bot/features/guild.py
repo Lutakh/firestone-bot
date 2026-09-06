@@ -19,6 +19,9 @@ def guild(g: Game) -> None:
     g.sleep(1000)
     g.click()
     g.sleep(1500)
+    if not _guild_level_check(g):
+        big_close(g)
+        return
     # check if expeditions are ready
     if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
         g.heartbeat("Guild expedition start", important=True)
@@ -33,14 +36,14 @@ def guild(g: Game) -> None:
         g.click()
         g.sleep(1000)
         big_close(g)
-    if g.settings.flag("Awaken"):
+    if g.settings.flag("Awaken") and not g.locked("guild_awaken"):
         awaken_run(g)
-    if g.settings.flag("Chaos"):
+    if g.settings.flag("Chaos") and not g.locked("guild_chaos"):
         hit_chaos(g)
     if not g.settings.flag("Pickaxes"):
         claim_axes(g)
     # CrystalHit:
-    if g.settings.flag("Crystal"):
+    if g.settings.flag("Crystal") and not g.locked("guild_crystal"):
         hit_crystal(g)
     if g.settings.flag("PTree"):
         g.move_to(atlas.GUILD_PTREE_ENTRY)
@@ -51,6 +54,25 @@ def guild(g: Game) -> None:
     if g.settings.flag("GNotif"):
         clear_notifications(g)
     big_close(g)
+
+
+def _guild_level_check(g: Game) -> bool:
+    """Read "Guild level N" on the guild map (progress.py); skipped once the guild reached
+    the level that unlocks everything. Returns False when the account is not in a guild
+    (no banner: the guild map shows the find/create screen instead) so the guild features
+    are skipped for this cycle."""
+    if g.progress is None or not g.progress.need_guild_check():
+        return True
+    level = g.read_number(atlas.GUILD_LEVEL_REGION, last_word=True)
+    g.progress.set_guild_level(level)
+    if level is None:
+        if g.progress.guild_level is None:
+            g.status("Guild: no guild level banner (not in a guild?), guild features skipped")
+            return False
+        g.status("Guild level: banner not readable, keeping the last value")
+    else:
+        g.status(f"Guild level {level}")
+    return True
 
 
 def claim_axes(g: Game) -> None:

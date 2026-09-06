@@ -56,6 +56,8 @@ HOME_TEXT = "\n\n".join(f"{title.upper()}:\n{body}" for title, body in HOME_SECT
 WHERE_THINGS_ARE = (
     "Everyday switches: Main screen, Town, Guild & Tree, Missions & WM. "
     "Rare options: Advanced. Live status: Dashboard. "
+    "Locked features (engineer, arena, scarab, alchemist, oracle, guild buildings) are skipped "
+    "until the account or guild level unlocks them; the levels are read on screen each cycle.\n"
     "Settings are saved automatically to settings.ini next to the executable (macOS: in "
     "~/Library/Application Support/FirestoneBot, see Advanced > Files)."
 )

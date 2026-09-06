@@ -1119,3 +1119,9 @@ MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
         (967, 547),
     ),
 }
+
+
+# -- account / guild level (progress.py, measured on the Mac 2026-09-06 at 16:9) ---------------
+# Logical rects (x1, y1, x2, y2), top-left anchored, read by vision/digits.py.
+ACCOUNT_LEVEL_REGION = (80, 130, 145, 178)  # white level number on the avatar, main screen
+GUILD_LEVEL_REGION = (193, 122, 480, 152)  # "Guild level 24" bar under the guild name, guild map

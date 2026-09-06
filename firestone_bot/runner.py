@@ -7,6 +7,7 @@ game restart every RestartGameTime hours) and the end-of-cycle delay are reprodu
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 
@@ -110,6 +111,23 @@ class Runner:
                     log.exception("on_finished callback failed")
 
     # -- MainScript() -----------------------------------------------------------------------
+    def _progress_checks(self) -> None:
+        """Read the account level on the main screen (skipped once everything is unlocked)."""
+        g = self.g
+        if g.progress is None:
+            from firestone_bot.progress import Progress
+
+            folder = os.path.dirname(os.path.abspath(g.map_state_path))
+            g.progress = Progress.load(os.path.join(folder, "progress.json"))
+        if not g.progress.need_account_check():
+            return
+        level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
+        g.progress.set_account_level(level)
+        if level is None:
+            g.status("Account level: not readable on the avatar, no feature is skipped")
+        else:
+            g.status(f"Account level {level}")
+
     def main_script(self) -> None:
         g, s = self.g, self.settings
         last_arena = 0
@@ -142,6 +160,7 @@ class Runner:
             g.focus()
             g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
             g.status(f"Interface style: {g.style}")
+            self._progress_checks()
             if s.flag("Events"):
                 claim_events.claim_events(g)
             if s.flag("BattlePass"):
@@ -174,28 +193,29 @@ class Runner:
             guardian.guardian(g)
             g.heartbeat("ClaimBeer")
             claim_beer.claim_beer(g)
-            g.heartbeat("ScarabToken")
-            scarab_token.scarab_token(g)
-            g.heartbeat("Scarab")
-            scarab.scarab(g)
-            if not s.flag("SkipOracle"):
+            if not g.locked("scarab"):
+                g.heartbeat("ScarabToken")
+                scarab_token.scarab_token(g)
+                g.heartbeat("Scarab")
+                scarab.scarab(g)
+            if not s.flag("SkipOracle") and not g.locked("oracle"):
                 g.heartbeat("ClaimRituals")
                 claim_rituals.claim_rituals(g)
             # Engineer:
-            if not s.flag("NoEng"):
+            if not s.flag("NoEng") and not g.locked("engineer"):
                 g.heartbeat("ClaimEngineer")
                 claim_engineer.claim_engineer(g)
             # ExoticSection:
             if s.flag("SellEx"):
                 g.heartbeat("ExoticMerchant")
                 exotic_merchant.exotic_merchant(g)
-            if s.flag("PVP") and not daily.arena_done(s):
+            if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
                 now = _ms()
                 if last_arena <= 0 or now - last_arena >= 6 * 60 * 60 * 1000:
                     g.heartbeat("Arena")
                     arena.arena(g)
                     last_arena = now
-            if not s.flag("Alch"):
+            if not s.flag("Alch") and not g.locked("alchemist"):
                 g.heartbeat("Alchemist")
                 alchemist.alchemist(g)
             # ResearchStart:

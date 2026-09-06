@@ -78,6 +78,8 @@ class Game:
         self.heartbeat_cb: Callable[[str, bool, bool], None] | None = None
         self.map_state_path = "MapStartState.ini"
         self.style = "classic"  # main-screen layout, detected at each cycle start (layouts.py)
+        self.progress = None  # progress.Progress, set by the runner / app
+        self._digits = None
 
     @property
     def ms(self):
@@ -234,6 +236,32 @@ class Game:
         sx1, sy1 = vp.to_screen(rect[0], rect[1])
         sx2, sy2 = vp.to_screen(rect[2], rect[3])
         return capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3].copy()
+
+    def read_number(self, rect: tuple[int, int, int, int], last_word: bool = False) -> int | None:
+        """The white number drawn in a logical rect (top-left anchored), None if unreadable."""
+        if self._digits is None:
+            from firestone_bot.vision.digits import DigitReader
+
+            self._digits = DigitReader()
+        vp = self._viewport()
+        sx1, sy1 = vp.to_screen(rect[0], rect[1], (0.0, 0.0))
+        sx2, sy2 = vp.to_screen(rect[2], rect[3], (0.0, 0.0))
+        img = capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3]
+        value = self._digits.read(img, last_word=last_word)
+        self._trace(f"read_number {rect} -> {value}")
+        return value
+
+    def locked(self, feature: str) -> bool:
+        """True (with a status line) when the account cannot use `feature` yet."""
+        if self.progress is None:
+            return False
+        from firestone_bot.progress import LABELS
+
+        reason = self.progress.locked_reason(feature)
+        if reason:
+            self.status(f"{LABELS.get(feature, feature)}: {reason}, skipped")
+            return True
+        return False
 
     def wait_region_change(
         self, rect: tuple[int, int, int, int], before: np.ndarray, timeout_ms: int = 15000
