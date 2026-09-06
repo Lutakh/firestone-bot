@@ -1,5 +1,9 @@
 # Backlog (owner requests, not yet done)
 
+- Mouse-guard pause pop-up (owner, 2026-09-07): add a third button "Stop the bot" next to
+  "Start a new cycle" and "Continue the cycle" (gui/pause_dialog.py; the decision goes
+  through app._on_user_input, a stop must set the game's stop_event like the Stop button and
+  close the dialog).
 - Activity overlay not visible on Windows (owner, 2026-09-07): the log says "overlay ready
   (capture-safe: True)" and the panel hides for clicks under it, so it exists but the owner
   never sees it over the game; to check on the Windows machine (topmost / click-through
