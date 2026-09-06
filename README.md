@@ -232,6 +232,17 @@ Mouse guard > "Close notification banners", on by default). It uses the Accessib
 permission it already has to perform the banner's own Close action, so the notification
 stays in Notification Center. Nothing happens on Windows and Linux.
 
+## World-map missions: coordinates or detection
+
+Missions & WM > Map missions > "How missions are found on the map". **Coordinates** (default)
+clicks the fixed list of mission points in category order, on a map the bot first puts back
+in place (next section). **Detection** looks for the duration label drawn under every
+mission icon (bold white digits with a dark outline: "27:36", "4:57", "2:15:35") in the
+current screen capture and clicks only those icons, top to bottom, so nothing is clicked in
+the void; the categories are ignored. The label, not the icon, is the cue because the icon
+changes with the mission and pulses. Measured on macOS in the new-adventure style (five out
+of five icons on the reference capture); other resolutions scale with the capture.
+
 ## World-map alignment
 
 The mission points of the map are fixed coordinates, so the map must be at its default zoom

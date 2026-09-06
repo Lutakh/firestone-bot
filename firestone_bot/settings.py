@@ -64,6 +64,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "UpgradeH4": ("HeroOptions", "1"),
     "UpgradeH5": ("HeroOptions", "1"),
     # --- Mission Priority ---
+    "MapMode": ("MissionPriority", "coordinates"),
     "Priority1": ("MissionPriority", "2 Squad"),
     "Priority2": ("MissionPriority", "War"),
     "Priority3": ("MissionPriority", "Medium"),

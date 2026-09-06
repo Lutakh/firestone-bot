@@ -1042,6 +1042,10 @@ MAP_WHEEL_CENTRE = Point(960, 520, ANCHOR_CENTER)
 MAP_LANDMARK_RECT = (310, 765, 489, 847)  # centre anchor
 MAP_LANDMARK_SCALE = 0.5
 MAP_LANDMARK_SEARCH = 100
+# Mission detection mode (features/map_detect.py): the map area searched for duration labels
+# (HUD panels, the zoom slider and the buttons excluded) and the label-to-icon distance.
+MAP_DETECT_AREA = (100, 160, 1700, 960)
+MAP_LABEL_TO_ICON = 18
 # World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
 MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "2 Squad": (

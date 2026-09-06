@@ -402,6 +402,17 @@ OPTIONS: dict[str, Option] = {
     "Damage": Option("Damage Specialization", "Personal tree upgrade.", "check"),
     "Heal": Option("Healer Specialization", "Personal tree upgrade.", "check"),
     # -- Missions & war machines -----------------------------------------------------------
+    "MapMode": Option(
+        "How missions are found on the map",
+        "Coordinates: the fixed list of mission points below, clicked in category order (the "
+        "map must be in its default position, which the bot restores). Detection: the bot "
+        "looks for the duration label under every mission icon on the screen and clicks only "
+        "those, so nothing is clicked in the void; the categories are ignored and the missions "
+        "are taken top to bottom. Detection was measured in the new-adventure style on macOS.",
+        "choice",
+        ("coordinates", "detect"),
+        {"coordinates": "Coordinates (fixed list)", "detect": "Detection (icons on screen)"},
+    ),
     "Priority1": Option(
         "1st", "Mission category filled first.", "ordered", tuple(PRIORITY_CHOICES)
     ),

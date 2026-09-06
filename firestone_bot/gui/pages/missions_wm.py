@@ -33,7 +33,8 @@ def build(parent, ctx: PageContext):
         )
         return holder["list"]
 
-    prio.row("Categories", "Top = filled first.", make_list)
+    prio.option("MapMode")
+    prio.row("Categories", "Top = filled first (coordinates mode).", make_list)
     prio.buttons(
         (
             "Reset to default order",

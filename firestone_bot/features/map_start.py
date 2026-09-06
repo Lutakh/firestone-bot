@@ -41,8 +41,52 @@ def _undrag_if_needed(g: Game, y: int) -> None:
         _drag_map(g, -atlas.MAP_NORTH_DRAG_DY)
 
 
+def _try_mission(g: Game, state: MapState, x: int, y: int, anchor) -> bool:
+    """Click one mission point and start it if the green button shows. True while idle troops
+    remain (the search continues), False when the map can be left."""
+    g.focus()
+    g.click_at(x, y, anchor=anchor)
+    g.sleep(1000)
+    state.mark_clicked(x, y)
+    if g.found(atlas.MS_START_BUTTON):
+        g.move_to(atlas.MS_START)
+        g.toast("Mission Start", "Mission found - Starting", 1.5)
+        g.click()
+        g.sleep(500)
+    else:
+        map_close(g)  # mission in progress or unavailable: close the pop-up
+    g.toast("Troop Check", "Looking for more idle troops", 2)
+    if g.found(atlas.MAP_TROOP_IDLE):
+        return True
+    g.toast("Troop Check", "No idle troops found - ending mission search", 2)
+    return False
+
+
+def map_start_detected(g: Game, state: MapState) -> None:
+    """Detection mode: the missions are the duration labels seen on the map (map_detect)."""
+    from firestone_bot.features import map_detect
+
+    for attempt in (1, 2):
+        points = map_detect.find_missions(g)
+        g.status(f"Map: {len(points)} mission icon(s) detected on the screen")
+        fresh = [p for p in points if not state.was_clicked(*p)]
+        for x, y in fresh:
+            if not _try_mission(g, state, x, y, None):
+                return
+        if attempt == 1 and fresh and g.found(atlas.MAP_TROOP_IDLE):
+            state.reset()  # every icon tried: the memory hid something, redo them all
+            continue
+        break
+
+
 def map_start(g: Game) -> None:
     state = MapState.load(g.map_state_path)
+    if g.settings.get("MapMode") == "detect":
+        if not state.session_start or state.session_start == "0":
+            state.session_start = ahk_now()
+            state.save()
+        map_start_detected(g, state)
+        return
     if not state.session_start or state.session_start == "0":
         state.session_start = ahk_now()
         state.save()

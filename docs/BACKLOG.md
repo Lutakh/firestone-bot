@@ -23,10 +23,10 @@
 - Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
   captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
   rollback button on a packaged install.
-- Map missions, alternative to the fixed coordinates (owner, 2026-09-06): a setting to choose
-  between the coordinate list and a detection mode that finds the round mission icons (or
-  the duration label under each mission) and clicks only those, so nothing is clicked in the
-  void. Needs map captures with missions of both styles.
+- Map missions detection mode (done 2026-09-06, `MapMode` = detect, features/map_detect.py):
+  verified on one capture only (new style, macOS, missions in progress). Still to check: a
+  map with missions not started yet (does their label look the same?), the classic style,
+  Windows captures, and labels that touch a place name.
 - Classic interface style: the hero-upgrade mode reader returned "unknown" three times in a
   row on the owner's Mac (2026-09-06, cycle 4, references resampled from the classic
   reference screens); `hero-mode-miss.png` is now saved next to the settings when it
