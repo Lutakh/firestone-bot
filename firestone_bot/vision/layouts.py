@@ -28,6 +28,7 @@ class MainScreen:
     guild_icon: Point
     bag_icon: Point
     bag_close: Point
+    bag_close_x: Probe  # entry probe of the bag panel (its close button's orange ring)
     bag_chests_tab: Point
     chest_grid: tuple[int, int, int, int]
     chest_dialog_close: Point | None  # None: BigClose + failsafe (classic)
@@ -46,6 +47,7 @@ CLASSIC = MainScreen(
     guild_icon=atlas.MAIN_GUILD_ICON,
     bag_icon=atlas.BAG_ICON,
     bag_close=atlas.BAG_CLOSE,
+    bag_close_x=atlas.BAG_CLOSE_X_CLASSIC,
     bag_chests_tab=atlas.BAG_CHESTS_TAB,
     chest_grid=atlas.CHEST_GRID,
     chest_dialog_close=None,
@@ -64,6 +66,7 @@ NEW = MainScreen(
     guild_icon=atlas.NS_GUILD_ICON,
     bag_icon=atlas.NS_BAG_ICON,
     bag_close=atlas.NS_BAG_CLOSE,
+    bag_close_x=atlas.BAG_CLOSE_X,
     bag_chests_tab=atlas.NS_BAG_CHESTS_TAB,
     chest_grid=atlas.NS_CHEST_GRID,
     chest_dialog_close=atlas.NS_CHEST_DIALOG_CLOSE,

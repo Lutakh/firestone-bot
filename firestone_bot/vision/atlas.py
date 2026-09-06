@@ -1152,6 +1152,8 @@ MAIL_CLOSE_X = Probe(1588, 71, 1592, 75, DIALOG_RING, 20, "mail_close_x", ANCHOR
 BAG_CLOSE_X = Probe(
     1888, 93, 1892, 97, DIALOG_RING, 20, "bag_close_x"
 )  # right of the cross: the town X is close by
+# Classic style: the bag panel sits lower (its X at logical (1870, 259); measured 2026-09-06)
+BAG_CLOSE_X_CLASSIC = Probe(1888, 257, 1892, 261, DIALOG_RING, 20, "bag_close_x_classic")
 EVENTS_CLOSE_X = Probe(1467, 75, 1471, 79, DIALOG_RING, 20, "events_close_x", ANCHOR_CENTER)
 BP_CLOSE_X = Probe(1857, 124, 1861, 128, DIALOG_RING, 20, "bp_close_x")
 TAVERN_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "tavern_close_x", ANCHOR_CENTER)
