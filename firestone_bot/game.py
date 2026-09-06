@@ -80,6 +80,9 @@ class Game:
         self.style = "classic"  # main-screen layout, detected at each cycle start (layouts.py)
         self.progress = None  # progress.Progress, set by the runner / app
         self._digits = None
+        # called with the screen pixel about to be clicked (the app hides its overlay there)
+        self.click_hook: Callable[[int, int], None] | None = None
+        self._pointer: tuple[int, int] | None = None  # last screen pixel the bot moved to
 
     @property
     def ms(self):
@@ -148,14 +151,21 @@ class Game:
     def move(self, x: int, y: int, anchor=None) -> None:
         sx, sy = self._viewport().to_screen(x, y, anchor)
         self._trace(f"move ({x},{y}) -> screen ({sx},{sy})")
+        self._pointer = (sx, sy)
         if not self.dry_run:
             inp.move(sx, sy)
 
     def move_to(self, p: Point) -> None:
         self.move(p.x, p.y, p.anchor)
 
+    def _before_click(self, sx: int, sy: int) -> None:
+        if self.click_hook is not None and not self.dry_run:
+            self.click_hook(sx, sy)
+
     def click(self) -> None:
         self._trace("click")
+        if self._pointer is not None:
+            self._before_click(*self._pointer)
         if not self.dry_run:
             inp.click()
 
@@ -170,11 +180,14 @@ class Game:
     def move_screen(self, sx: int, sy: int) -> None:
         """MouseMove to a screen pixel (used for PixelSearch hits)."""
         self._trace(f"move screen ({sx},{sy})")
+        self._pointer = (sx, sy)
         if not self.dry_run:
             inp.move(sx, sy)
 
     def click_screen(self, sx: int, sy: int) -> None:
         self._trace(f"click screen ({sx},{sy})")
+        self._pointer = (sx, sy)
+        self._before_click(sx, sy)
         if not self.dry_run:
             inp.move(sx, sy)
             inp.click()
@@ -185,6 +198,8 @@ class Game:
         sx1, sy1 = vp.to_screen(x1, y1, anchor)
         sx2, sy2 = vp.to_screen(x2, y2, anchor)
         self._trace(f"drag ({x1},{y1}) -> ({x2},{y2}) screen ({sx1},{sy1}) -> ({sx2},{sy2})")
+        self._pointer = (sx2, sy2)
+        self._before_click(sx1, sy1)
         if not self.dry_run:
             inp.drag(sx1, sy1, sx2, sy2)
 
