@@ -43,6 +43,7 @@ from firestone_bot.features import (
 )
 from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.game import BotStopped, Game
+from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas, layouts
@@ -161,139 +162,163 @@ class Runner:
 
     def main_script(self) -> None:
         g, s = self.g, self.settings
-        last_arena = 0
-        last_restart = _ms()
-        restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
+        self._last_arena = 0
+        self._last_restart = _ms()
+        self._restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
         while True:  # loop:
-            cycle_start = _ms()
-            if s.flag("RestartGame") and (
-                s.flag("RestartGameTest") or _ms() - last_restart >= restart_ms
-            ):
-                g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
-                g.heartbeat("Initiating 24h Game Restart", important=True)
-                restart_game_routine.restart_game_routine(g)
-                last_restart = _ms()
-                if s.flag("RestartGameTest"):
-                    # "restart once at the next start" is a one-shot test switch: AHK left it
-                    # on and restarted at EVERY cycle (63 kill / relaunch in one night on the
-                    # Mac, 2026-09-06); the rework clears it after the test restart.
-                    s.set("RestartGameTest", "0")
-                    s.save()
-                    g.status("Game restart test done; RestartGameTest switched off")
-            # Python-only: launch the game if it is closed, restore it if minimised
-            if not game_launch.ensure_game_running(g):
-                g.status("The game could not be started; stopping")
-                return
-            g.focus()
-            with self._timed("main screen"):
-                # do main screen sections
-                g.heartbeat("Starting Bot", important=True)
-                g.toast(
-                    "Main Menu Check", "Checking to ensure we are on main screen at loop start", 2
-                )
-                main_menu.main_menu(g)
+            try:
+                if self._cycle() is False:
+                    return
+            except UserInterrupted:
+                g.status("New cycle requested after mouse / keyboard activity")
+                self._back_to_main_screen()
+
+    def _back_to_main_screen(self) -> None:
+        """After a pause ended in "new cycle": close whatever is open, reach the main screen.
+        The user may touch the mouse again meanwhile: each pause is handled here too."""
+        g = self.g
+        for _ in range(3):
+            try:
                 g.focus()
-                g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
-                g.status(f"Interface style: {g.style}")
-                self._progress_checks()
-                if s.flag("Events"):
-                    claim_events.claim_events(g)
-                if s.flag("BattlePass"):
-                    battle_pass.battle_pass(g)
-                if s.flag("Quests"):
-                    g.heartbeat("ClaimQuests")
-                    quests.claim_quests(g)
-                g.toast(
-                    "Main Menu Check",
-                    "Checking to ensure we are on main screen after claiming quests",
-                    2,
-                )
-                main_menu.main_menu(g)
-                g.focus()
-                # always: the shop visit also detects the daily reset (free mystery box)
-                g.heartbeat("Shop")
-                shop.shop(g)
-                if s.flag("Mail"):
-                    g.heartbeat("CheckMail")
-                    check_mail.check_mail(g)
-                if s.flag("Chests"):
-                    g.heartbeat("OpenChests")
-                    open_chests.open_chests(g)
-                elif s.flag("Bless"):
-                    g.heartbeat("OpenBlessChests")
-                    open_chests.open_bless_chests(g)
-            with self._timed("town"):
-                # start town section
-                open_town.open_town(g)
-                g.heartbeat("Guardian")
-                guardian.guardian(g)
-                g.heartbeat("ClaimBeer")
-                claim_beer.claim_beer(g)
-                if not g.locked("scarab"):
-                    g.heartbeat("ScarabToken")
-                    scarab_token.scarab_token(g)
-                    g.heartbeat("Scarab")
-                    scarab.scarab(g)
-                if not s.flag("SkipOracle") and not g.locked("oracle"):
-                    g.heartbeat("ClaimRituals")
-                    claim_rituals.claim_rituals(g)
-                # Engineer:
-                if not s.flag("NoEng") and not g.locked("engineer"):
-                    g.heartbeat("ClaimEngineer")
-                    claim_engineer.claim_engineer(g)
-                # ExoticSection:
-                if s.flag("SellEx"):
-                    g.heartbeat("ExoticMerchant")
-                    exotic_merchant.exotic_merchant(g)
-                if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
-                    now = _ms()
-                    if last_arena <= 0 or now - last_arena >= 6 * 60 * 60 * 1000:
-                        g.heartbeat("Arena")
-                        arena.arena(g)
-                        last_arena = now
-                if not s.flag("Alch") and not g.locked("alchemist"):
-                    g.heartbeat("Alchemist")
-                    alchemist.alchemist(g)
-                # ResearchStart:
-                if not s.flag("Research"):
-                    g.heartbeat("GoResearch")
-                    research.go_research(g)
-                # FinishTown:
                 big_close.big_close(g)
-            with self._timed("guild"):
-                if not s.flag("NoGuild"):
-                    guild.guild(g)
-                    if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
-                        # Python-only: spend the chaos-rift rewards on the guardians right away
-                        guardian_chaos.upgrade_after_chaos(g)
-            with self._timed("map"):
-                # MapStartUp:
-                if s.flag("MapMissions"):
-                    go_map.go_map(g)
-                    map_align.align_map(g)
-                    g.heartbeat("MapRedeem")
-                    map_redeem.map_redeem(g)
-            with self._timed("heroes"):
-                # UpgradeHero:
-                if not s.flag("NoHero"):
-                    g.heartbeat("HeroUpgrade")
-                    hero_upgrade.hero_upgrade(g)
-            # EndingMouseMove:
-            g.heartbeat("Delay ending bot")
-            self.cycles += 1
-            took = fmt_duration(_ms() - cycle_start)
-            self._log_sections(g)
-            if self.max_cycles and self.cycles >= self.max_cycles:
-                g.status(f"Cycle {self.cycles} done in {took} (max cycles reached)")
+                big_close.big_close(g)
+                main_menu.main_menu(g)
                 return
-            delay = END_OF_CYCLE_DELAYS.get(s.get("Delay").strip())
-            if delay is None:
-                # AHK: no matching branch, MainScript() returns and the bot silently stops.
-                g.status(f"Delay setting {s.get('Delay')!r} not recognised; bot stopped")
-                return
-            if delay:
-                g.move_to(atlas.END_OF_CYCLE_PARK)
-                g.status(f"Cycle {self.cycles} done in {took}, waiting {delay} s")
-                g.sleep(delay * 1000)
-            else:
-                g.status(f"Cycle {self.cycles} done in {took}")
+            except UserInterrupted:
+                continue
+        g.status("Could not reach the main screen after the pause; the cycle starts anyway")
+
+    def _cycle(self) -> bool:
+        """One pass of the AHK main loop. False = the bot stops."""
+        g, s = self.g, self.settings
+        cycle_start = _ms()
+        if s.flag("RestartGame") and (
+            s.flag("RestartGameTest") or _ms() - self._last_restart >= self._restart_ms
+        ):
+            g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
+            g.heartbeat("Initiating 24h Game Restart", important=True)
+            restart_game_routine.restart_game_routine(g)
+            self._last_restart = _ms()
+            if s.flag("RestartGameTest"):
+                # "restart once at the next start" is a one-shot test switch: AHK left it
+                # on and restarted at EVERY cycle (63 kill / relaunch in one night on the
+                # Mac, 2026-09-06); the rework clears it after the test restart.
+                s.set("RestartGameTest", "0")
+                s.save()
+                g.status("Game restart test done; RestartGameTest switched off")
+        # Python-only: launch the game if it is closed, restore it if minimised
+        if not game_launch.ensure_game_running(g):
+            g.status("The game could not be started; stopping")
+            return False
+        g.focus()
+        with self._timed("main screen"):
+            # do main screen sections
+            g.heartbeat("Starting Bot", important=True)
+            g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
+            main_menu.main_menu(g)
+            g.focus()
+            g.style = layouts.detect_style(g, s.get("InterfaceStyle"))
+            g.status(f"Interface style: {g.style}")
+            self._progress_checks()
+            if s.flag("Events"):
+                claim_events.claim_events(g)
+            if s.flag("BattlePass"):
+                battle_pass.battle_pass(g)
+            if s.flag("Quests"):
+                g.heartbeat("ClaimQuests")
+                quests.claim_quests(g)
+            g.toast(
+                "Main Menu Check",
+                "Checking to ensure we are on main screen after claiming quests",
+                2,
+            )
+            main_menu.main_menu(g)
+            g.focus()
+            # always: the shop visit also detects the daily reset (free mystery box)
+            g.heartbeat("Shop")
+            shop.shop(g)
+            if s.flag("Mail"):
+                g.heartbeat("CheckMail")
+                check_mail.check_mail(g)
+            if s.flag("Chests"):
+                g.heartbeat("OpenChests")
+                open_chests.open_chests(g)
+            elif s.flag("Bless"):
+                g.heartbeat("OpenBlessChests")
+                open_chests.open_bless_chests(g)
+        with self._timed("town"):
+            # start town section
+            open_town.open_town(g)
+            g.heartbeat("Guardian")
+            guardian.guardian(g)
+            g.heartbeat("ClaimBeer")
+            claim_beer.claim_beer(g)
+            if not g.locked("scarab"):
+                g.heartbeat("ScarabToken")
+                scarab_token.scarab_token(g)
+                g.heartbeat("Scarab")
+                scarab.scarab(g)
+            if not s.flag("SkipOracle") and not g.locked("oracle"):
+                g.heartbeat("ClaimRituals")
+                claim_rituals.claim_rituals(g)
+            # Engineer:
+            if not s.flag("NoEng") and not g.locked("engineer"):
+                g.heartbeat("ClaimEngineer")
+                claim_engineer.claim_engineer(g)
+            # ExoticSection:
+            if s.flag("SellEx"):
+                g.heartbeat("ExoticMerchant")
+                exotic_merchant.exotic_merchant(g)
+            if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
+                now = _ms()
+                if self._last_arena <= 0 or now - self._last_arena >= 6 * 60 * 60 * 1000:
+                    g.heartbeat("Arena")
+                    arena.arena(g)
+                    self._last_arena = now
+            if not s.flag("Alch") and not g.locked("alchemist"):
+                g.heartbeat("Alchemist")
+                alchemist.alchemist(g)
+            # ResearchStart:
+            if not s.flag("Research"):
+                g.heartbeat("GoResearch")
+                research.go_research(g)
+            # FinishTown:
+            big_close.big_close(g)
+        with self._timed("guild"):
+            if not s.flag("NoGuild"):
+                guild.guild(g)
+                if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
+                    # Python-only: spend the chaos-rift rewards on the guardians right away
+                    guardian_chaos.upgrade_after_chaos(g)
+        with self._timed("map"):
+            # MapStartUp:
+            if s.flag("MapMissions"):
+                go_map.go_map(g)
+                map_align.align_map(g)
+                g.heartbeat("MapRedeem")
+                map_redeem.map_redeem(g)
+        with self._timed("heroes"):
+            # UpgradeHero:
+            if not s.flag("NoHero"):
+                g.heartbeat("HeroUpgrade")
+                hero_upgrade.hero_upgrade(g)
+        # EndingMouseMove:
+        g.heartbeat("Delay ending bot")
+        self.cycles += 1
+        took = fmt_duration(_ms() - cycle_start)
+        self._log_sections(g)
+        if self.max_cycles and self.cycles >= self.max_cycles:
+            g.status(f"Cycle {self.cycles} done in {took} (max cycles reached)")
+            return False
+        delay = END_OF_CYCLE_DELAYS.get(s.get("Delay").strip())
+        if delay is None:
+            # AHK: no matching branch, MainScript() returns and the bot silently stops.
+            g.status(f"Delay setting {s.get('Delay')!r} not recognised; bot stopped")
+            return False
+        if delay:
+            g.move_to(atlas.END_OF_CYCLE_PARK)
+            g.status(f"Cycle {self.cycles} done in {took}, waiting {delay} s")
+            g.sleep(delay * 1000)
+        else:
+            g.status(f"Cycle {self.cycles} done in {took}")
+        return True

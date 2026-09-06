@@ -17,6 +17,26 @@ _mouse = None
 _keyboard = None
 _KEYS: dict[str, object] = {}
 _Button = None
+# Last injected event: (monotonic time, pointer position in pynput coordinates or None). The
+# input guard (inputguard.py) uses it to tell the bot's own events from the user's.
+_last_injection: tuple[float, tuple[float, float] | None] = (0.0, None)
+
+
+def _note(pos: tuple[float, float] | None = None) -> None:
+    global _last_injection
+    _last_injection = (time.monotonic(), pos if pos is not None else _last_injection[1])
+
+
+def last_injection() -> tuple[float, tuple[float, float] | None]:
+    return _last_injection
+
+
+def restore_position() -> None:
+    """Put the pointer back where the bot last left it (after a pause the user moved it)."""
+    pos = _last_injection[1]
+    if pos is not None and _mouse is not None:
+        _note(pos)
+        _mouse.position = pos
 
 
 def prepare() -> None:
@@ -63,11 +83,13 @@ def _pos(x: int, y: int) -> tuple[float, float]:
 
 def move(x: int, y: int) -> None:
     _ensure()
+    _note(_pos(x, y))
     _mouse.position = _pos(x, y)
 
 
 def click(button: str = "left") -> None:
     _ensure()
+    _note()
     _mouse.click(_Button.left if button == "left" else _Button.right)
 
 
@@ -79,14 +101,19 @@ def click_at(x: int, y: int) -> None:
 def drag(x1: int, y1: int, x2: int, y2: int, steps: int = 8, step_interval: float = 0.04) -> None:
     """Left-button drag from (x1,y1) to (x2,y2) in `steps` moves (screen pixels)."""
     _ensure()
+    _note(_pos(x1, y1))
     _mouse.position = _pos(x1, y1)
     time.sleep(0.2)
+    _note()
     _mouse.press(_Button.left)
     time.sleep(0.15)
     for i in range(1, steps + 1):
-        _mouse.position = _pos(x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+        pos = _pos(x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+        _note(pos)
+        _mouse.position = pos
         time.sleep(step_interval)
     time.sleep(0.15)
+    _note()
     _mouse.release(_Button.left)
 
 
@@ -95,6 +122,7 @@ def wheel(notches: int, interval: float = 0.2) -> None:
     _ensure()
     step = 1 if notches > 0 else -1
     for _ in range(abs(notches)):
+        _note()
         _mouse.scroll(0, step)
         time.sleep(interval)
 
@@ -106,16 +134,19 @@ def _key(name: str):
 
 def key(name: str) -> None:
     _ensure()
+    _note()
     _keyboard.tap(_key(name))
 
 
 def key_down(name: str) -> None:
     _ensure()
+    _note()
     _keyboard.press(_key(name))
 
 
 def key_up(name: str) -> None:
     _ensure()
+    _note()
     _keyboard.release(_key(name))
 
 

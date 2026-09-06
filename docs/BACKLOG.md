@@ -11,13 +11,6 @@
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through
   the Accessibility API is untested. (GUI cycles, CI-built signed `.app`, self-update: done.)
 - Linux (plan 4.9) and browser build (plan 4.10 / section 8).
-- Mouse-usage detection (owner spec, 2026-09-04): detect that the USER moves the mouse while
-  the bot runs (pynput 1.8 gives an `injected` flag on Windows, so the bot's own SendInput events
-  can be told apart from the physical mouse). On detection: abort the current cycle, show a
-  pop-up the user can validate or that closes by itself after 30 s, saying that the mouse was
-  moved and that the bot will restart a NEW cycle from the beginning after 30 s without any
-  mouse activity (each new movement restarts the 30 s countdown). Keyboard input should count
-  too. Not active in dry runs.
 - Global optimisation (mostly done 2026-09-06, "Click timing" fast mode: 150 ms hover,
   screen-change waits, 300 ms toasts, 50 ms wheel notches, guardian screen waited for instead
   of a flat 6.5 s; cycle 5m45s -> about 2m30s on the owner's account; per-section timing

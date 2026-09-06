@@ -509,6 +509,15 @@ OPTIONS: dict[str, Option] = {
         ("fast", "safe"),
         {"fast": "Fast (screen-change waits)", "safe": "Safe (AHK timings)"},
     ),
+    "MouseGuard": Option(
+        "Pause when you use the mouse or the keyboard",
+        "While the bot runs, any movement, click, wheel or key press that is not the bot's own "
+        "pauses it and shows a pop-up: start a new cycle from the beginning (the bot returns to "
+        "the main screen by itself) or continue the cycle where it stopped. Without an answer "
+        "the bot starts a new cycle after 30 s; each new movement restarts the countdown. Not "
+        "active in dry runs.",
+        "switch",
+    ),
     "Overlay": Option(
         "Show the activity overlay over the game",
         "While the bot runs, its last activity lines are drawn in a small translucent panel over "

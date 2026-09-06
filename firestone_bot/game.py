@@ -83,6 +83,8 @@ class Game:
         self._digits = None
         self.timing = str(settings.get("Timing") or "fast").strip().lower()
         self.stats: dict[str, float] = {}  # per-cycle counters (waits saved, ...)
+        # inputguard.InputGuard.check, called in every wait: pauses when the user took the mouse
+        self.guard_check: Callable[[Game], None] | None = None
 
     @property
     def ms(self):
@@ -122,6 +124,8 @@ class Game:
         while True:
             if self.stop_event.is_set():
                 raise BotStopped
+            if self.guard_check is not None:
+                self.guard_check(self)
             left = end - time.monotonic()
             if left <= 0:
                 return

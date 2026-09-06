@@ -46,6 +46,9 @@ def build(parent, ctx: PageContext):
     over = place_card(Card(content, ctx, "Overlay"))
     over.option("Overlay")
 
+    guard = place_card(Card(content, ctx, "Mouse guard"))
+    guard.option("MouseGuard")
+
     hb = place_card(Card(content, ctx, "Heartbeat (opt-in)"))
     enable = hb.option("EnableHeartbeat")
     discord = hb.option("DiscordID", width=260)

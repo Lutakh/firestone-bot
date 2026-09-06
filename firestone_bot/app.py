@@ -46,6 +46,7 @@ class App:
             base_dir=self.base,
         )
         self._hotkey_listener = None
+        self._guard = None  # inputguard.InputGuard, created in _late_init
         self._overlay = None
         self._exit_heartbeat: threading.Thread | None = None
         self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
@@ -278,6 +279,7 @@ class App:
         self.runner.on_finished = lambda: self.window.root.after(0, self._run_finished)
         self.window.on_env_restored = self._raise_window
         self._install_hotkey()
+        self._install_guard()
         self.window.root.after(100, self.present)
         self.window.root.after(2000, self._update_cleanup)
         self.window.root.after(2500, self._announce_previous)
@@ -286,6 +288,8 @@ class App:
 
     def _run_finished(self) -> None:
         self._overlay_stop()
+        if self._guard is not None:
+            self._guard.disarm()
         self.window.root.after(150, self.present)
 
     def present(self) -> None:
@@ -353,6 +357,8 @@ class App:
             return
         self.game.dry_run = False
         self._overlay_start()
+        if self._guard is not None and self.settings.flag("MouseGuard"):
+            self._guard.arm()
         self.runner.start()
         self.window.set_bot_state("running")
 
@@ -689,6 +695,49 @@ class App:
         self.window.request_exit()
 
     # -- Win+Esc exit hotkey (AHK ~*#$Esc) ---------------------------------------------------
+    # -- input guard: pause when the user takes the mouse (inputguard.py) --------------------
+    def _install_guard(self) -> None:
+        if self._guard is not None:
+            return
+        from firestone_bot.inputguard import InputGuard
+
+        guard = InputGuard(self._on_user_input)
+        if not guard.start():
+            self.window.post_status("Mouse guard unavailable (input listeners failed to start)")
+            return
+        self._guard = guard
+        self.game.guard_check = guard.check
+
+    def _on_user_input(self, guard) -> str:
+        """Bot thread: show the pause pop-up on the Tk thread, wait for its decision."""
+        done = threading.Event()
+        decision = {"value": "restart"}
+
+        def decide(value: str) -> None:
+            decision["value"] = value
+            done.set()
+
+        def open_dialog() -> None:
+            from firestone_bot.gui.pause_dialog import PauseDialog
+
+            try:
+                PauseDialog(self.window.root, guard, decide)
+            except Exception:
+                log.exception("pause dialog failed")
+                decide("restart")
+
+        self.window.post_call(open_dialog)
+        while not done.wait(0.2):
+            if self.game.stop_event.is_set():  # Stop pressed meanwhile: let sleep() unwind
+                self.window.post_call(self._close_pause_dialogs)
+                return "continue"
+        return decision["value"]
+
+    def _close_pause_dialogs(self) -> None:
+        for w in self.window.root.winfo_children():
+            if w.winfo_class() == "Toplevel" and w.title() == "Firestone bot paused":
+                w.destroy()
+
     def _install_hotkey(self) -> None:
         if self._hotkey_listener is not None:
             return
