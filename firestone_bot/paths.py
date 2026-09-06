@@ -65,3 +65,40 @@ def applications_dirs() -> list[str]:
 def in_applications(path: str) -> bool:
     path = os.path.abspath(path)
     return any(path.startswith(d + os.sep) for d in applications_dirs())
+
+
+def is_translocated(path: str) -> bool:
+    """Gatekeeper runs a quarantined app from a read-only, randomised mount
+    (/private/var/folders/.../AppTranslocation/...): the bundle cannot be moved from there."""
+    return "/AppTranslocation/" in os.path.abspath(path)
+
+
+def original_bundle_path(path: str) -> str | None:
+    """The location the user launched a translocated app from (Security framework), None
+    when the app is not translocated or the lookup fails."""
+    if sys.platform != "darwin" or not is_translocated(path):
+        return None
+    try:
+        import ctypes
+        from urllib.parse import unquote, urlparse
+
+        import objc
+        from CoreFoundation import (
+            CFURLCreateWithFileSystemPath,
+            CFURLGetString,
+            kCFURLPOSIXPathStyle,
+        )
+
+        sec = ctypes.CDLL("/System/Library/Frameworks/Security.framework/Security")
+        fn = sec.SecTranslocateCreateOriginalPathForURL
+        fn.restype = ctypes.c_void_p
+        fn.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        url = CFURLCreateWithFileSystemPath(None, path, kCFURLPOSIXPathStyle, True)
+        ref = fn(objc.pyobjc_id(url), None)
+        if not ref:
+            return None
+        original = objc.objc_object(c_void_p=ref)
+        text = str(CFURLGetString(original))
+        return unquote(urlparse(text).path).rstrip("/")
+    except Exception:  # noqa: BLE001 - best effort, the caller falls back to a copy
+        return None

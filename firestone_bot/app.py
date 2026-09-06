@@ -136,6 +136,9 @@ class App:
             self.window.gui_state["keep_outside_applications"] = True
             self.window._write_state()
             return False
+        # A quarantined bundle runs translocated (read-only mount): copy it from where it
+        # runs, then remove the copy the user launched (its original location) when allowed.
+        origin = paths.original_bundle_path(bundle) if paths.is_translocated(bundle) else None
         for folder in paths.applications_dirs():
             dest = os.path.join(folder, os.path.basename(bundle))
             try:
@@ -148,11 +151,29 @@ class App:
                     ):
                         return False
                     shutil.rmtree(dest)
-                shutil.move(bundle, dest)
+                if origin or paths.is_translocated(bundle):
+                    shutil.copytree(bundle, dest, symlinks=True)
+                else:
+                    shutil.move(bundle, dest)
             except OSError as e:
                 log.info("cannot move the bundle to %s: %s", folder, e)
+                shutil.rmtree(dest, ignore_errors=True)
                 continue
-            log.info("bundle moved to %s", dest)
+            log.info("bundle installed in %s (from %s)", dest, origin or bundle)
+            leftover = None
+            if origin and os.path.isdir(origin):
+                try:
+                    shutil.rmtree(origin)
+                except OSError as e:
+                    log.info("original bundle %s left in place: %s", origin, e)
+                    leftover = origin
+            if leftover:
+                messagebox.showinfo(
+                    "Moved to Applications",
+                    f"FirestoneBot is now in {folder}. The copy in\n{os.path.dirname(leftover)}\n"
+                    "could not be removed (macOS folder permission): delete it yourself.",
+                    parent=self.window.root,
+                )
             subprocess.Popen(["open", "-n", dest], start_new_session=True)
             self.window.request_exit()
             return True
