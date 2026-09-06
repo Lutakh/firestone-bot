@@ -19,14 +19,10 @@ log = logging.getLogger("firestone_bot.app")
 
 
 def base_dir() -> str:
-    """Directory holding settings.ini: next to the exe when frozen (next to the .app bundle on
-    macOS, never inside it), else the cwd."""
-    if getattr(sys, "frozen", False):
-        exe_dir = os.path.dirname(sys.executable)
-        if sys.platform == "darwin" and exe_dir.endswith(os.path.join(".app", "Contents", "MacOS")):
-            return os.path.dirname(os.path.dirname(os.path.dirname(exe_dir)))
-        return exe_dir
-    return os.getcwd()
+    """Directory holding settings.ini (see firestone_bot.paths.data_dir)."""
+    from firestone_bot.paths import data_dir
+
+    return data_dir()
 
 
 class App:
@@ -112,8 +108,11 @@ class App:
 
     # -- user files (settings.ini next to the bot) -------------------------------------------
     def _offer_settings_import(self) -> None:
-        """No settings.ini next to this bot (fresh manual download): look for one in the usual
-        places and offer to copy it, never moving or overwriting anything."""
+        """No settings.ini in the data folder (fresh manual download): look for one in the
+        usual places and offer to copy it, never moving or overwriting anything. On macOS
+        only the folder holding the .app is looked at, and only when that folder is not a
+        protected one (Desktop, Documents, Downloads: reading them would trigger a privacy
+        prompt); Advanced > Files imports from anywhere on an explicit click."""
         from tkinter import messagebox
 
         from firestone_bot import userfiles

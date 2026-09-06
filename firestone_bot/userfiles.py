@@ -50,20 +50,30 @@ def looks_like_bot_settings(path: str) -> bool:
 
 
 def search_roots(base: str) -> list[str]:
-    """Where a previous bot folder is likely to be: around this install, then the usual user
-    folders (same list on Windows, macOS and Linux)."""
-    home = os.path.expanduser("~")
-    parent = os.path.dirname(base)
-    roots = [parent, os.path.dirname(parent)]
-    roots += [os.path.join(home, d) for d in ("Desktop", "Downloads", "Documents", "Games")]
-    if sys.platform == "win32":
-        for var in ("USERPROFILE", "PUBLIC"):
-            if os.environ.get(var):
-                roots.append(os.path.join(os.environ[var], "Desktop"))
+    """Where a previous bot folder is likely to be.
+
+    Windows / Linux: the folder above this install, then Desktop, Downloads and Documents.
+    macOS: only the folder holding the .app (older versions kept settings.ini there), and not
+    when it is a protected folder: reading Desktop, Documents, Downloads, Music or Pictures
+    makes macOS ask the user for a permission, which is exactly what must not happen at
+    start-up. Nothing above the home folder is ever walked."""
+    from firestone_bot.paths import bundle_path, is_protected_mac_folder
+
+    home = os.path.abspath(os.path.expanduser("~"))
+    if sys.platform == "darwin":
+        bundle = bundle_path()
+        if bundle is None:
+            return []
+        folder = os.path.dirname(os.path.abspath(bundle))
+        return [] if is_protected_mac_folder(folder) or folder == home else [folder]
+    roots = [os.path.dirname(os.path.abspath(base))]
+    roots += [os.path.join(home, d) for d in ("Desktop", "Downloads", "Documents")]
+    if sys.platform == "win32" and os.environ.get("PUBLIC"):
+        roots.append(os.path.join(os.environ["PUBLIC"], "Desktop"))
     out: list[str] = []
     for r in roots:
         r = os.path.abspath(r)
-        if r not in out and os.path.isdir(r) and r != os.path.abspath(home):
+        if r not in out and os.path.isdir(r) and r != home and r != os.path.dirname(home):
             out.append(r)
     return out
 

@@ -56,7 +56,8 @@ HOME_TEXT = "\n\n".join(f"{title.upper()}:\n{body}" for title, body in HOME_SECT
 WHERE_THINGS_ARE = (
     "Everyday switches: Main screen, Town, Guild & Tree, Missions & WM. "
     "Rare options: Advanced. Live status: Dashboard. "
-    "Settings are saved automatically to settings.ini next to the executable."
+    "Settings are saved automatically to settings.ini next to the executable (macOS: in "
+    "~/Library/Application Support/FirestoneBot, see Advanced > Files)."
 )
 
 SHORTCUTS: list[tuple[str, str]] = [

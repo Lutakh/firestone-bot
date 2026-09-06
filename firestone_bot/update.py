@@ -14,7 +14,8 @@ Flow (all steps are explicit user clicks in the GUI, nothing happens on its own)
 
 Only the program files move (the .app on macOS, FirestoneBot.exe + _internal/ elsewhere):
 the user's files (settings.ini, MapStartState.ini, gui_state.json, the log) sit in the same
-folder as the exe on Windows/Linux and are never touched. Runs from source only get the notification: the
+folder as the exe on Windows/Linux (in ~/Library/Application Support/FirestoneBot on macOS,
+with the kept previous version) and are never touched. Runs from source only get the notification: the
 install step needs the packaged layout.
 
 Layouts handled (what the CI archives contain):
@@ -275,9 +276,14 @@ def install_target() -> str | None:
 
 
 def user_dir(target: str) -> str:
-    """Folder holding the user's files: next to the .app on macOS, the install folder itself
-    on Windows/Linux (settings.ini sits next to FirestoneBot.exe there)."""
-    return os.path.dirname(target) if sys.platform == "darwin" else target
+    """Folder holding the user's files and the kept previous version: the install folder
+    itself on Windows/Linux (settings.ini sits next to FirestoneBot.exe there), the
+    Application Support folder on macOS (the .app is in /Applications)."""
+    if sys.platform == "darwin":
+        from firestone_bot.paths import data_dir
+
+        return data_dir()
+    return target
 
 
 def previous_dir(target: str) -> str:
@@ -300,6 +306,7 @@ def swap_script(
     entries: list[str],
     relaunch: list[str],
     platform: str | None = None,
+    keep_dir: str | None = None,
 ) -> tuple[str, list[str]]:
     """Text of the detached script and the command that runs it (pure, unit-tested).
 
@@ -310,13 +317,15 @@ def swap_script(
     the swap folder is moved back), then keep the swap folder as FirestoneBot.previous
     for a one-click rollback (the version it holds is recorded by apply()) and relaunch.
 
+    `keep_dir` (default: the install folder) is where the swap and previous folders go.
     Used for updates (incoming = staging dir) and rollbacks (incoming = the previous
     folder), so after a rollback the newer version is the one kept as previous."""
     platform = platform or sys.platform
     pj = ntpath.join if platform == "win32" else posixpath.join
     inst = posixpath.dirname(target) if platform == "darwin" else target
-    swap = pj(inst, SWAP_NAME)
-    previous = pj(inst, PREVIOUS_NAME)
+    keep = keep_dir or inst
+    swap = pj(keep, SWAP_NAME)
+    previous = pj(keep, PREVIOUS_NAME)
     if platform == "win32":
         q = " ".join(f'"{a}"' for a in relaunch)
         lines = [
@@ -384,7 +393,12 @@ def _start_swap(target: str, incoming: str, kept_version: str, replaced_by: str)
             {"version": kept_version, "replaced_by": replaced_by, "at": time.time()}, f, indent=2
         )
     text, runner = swap_script(
-        os.getpid(), target, incoming, program_entries(target), _relaunch_command(target)
+        os.getpid(),
+        target,
+        incoming,
+        program_entries(target),
+        _relaunch_command(target),
+        keep_dir=user_dir(target),
     )
     suffix = ".bat" if sys.platform == "win32" else ".sh"
     fd, script = tempfile.mkstemp(prefix="firestone-update-", suffix=suffix)
@@ -460,8 +474,12 @@ def rollback(target: str | None = None) -> str:
 
 
 def staging_dir(target: str | None = None) -> str:
-    """Where the new build is unpacked: next to the install (same volume, so a rename works)."""
+    """Where the new build is unpacked: with the user files (Application Support on macOS,
+    the folder above the install elsewhere), normally the same volume as the install so the
+    swap is a rename."""
     target = target or install_target() or os.getcwd()
+    if sys.platform == "darwin":
+        return os.path.join(user_dir(target), "FirestoneBot.update")
     return os.path.join(os.path.dirname(os.path.abspath(target)), "FirestoneBot.update")
 
 

@@ -149,9 +149,27 @@ def test_previous_version_reads_marker(tmp_path, monkeypatch):
 
 def test_install_target_is_none_from_source():
     assert update.install_target() is None
-    assert update.staging_dir("/x/FirestoneBot") == os.path.abspath(
-        os.path.join("/x", "FirestoneBot.update")
+    if update.sys.platform != "darwin":
+        assert update.staging_dir("/x/FirestoneBot") == os.path.abspath(
+            os.path.join("/x", "FirestoneBot.update")
+        )
+
+
+def test_swap_script_keep_dir_puts_previous_with_the_user_files():
+    text, _ = update.swap_script(
+        1,
+        "/Applications/FirestoneBot.app",
+        "/Users/u/Library/Application Support/FirestoneBot/FirestoneBot.update",
+        ["FirestoneBot.app"],
+        [],
+        "darwin",
+        keep_dir="/Users/u/Library/Application Support/FirestoneBot",
     )
+    assert (
+        "mv '/Applications/FirestoneBot.app' '/Users/u/Library/Application Support/FirestoneBot/FirestoneBot.swap/FirestoneBot.app'"
+        in text
+    )
+    assert "'/Users/u/Library/Application Support/FirestoneBot/FirestoneBot.previous'" in text
 
 
 def test_render_notes_headings_bullets_bold():

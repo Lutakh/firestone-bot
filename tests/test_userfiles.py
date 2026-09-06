@@ -49,3 +49,37 @@ def test_import_user_files_never_overwrites(tmp_path):
     assert copied == ["settings.ini"] and skipped == ["gui_state.json"]
     assert (base / "gui_state.json").read_text() == '{"mine": 1}'
     assert (src / "settings.ini").exists()
+
+
+def test_search_roots_never_walk_protected_mac_folders(monkeypatch, tmp_path):
+    from firestone_bot import paths
+
+    monkeypatch.setattr(userfiles.sys, "platform", "darwin")
+    monkeypatch.setattr(paths.sys, "platform", "darwin")
+    home = tmp_path / "home"
+    (home / "Downloads").mkdir(parents=True)
+    (home / "Games").mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(os.path, "expanduser", lambda p: p.replace("~", str(home)))
+    # no bundle (from source): nothing to look at
+    monkeypatch.setattr(paths, "bundle_path", lambda: None)
+    assert userfiles.search_roots(str(home / "x")) == []
+    # bundle in Downloads: protected, not read
+    monkeypatch.setattr(paths, "bundle_path", lambda: str(home / "Downloads" / "FirestoneBot.app"))
+    assert userfiles.search_roots(str(home / "x")) == []
+    # bundle in an ordinary folder: that folder only
+    monkeypatch.setattr(paths, "bundle_path", lambda: str(home / "Games" / "FirestoneBot.app"))
+    assert userfiles.search_roots(str(home / "x")) == [str(home / "Games")]
+
+
+def test_search_roots_windows_stay_under_home(monkeypatch, tmp_path):
+    monkeypatch.setattr(userfiles.sys, "platform", "linux")
+    home = tmp_path / "home"
+    for d in ("Desktop", "Downloads", "Documents", "Music", "bots", "bots/new"):
+        (home / d).mkdir(parents=True)
+    monkeypatch.setattr(os.path, "expanduser", lambda p: p.replace("~", str(home)))
+    roots = userfiles.search_roots(str(home / "bots" / "new"))
+    assert roots == [str(home / "bots")] + [
+        str(home / d) for d in ("Desktop", "Downloads", "Documents")
+    ]
+    assert str(home) not in roots and str(home / "Music") not in roots
