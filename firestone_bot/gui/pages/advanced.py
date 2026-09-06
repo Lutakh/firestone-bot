@@ -42,6 +42,9 @@ def build(parent, ctx: PageContext):
     steam = place_card(Card(content, ctx, "Steam"))
     steam.option("DisableWarning")
 
+    over = place_card(Card(content, ctx, "Overlay"))
+    over.option("Overlay")
+
     hb = place_card(Card(content, ctx, "Heartbeat (opt-in)"))
     enable = hb.option("EnableHeartbeat")
     discord = hb.option("DiscordID", width=260)

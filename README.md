@@ -179,6 +179,19 @@ attaches everything to the GitHub release with the tag message as body (the tag 
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
 `python -m firestone_bot --start` starts the bot as soon as the window is up.
 
+## Activity overlay over the game
+
+While the bot runs, its last activity lines ("Account level 36", "Engineer: needs account
+level 50 (now 36), skipped", "Restarting the game"...) are drawn in a small translucent
+panel over the bottom-left of the game window, the equivalent of the AHK MsgBoxes without
+their delays. The panel ignores the mouse (clicks go through to the game) and is left out of
+the bot's own captures: Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`
+(Windows 10 2004+; older versions show the panel to captures, so it is placed on the top
+edge of the client where no probe looks) and macOS `NSWindowSharingNone`, both verified to
+hide the panel from the capture path the bot uses (macOS, 2026-09-06). Linux has no such
+exclusion: the panel sits on the top edge and needs a compositor for transparency. Advanced >
+Overlay switches it off (`Overlay=0`).
+
 ## Account progress (locked features)
 
 A new account has features locked behind its level: engineer and arena at 50, scarab game

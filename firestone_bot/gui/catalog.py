@@ -498,6 +498,13 @@ OPTIONS: dict[str, Option] = {
     "DisableWarning": Option(
         "Dismiss the Steam warning", "Closes the Steam warning pop-up if it appears.", "switch"
     ),
+    "Overlay": Option(
+        "Show the activity overlay over the game",
+        "While the bot runs, its last activity lines are drawn in a small translucent panel over "
+        "the game window. Clicks go through it and the bot's own captures do not see it "
+        "(Windows 10+, macOS); on Linux it sits on the top edge of the game.",
+        "switch",
+    ),
     "EnableHeartbeat": Option(
         "Send heartbeats to the maintainer's log server",
         "Off by default. Sends progress messages (feature names, start/stop) only when on AND a "

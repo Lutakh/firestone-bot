@@ -46,6 +46,7 @@ class App:
             base_dir=self.base,
         )
         self._hotkey_listener = None
+        self._overlay = None
         self._exit_heartbeat: threading.Thread | None = None
         self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
         self.window.on_check_updates = lambda: self.check_updates(manual=True)
@@ -274,7 +275,7 @@ class App:
         self.game = Game(self.settings, status_cb=self._status)
         self.game.map_state_path = os.path.join(self.base, "MapStartState.ini")
         self.runner = Runner(self.settings, self.game)
-        self.runner.on_finished = lambda: self.window.root.after(150, self.present)
+        self.runner.on_finished = lambda: self.window.root.after(0, self._run_finished)
         self.window.on_env_restored = self._raise_window
         self._install_hotkey()
         self.window.root.after(100, self.present)
@@ -282,6 +283,10 @@ class App:
         self.window.root.after(2500, self._announce_previous)
         self.window.root.after(3000, self.check_updates)
         self.window.root.after(60_000, self._update_tick)
+
+    def _run_finished(self) -> None:
+        self._overlay_stop()
+        self.window.root.after(150, self.present)
 
     def present(self) -> None:
         """While the bot is idle: game window in front (restored if minimised), then the bot
@@ -312,12 +317,42 @@ class App:
     # -- callbacks --------------------------------------------------------------------------
     def _status(self, text: str) -> None:
         self.window.post_status(text)
+        if self._overlay is not None:
+            rect = self.game.window.client if self.game is not None and self.game.window else None
+            self.window.post_call(lambda: self._overlay_update(text, rect))
+
+    # -- activity overlay over the game (gui/overlay.py) ------------------------------------
+    def _overlay_update(self, text: str, rect) -> None:
+        if self._overlay is None:
+            return
+        if rect is not None:
+            self._overlay.set_game_rect(rect)
+        self._overlay.push(text)
+
+    def _overlay_start(self) -> None:
+        if not self.settings.flag("Overlay"):
+            return
+        if self._overlay is None:
+            from firestone_bot.gui.overlay import GameOverlay
+
+            self._overlay = GameOverlay(self.window.root)
+        self._overlay.lines.clear()
+        try:
+            self._overlay.show()
+        except Exception:
+            log.exception("overlay failed to show")
+            self._overlay = None
+
+    def _overlay_stop(self) -> None:
+        if self._overlay is not None:
+            self._overlay.hide()
 
     def start(self) -> None:
         self._late_init()
         if self.runner.running:
             return
         self.game.dry_run = False
+        self._overlay_start()
         self.runner.start()
         self.window.set_bot_state("running")
 
@@ -326,6 +361,7 @@ class App:
         if self.runner.running:
             return
         self.game.dry_run = True
+        self._overlay_start()
         self.runner.start()
         self.window.set_bot_state("dry run (no input)")
 
