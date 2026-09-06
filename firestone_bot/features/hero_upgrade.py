@@ -144,10 +144,15 @@ def set_next_milestone(g: Game) -> bool:
     """Click the mode button until it shows "Next milestone", whatever its current state."""
     toggle = find_mode_button(g) if g.style == "new" else atlas.HU_MILESTONE_TOGGLE
     park = atlas.NS_MODE_PARK if g.style == "new" else atlas.HU_MODE_PARK
-    for _attempt in range(3):
+    for attempt in range(6):  # five states plus one retry on a bad read
         g.move_to(park)
         g.sleep(400)
         state = read_upgrade_mode(g)
+        if state == "unknown":
+            # a label caught mid-transition: keep what was seen, wait and read again
+            _save_mode_diagnostic(g, f"hero-mode-unknown{attempt + 1}.png")
+            g.sleep(700)
+            state = read_upgrade_mode(g)
         if state == "next":
             return True
         if state == "unknown":
@@ -165,9 +170,9 @@ def set_next_milestone(g: Game) -> bool:
     return False
 
 
-def _save_mode_diagnostic(g: Game) -> None:
-    """Keep the label region of an unreadable mode button next to the settings
-    (hero-mode-miss.png) so the references can be extended from a real screen."""
+def _save_mode_diagnostic(g: Game, name: str = "hero-mode-miss.png") -> None:
+    """Keep the label region of an unreadable mode button next to the settings so the
+    references can be extended from a real screen (one file per unknown read of a run)."""
     import os
 
     from firestone_bot.platform import capture
@@ -175,7 +180,7 @@ def _save_mode_diagnostic(g: Game) -> None:
     try:
         rect = mode_text_rect(g) if g.style == "new" else atlas.HU_MODE_TEXT
         folder = os.path.dirname(os.path.abspath(g.map_state_path))
-        capture.save_png(g.region_image(rect), os.path.join(folder, "hero-mode-miss.png"))
+        capture.save_png(g.region_image(rect), os.path.join(folder, name))
     except Exception:
         log.debug("mode diagnostic not saved", exc_info=True)
 
