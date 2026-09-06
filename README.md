@@ -200,6 +200,11 @@ town and its buildings, guild map) are waited for explicitly through that button
 main-screen icon, and when the screen does not come up, goes back to the main screen and
 clicks again; `big_close` waits until the button is gone and clicks once more if the
 dialog stays open; T and M are pressed again when the town or the map does not appear.
+Mail, bag, events, battle pass and tavern keep their close button elsewhere and have their
+own entry probes (the orange ring of that button). A probe must match twice 100 ms apart:
+a dialog scaling in can match for a single frame. The polling loops that wait for the game
+(scarab counter and Play button, arena battle, crystal pickaxe counter) check every 250 ms
+instead of every second.
 Mouse-wheel scrolls send their notches 50 ms apart instead of 200 (a 35-notch scroll takes
 2 s instead of 7). Modules with a main-screen indicator (event bell, battle-pass bell, shop
 dot) were already skipped when it is off.

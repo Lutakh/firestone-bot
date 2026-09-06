@@ -3,8 +3,9 @@
 - Robustness against network / server slowness (mostly done 2026-09-06): `Game.tap(expect=)`,
   `open_screen()` (main-menu recovery), `wait_for` / `wait_gone` and the `DIALOG_CLOSE_X`
   probe cover the shop, character window, map, town, town buildings with the standard close
-  button and the guild map. Still to do: the dialogs without that button (mail, bag, events,
-  battle pass, tavern) need their own entry probes; measure on a slow connection.
+  button and the guild map; mail, bag, events, battle pass and tavern have their own entry
+  probes (orange ring of their close button). Still to do: measure on a slow connection; the
+  Windows client of the owner is not checked yet with the fast mode.
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through
@@ -20,8 +21,9 @@
 - Global optimisation (mostly done 2026-09-06, "Click timing" fast mode: 150 ms hover,
   screen-change waits, 300 ms toasts, 50 ms wheel notches, guardian screen waited for instead
   of a flat 6.5 s; cycle 5m45s -> about 2m30s on the owner's account; per-section timing
-  logged). Still to do: the remaining polling loops ("wait N s" in scarab / arena / crystal)
-  could poll faster; measure on a slow connection and on an account with everything unlocked.
+  logged; scarab / arena / crystal loops poll every 250 ms). Still to do: measure on a slow
+  connection and on an account with everything unlocked (scarab, arena, crystal loops were
+  only exercised through unit tests: the owner's account has them locked).
 - Map alignment: detect that the world map is not centred or is zoomed (zoom slider bottom
   right, drag offset) and re-centre / reset the zoom before clicking the mission points; today a
   moved map silently breaks every fixed mission coordinate.
