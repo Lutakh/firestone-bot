@@ -388,6 +388,22 @@ class App:
         self._banners_start()
         self.runner.start()
         self.window.set_bot_state("running")
+        self._game_in_front()
+
+    def _game_in_front(self) -> None:
+        """Tk thread: the game window in front of the bot's for the run (the idle
+        presentation keeps the bot window on top; the worker thread cannot always take
+        the foreground away from it, 2026-09-07)."""
+        from firestone_bot.platform.window import GameWindowNotFound, activate, find_game_window
+
+        try:
+            self.window.root.attributes("-topmost", False)
+            activate(find_game_window())
+            self.window.root.lower()
+        except GameWindowNotFound:
+            pass
+        except Exception:
+            log.debug("game in front failed", exc_info=True)
 
     def dry_run(self) -> None:
         self._late_init()

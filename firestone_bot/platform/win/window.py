@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 from ctypes import wintypes
 
 from ..types import GameWindowNotFound, Rect, WindowInfo, exe_of_pid, game_pids
 
+log = logging.getLogger("firestone_bot.platform.window")
 user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
 
 _WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 _GW_OWNER = 4
@@ -90,10 +93,29 @@ def find_game_window() -> WindowInfo:
 
 
 def activate(win: WindowInfo) -> None:
-    """Bring the game window to the foreground (replaces WinActivate / ControlFocus)."""
+    """Bring the game window to the foreground (replaces WinActivate / ControlFocus).
+
+    SetForegroundWindow alone is refused when the calling thread does not own the
+    foreground (the bot's Tk thread does, its worker thread does not): the first cycle of
+    a run then went on with the bot window over the game (2026-09-07). The call is verified
+    and, on refusal, retried with the input queues attached to the foreground thread."""
     if user32.IsIconic(win.handle):
         user32.ShowWindow(win.handle, _SW_RESTORE)
     user32.SetForegroundWindow(win.handle)
+    if user32.GetForegroundWindow() == win.handle:
+        return
+    fg = user32.GetForegroundWindow()
+    fg_thread = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+    me = kernel32.GetCurrentThreadId()
+    attached = bool(fg_thread) and fg_thread != me and user32.AttachThreadInput(me, fg_thread, True)
+    try:
+        user32.BringWindowToTop(win.handle)
+        user32.SetForegroundWindow(win.handle)
+    finally:
+        if attached:
+            user32.AttachThreadInput(me, fg_thread, False)
+    if user32.GetForegroundWindow() != win.handle:
+        log.warning("activate: the game window could not be brought to the foreground")
 
 
 def screen_size() -> tuple[int, int]:
