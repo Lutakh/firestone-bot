@@ -13,3 +13,4 @@ gui_state.json
 dist_next/
 build_next/
 progress.json
+diagnostics/

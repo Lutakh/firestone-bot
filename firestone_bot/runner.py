@@ -235,6 +235,7 @@ class Runner:
             g.status(f"{name}: failed ({sys.exc_info()[1]!r}), step skipped")
         g.save_diagnostic(f"step-{name.lower().replace(' ', '-')}.png")
         g.focus()
+        main_menu.close_chooser(g)
         big_close.big_close(g)
         big_close.big_close(g)
         main_menu.main_menu(g)

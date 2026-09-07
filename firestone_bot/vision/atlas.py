@@ -87,6 +87,7 @@ GREEN_BUTTON_2 = 0x16BC15
 # two and the dots use RED_DOT_VAR.
 RED_DOT = 0xF41000
 RED_DOT_VAR = 32
+DIALOG_RING = 0xFF6109
 IDLE_TROOP = 0x542710  # brown idle-troop marker on the map
 ORANGE_1 = 0xF9AA47
 ORANGE_2 = 0xFCAC47
@@ -391,9 +392,14 @@ ORACLE_GIFT_TAB = Point(823, 760)  # :9
 ORACLE_GIFT_CLAIM = Point(711, 791)  # :14
 
 # --- ClaimEngineer.ahk ----------------------------------------------------------------------
-ENGINEER_WM_TAB = Point(964, 507)  # :16
+# Since the account reached level 50 (2026-09-08) the engineer building opens a centred
+# chooser with three cards (Engineer / Garage / Training base), like the tavern's; the
+# cards are centred on the client, the chooser's X ring sits at logical (1467..1471, 245..249)
+# from the centre. The old points were the same cards seen on the 16:9 reference.
+ENGINEER_WM_TAB = Point(960, 517, ANCHOR_CENTER)  # :16 Garage card
 ENGINEER_TAB = Point(131, 435)  # :22
-ENGINEER_SELECT = Point(610, 540)  # :29
+ENGINEER_SELECT = Point(601, 517, ANCHOR_CENTER)  # :29 Engineer card
+ENGINEER_CLOSE_X = Probe(1467, 245, 1471, 249, DIALOG_RING, 20, "engineer_close_x", ANCHOR_CENTER)
 ENGINEER_TOOLS_READY = Probe(1709, 686, 1747, 733, GREEN_BUTTON, 3, "engineer_tools_ready")  # :35
 ENGINEER_TOOLS_CLAIM = Point(1642, 704)  # :37
 
@@ -478,7 +484,10 @@ EMBLEM_BUY = Point(1153, 611)  # :18
 
 # --- Arena.ahk / ArenaBattle.ahk ------------------------------------------------------------
 TOWN_BATTLES = Point(362, 204)  # Arena.ahk:9
-ARENA_OF_KINGS = Point(1120, 507)  # :14
+ARENA_OF_KINGS = Point(1139, 517, ANCHOR_CENTER)  # :14 second card of the Battles chooser
+# Battles chooser (Campaign / Arena of Kings): two cards, same frame as the tavern's chooser,
+# so its X ring is at the tavern probe's place (measured 2026-09-08).
+BATTLES_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "battles_close_x", ANCHOR_CENTER)
 ARENA_OPPONENT_COLUMNS = (700, 954, 1220)  # :19
 ARENA_OPPONENT_Y = 630  # :30
 ARENA_REFRESH = Point(871, 195)  # :25
@@ -1209,12 +1218,13 @@ DIALOG_CLOSE_X = Probe(1849, 81, 1858, 90, 0xFFF9CE, 30, "dialog_close_x")
 # (1780..1810, 90..118), measured 2026-09-06 in the new style and 2026-09-07 in the classic
 # style on a 4K client: same place in both); DIALOG_CLOSE_X never matched there and every
 # quests visit was retried.
-CHARACTER_CLOSE_X = Probe(1793, 101, 1802, 110, 0xFFF9CE, 30, "character_close_x")
+# ...and on the 16:9 built-in display its orange ring is centred at (1853, 97) (2026-09-08):
+# the probe spans the ring at both places (nothing orange there on the main screen).
+CHARACTER_CLOSE_X = Probe(1786, 92, 1880, 118, DIALOG_RING, 20, "character_close_x")
 # Dialogs whose X sits elsewhere (entry probes for `expect=` / open_screen, measured on the
 # Mac 2026-09-06). They look at the orange ring 20 logical px left of the cross centre: the
 # cream centre alone matched cream text and icons of the main screen, the orange never does.
 # Centred dialogs use the centre anchor.
-DIALOG_RING = 0xFF6109
 MAIL_CLOSE_X = Probe(1588, 71, 1592, 75, DIALOG_RING, 20, "mail_close_x", ANCHOR_CENTER)
 BAG_CLOSE_X = Probe(
     1888, 93, 1892, 97, DIALOG_RING, 20, "bag_close_x"

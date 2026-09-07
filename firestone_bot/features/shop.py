@@ -18,6 +18,7 @@ from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
 from firestone_bot.state import hours_since
 from firestone_bot.vision import atlas
+from firestone_bot.vision.probes import match_mask
 
 
 def claim_free_mystery_box(g: Game) -> bool:
@@ -31,6 +32,11 @@ def claim_free_mystery_box(g: Game) -> bool:
     hit = g.search(atlas.SHOP_MYSTERY_CLAIM_READY)
     if hit is None:
         g.status("Daily shop: no free mystery box to claim")
+        return False
+    p = atlas.SHOP_MYSTERY_CLAIM_READY
+    green = match_mask(g.region_image((p.x1, p.y1, p.x2, p.y2)), p.color, p.variation)
+    if float(green.mean()) < atlas.SHOP_MYSTERY_BUTTON_FILL:
+        g.status("Daily shop: the free box was already claimed today (green tick, no button)")
         return False
     g.status("Daily shop: free mystery box found, claiming it")
     before = g.region_image(atlas.SHOP_FIRST_CARD).astype(int)

@@ -27,6 +27,7 @@ def _runner(monkeypatch, g):
     calls = []
     monkeypatch.setattr(runner_mod.big_close, "big_close", lambda game: calls.append("big_close"))
     monkeypatch.setattr(runner_mod.main_menu, "main_menu", lambda game: calls.append("main_menu"))
+    monkeypatch.setattr(runner_mod.main_menu, "close_chooser", lambda game: calls.append("chooser"))
     monkeypatch.setattr(runner_mod.open_town, "open_town", lambda game: calls.append("open_town"))
     r = runner_mod.Runner.__new__(runner_mod.Runner)
     r.g = g
@@ -50,7 +51,7 @@ def test_screen_not_reached_skips_and_recovers_in_town(monkeypatch):
     r._step("Engineer", feature, town=True)
     assert "Engineer: its screen (dialog_close_x) did not show, step skipped" in g.log
     assert ("diag", "step-engineer.png") in g.log
-    assert calls == ["big_close", "big_close", "main_menu", "open_town"]
+    assert calls == ["chooser", "big_close", "big_close", "main_menu", "open_town"]
 
 
 def test_exception_skips_and_recovers_without_town(monkeypatch):
@@ -64,7 +65,7 @@ def test_exception_skips_and_recovers_without_town(monkeypatch):
     assert any(
         m.startswith("Daily shop: failed (ValueError('boom'))") for m in g.log if isinstance(m, str)
     )
-    assert calls == ["big_close", "big_close", "main_menu"]
+    assert calls == ["chooser", "big_close", "big_close", "main_menu"]
 
 
 @pytest.mark.parametrize("exc", [BotStopped, UserInterrupted])

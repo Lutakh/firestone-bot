@@ -13,6 +13,7 @@ from __future__ import annotations
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
+from firestone_bot.vision.atlas import ANCHOR_CENTER, Point
 
 
 def main_menu(g: Game) -> None:
@@ -50,3 +51,17 @@ def main_menu(g: Game) -> None:
         if cap and n >= cap:
             g.status(f"MainMenu: safety cap of {cap} iterations reached")
             return
+
+
+CHOOSER_CLOSE_PROBES = (atlas.TAVERN_CLOSE_X, atlas.ENGINEER_CLOSE_X)
+
+
+def close_chooser(g: Game) -> bool:
+    """Close a centred building chooser (tavern, battles, engineer) if one is open: it dims
+    the town behind it, so the big X of the town does not answer while it is there
+    (2026-09-08). Its own X sits 20 logical px right of the ring pixel probed."""
+    for probe in CHOOSER_CLOSE_PROBES:
+        if g.found(probe):
+            g.tap(Point(probe.x2 + 20, (probe.y1 + probe.y2) // 2, ANCHOR_CENTER), 800)
+            return True
+    return False
