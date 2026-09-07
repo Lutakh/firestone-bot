@@ -19,6 +19,7 @@ Coordinates given to Game are LOGICAL (atlas / AHK) unless the method name says 
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from collections.abc import Callable
@@ -340,6 +341,15 @@ class Game:
                 return False
             self.sleep(self.CHANGE_POLL_MS)
 
+    def save_diagnostic(self, name: str) -> None:
+        """Keep a capture of the whole client next to the user files (the map state file's
+        folder) when something unexpected is on screen; best effort."""
+        try:
+            folder = os.path.dirname(os.path.abspath(self.map_state_path))
+            capture.save_png(capture.grab(self.window.client), os.path.join(folder, name))
+        except Exception:
+            log.debug("diagnostic %s not saved", name, exc_info=True)
+
     STILL_LEVELS = 6  # per-cell mean difference below which two frames are "the same"
 
     def wait_still(self, max_ms: float = 1500) -> bool:
@@ -388,6 +398,7 @@ class Game:
             self.sleep(self.CHANGE_SETTLE_MS)
             if not self.wait_for(expect, max(self.EXPECT_TIMEOUT_MS, settle_ms)):
                 self.status(f"Expected screen ({expect.name}) did not appear after the click")
+                self.save_diagnostic(f"screen-miss-{expect.name}.png")
             else:
                 self.wait_still()
             return

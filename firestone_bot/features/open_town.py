@@ -12,11 +12,14 @@ def open_town(g: Game) -> None:
     g.key("t")
     if g.fast():
         g.sleep(g.CHANGE_SETTLE_MS)
-        if not g.wait_for(atlas.DIALOG_CLOSE_X):
+        if not g.wait_for(atlas.TOWN_OPEN):
             g.status("Open Town: the town did not appear after T, pressing it again")
+            g.save_diagnostic("town-miss.png")
+            g.focus()
             g.key("t")
             g.sleep(g.CHANGE_SETTLE_MS)
-            g.wait_for(atlas.DIALOG_CLOSE_X)
+            if not g.wait_for(atlas.TOWN_OPEN):
+                g.status("Open Town: still no town after the second T")
         g.wait_still()  # the town scales in after its X shows: let it settle before clicking
     else:
         g.sleep(1500)
