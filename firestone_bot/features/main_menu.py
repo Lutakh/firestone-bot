@@ -48,20 +48,26 @@ def main_menu(g: Game) -> None:
             g.tap(atlas.MM_RATE_POPUP_CLOSE)
         big_close(g)
         n += 1
+        if n == 1 and close_chooser(g):
+            continue
         if cap and n >= cap:
             g.status(f"MainMenu: safety cap of {cap} iterations reached")
             return
 
 
-CHOOSER_CLOSE_PROBES = (atlas.TAVERN_CLOSE_X, atlas.ENGINEER_CLOSE_X)
+CHOOSER_CLOSE_PROBES = (atlas.MESSAGE_CLOSE_X, atlas.TAVERN_CLOSE_X, atlas.ENGINEER_CLOSE_X)
 
 
 def close_chooser(g: Game) -> bool:
-    """Close a centred building chooser (tavern, battles, engineer) if one is open: it dims
-    the town behind it, so the big X of the town does not answer while it is there
-    (2026-09-08). Its own X sits 20 logical px right of the ring pixel probed."""
+    """Close what the big X of the main menu cannot: a centred building chooser (tavern,
+    battles, engineer: it dims the town, whose X does not answer under it) or the bag
+    panel (its own X on the panel; 2026-09-08: a bag left open by a stopped run blocked
+    every step of the next one). True when something was closed."""
     for probe in CHOOSER_CLOSE_PROBES:
         if g.found(probe):
             g.tap(Point(probe.x2 + 20, (probe.y1 + probe.y2) // 2, ANCHOR_CENTER), 800)
             return True
+    if g.found(g.ms.bag_close_x):
+        g.tap(g.ms.bag_close, 800)
+        return True
     return False

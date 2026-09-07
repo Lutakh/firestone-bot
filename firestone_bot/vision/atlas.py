@@ -488,6 +488,11 @@ ARENA_OF_KINGS = Point(1139, 517, ANCHOR_CENTER)  # :14 second card of the Battl
 # Battles chooser (Campaign / Arena of Kings): two cards, same frame as the tavern's chooser,
 # so its X ring is at the tavern probe's place (measured 2026-09-08).
 BATTLES_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "battles_close_x", ANCHOR_CENTER)
+# Centred message box ("Unlocks once you acquire at least 2 war machines.", 2026-09-08): its X
+# ring centre is at (1368, 345) from the client centre; it blocks the town (and the T key)
+# until closed.
+MESSAGE_CLOSE_X = Probe(1346, 343, 1350, 347, DIALOG_RING, 20, "message_close_x", ANCHOR_CENTER)
+MESSAGE_CLOSE = Point(1368, 345, ANCHOR_CENTER)
 ARENA_OPPONENT_COLUMNS = (700, 954, 1220)  # :19
 ARENA_OPPONENT_Y = 630  # :30
 ARENA_REFRESH = Point(871, 195)  # :25
