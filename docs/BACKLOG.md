@@ -43,10 +43,19 @@
   happens, to extend the references from a real screen. The main-menu safety cap was also
   reached twice at the start of a cycle without a visible cause (something left open after
   the shop step?).
-- Classic interface style on macOS (owner, 2026-09-07): the battle pass and the events
-  rewards are not claimed correctly. Not investigated yet (no capture taken, the owner wants
-  to save the game's quota): capture both dialogs in classic style, check the claim probes
-  and buttons (BP_* and EVENTS_* in atlas.py were measured in the new-adventure style).
+- Classic style claims (owner, 2026-09-07): the battle pass was fixed on the 4K client
+  (red-dot bells tolerant to the display's red, wider entry probe; two rewards claimed live).
+  The events could not be exercised: no event bell during the check. Still to verify with a
+  bell: the centred-dialog anchors of the events list and page (EVENTS_* in atlas.py) on the
+  3840x2022 client, where the battle pass dialog did not follow the HUD anchor model.
+- 4K client (3840x2022 window, 2026-09-07): three cycles clean at 1m50-2m34 with the fixes
+  above; the interface-style probe misses every cycle there (kept by memory, harmless in
+  classic; check NS_STYLE_PROBE on the new style at 4K); the account is level 46, so the
+  level-50+ features (arena, engineer, awakening, crystal) are still unchecked at 4K.
+- macOS memory: the Quartz capture leaked 8 MB per grab (fixed 2026-09-07); the process
+  still sits at 0.7-1.3 GB at 4K because every capture is a 31 MB full-client image copied
+  twice; a smaller capture path (grab only the probe rect, which grab() already does) and
+  fewer full-client thumbnails would bring it down.
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic
