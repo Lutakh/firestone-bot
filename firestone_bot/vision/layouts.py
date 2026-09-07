@@ -86,9 +86,12 @@ def on_new_main_screen(g) -> bool:
     """New style: the blue mode button is there AND its label reads as one of the five upgrade
     modes. The blue alone also matches the sea of the town screen and the blue buttons of
     the scarab game (2026-09-07: BigClose skipped inside the tavern, dialogs left open)."""
-    from firestone_bot.features.hero_upgrade import read_upgrade_mode
+    from firestone_bot.features.hero_upgrade import find_mode_button, read_upgrade_mode
 
     if not (g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER)):
+        return False
+    # the tavern's blue "x1" multiplier sits higher on the screen (its label would pass)
+    if abs(find_mode_button(g).y - atlas.NS_MODE_BUTTON.y) > 30:
         return False
     return read_upgrade_mode(g) in atlas.HU_MODE_ORDER
 
