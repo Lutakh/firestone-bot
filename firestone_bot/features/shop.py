@@ -52,12 +52,11 @@ def shop(g: Game) -> None:
         return
     g.open_screen(g.ms.shop_icon, atlas.DIALOG_CLOSE_X)
     if claim_free_mystery_box(g):
-        since = hours_since(g.settings.LastTokenReset)
-        if 0 < since < 20:
-            g.status(f"Daily shop: free box claimed {since:.1f} h after the last reset, counters kept")
-        else:
-            daily.mark_daily_reset(g.settings)
-            g.status("Daily shop: free mystery box claimed, daily counters reset")
+        # A verified claim IS the new game day, whenever it happens: the bot started an hour
+        # before the reset must clear the counters at the reset (owner, 2026-09-07). The
+        # false resets of that day came from an unverified claim, not from the timing.
+        daily.mark_daily_reset(g.settings)
+        g.status("Daily shop: free mystery box claimed, daily counters reset")
     if g.settings.flag("Shop"):
         # open daily check-in
         g.tap(atlas.SHOP_CHECKIN_TAB, 1000)

@@ -10,10 +10,13 @@ from firestone_bot.game import Game
 from firestone_bot.state import MapState
 from firestone_bot.vision import atlas
 
+CHECKS_CAP = 12  # completed missions claimed per visit (one per loop; SafetyCap 3 cut it short
+# with four missions done at once, owner's cycle 2026-09-07)
+
 
 def _checks(g: Game) -> None:
     """The `Checks:` label loop: returns when the AHK code reaches `Troops:`."""
-    cap = int(g.settings.get("SafetyCap") or 0)
+    cap = max(int(g.settings.get("SafetyCap") or 0), CHECKS_CAP)
     n = 0
     while True:  # Checks:
         g.toast("Mission Check", "Checking Mission Progress", 1.5)
@@ -25,11 +28,10 @@ def _checks(g: Game) -> None:
             return  # Goto, Troops
         # check for already completed missions
         if g.found(atlas.MR_MISSION_DONE):
-            g.move_to(atlas.MR_FIRST_MISSION)
             g.toast("Mission Check", "Mission is already complete!", 1.5)
-            g.click()
-            g.sleep(1000)
+            g.tap(atlas.MR_FIRST_MISSION, 1000)  # hover then click (a bare click can be lost)
             g.tap(atlas.MR_DIALOG_OK, 1000)
+            g.sleep(1000)  # the panel re-lays out before the next mission shows its Claim
         else:
             # look for greater than 3 minutes left
             g.tap(atlas.MR_FIRST_MISSION, 1000)

@@ -322,7 +322,8 @@ class Game:
             if time.monotonic() >= end:
                 return False
 
-    EXPECT_TIMEOUT_MS = 4000  # patience for an expected screen (slow game / server)
+    EXPECT_TIMEOUT_MS = 6000  # patience for an expected screen (slow game / server); a miss
+    # costs a 7 s recovery, so patience is cheaper (Windows cycle 2026-09-07: six misses)
 
     EXPECT_STABLE_MS = 100  # a dialog scaling in can match for one frame: confirm once
 
