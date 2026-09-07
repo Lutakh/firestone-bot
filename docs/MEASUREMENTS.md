@@ -213,7 +213,14 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   result screen then shows an orange X at client (1845,55) (cross 0xFFF9CD, the bag X 10 px
   away is 0xFFF0C0) and, when chests are left, x1 / x10 / xN buttons stacked bottom right
   (client x 1705-1885, y 690-750 / 800-860 / 905-965, N = min(50, stock)); with an empty
-  stock no button at all. The buttons slide in after the X. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.
+  stock no button at all. The buttons slide in after the X. Chest grid slots: columns at
+  client x 1595 / 1720 / 1845, rows at y 185 / 310 / 430 / 545 / 670, icons about 100 px;
+  the AHK signature colours are unreliable on these icons (Uncommon's colour is 2 levels
+  from the Golden jewel chest and 5 from its own icon, Common's 2 from Emerald, Opal's 24
+  from its icon; the others need variation 2-3 with a false positive 3-5 away), so the new
+  style classifies each slot by an 8x8 thumbnail against `vision/chest_refs.py` (12 chests
+  plus Common recorded live, self distance < 3, nearest other chest > 19 levels). A hovered
+  icon grows and breaks the read: the pointer is parked first. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.
 - World map north edge (2026-09-05): the Doomfire Island (volcano, "Guardian of Doomfire",
   Titan mission, 4 squads, timed) icon centre is at client (1300,-5), hidden behind the HUD
   with only its pin and timer visible next to the 21/27 squad counter. Dragging the map from

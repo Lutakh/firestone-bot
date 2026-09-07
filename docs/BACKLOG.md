@@ -12,10 +12,11 @@
   button and the guild map; mail, bag, events, battle pass and tavern have their own entry
   probes (orange ring of their close button). Still to do: measure on a slow connection; the
   Windows client of the owner is not checked yet with the fast mode.
-- Chest signatures in the new style (2026-09-07, Windows): `open_chests` searches the grid
-  with variation 1; on the owner's screen Common needed 2 and Rare / Titan 4 (colours a few
-  levels off the AHK ones). Only Common was verified live; to check each rarity before
-  raising the variation (false positives between neighbouring icons).
+- Chest icons without a reference (new style, `vision/chest_refs.py`): Titan, Platinum,
+  Galaxy, Cosmic, Nebula, Solar, Lunar, the Oracle gift and the Mystery box were not in the
+  owner's bag on 2026-09-07; they fall back to the AHK colour search, which proved
+  unreliable in this style (see MEASUREMENTS). To record from the bag when the owner owns
+  one (tools: capture the Chests tab, `chest_grid.thumbnail` of the 96 px window).
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through

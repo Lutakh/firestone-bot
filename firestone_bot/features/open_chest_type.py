@@ -16,7 +16,7 @@ import time
 
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, chest_grid
 from firestone_bot.vision.atlas import Probe
 
 
@@ -91,11 +91,28 @@ def open_more_loop(g: Game, variation: int | None = None) -> None:
             break  # Goto, OpenChestTypeClose
 
 
-def open_chest_type(g: Game, color: int, variation: int = 2) -> None:
+def _click_chest(g: Game, name: str | None, color: int, variation: int) -> bool:
+    """Click the chest in the bag grid: by its icon in the new style when a reference is
+    known (chest_grid), else by the AHK signature colour. False when the bag has none."""
+    if g.style == "new" and name is not None and chest_grid.known(name):
+        # a hovered icon grows (and pushes its neighbours): read the grid with the pointer away
+        g.move_to(atlas.NS_MODE_PARK)
+        g.sleep(300)
+        at = chest_grid.find_chest(g, name)
+        if at is None:
+            return False
+        g.tap(at, 1000)
+        return True
     hit = g.search(Probe(*g.ms.chest_grid, color, variation, f"chest_{color:06X}"))
     if hit is None:
-        return
+        return False
     g.tap_screen(hit.sx, hit.sy)  # MouseMove, FoundX, FoundY
+    return True
+
+
+def open_chest_type(g: Game, color: int, variation: int = 2, name: str | None = None) -> None:
+    if not _click_chest(g, name, color, variation):
+        return
     # pick the largest open button: 11-50, then 2-10, then 1
     target = None
     for probe, button in g.ms.chest_open_buttons:

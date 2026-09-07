@@ -37,7 +37,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | Shop.ahk | shop | yes | yes | | |
 | CheckMail.ahk | check_mail | yes | yes | yes | claimed + deleted mail |
 | OpenChests.ahk | open_chests, open_bless_chests | yes | yes | | Goto ladders -> tables; Nebula/Cosmic -> Galaxy kept; AHK closed the bag twice with Bless on (hitting the Town icon) and never with Bless off; the rework closes it exactly once |
-| subFunctions/OpenChestType.ahk | open_chest_type | yes | yes | | found-pixel click; new style: own button row, the opening animation is waited for (result screen probes) instead of the 10 s sleep, `open more` repeated while the button is there |
+| subFunctions/OpenChestType.ahk | open_chest_type | yes | yes | | found-pixel click; new style: the chest is found by its icon (`vision/chest_grid.py`, thumbnails in `chest_refs.py`, colour fallback for chests without a reference), own button row, the opening animation is waited for (result screen probes) instead of the 10 s sleep, `open more` repeated while the button is there |
 | subFunctions/OraclesGift.ahk | oracles_gift | yes | probe only | | |
 | subFunctions/MysteryBox.ahk | mystery_box | yes | yes | | opened one box |
 | Guardian.ahk | guardian | yes | yes | | training with GuardianTrain=3; 0x0F40000 literal = RED_DOT |

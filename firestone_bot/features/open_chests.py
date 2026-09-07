@@ -20,7 +20,7 @@ def _open_group(g: Game, group: tuple[tuple[str, int], ...], start: int | None) 
         return
     for name, color in group[start:]:
         g.toast("Open Chests", f"Opening {name} Chests", 1.5)
-        open_chest_type(g, color, 1)
+        open_chest_type(g, color, 1, name)
 
 
 def _open_bag_chests_tab(g: Game) -> None:
