@@ -17,5 +17,6 @@ def open_town(g: Game) -> None:
             g.key("t")
             g.sleep(g.CHANGE_SETTLE_MS)
             g.wait_for(atlas.DIALOG_CLOSE_X)
+        g.wait_still()  # the town scales in after its X shows: let it settle before clicking
     else:
         g.sleep(1500)

@@ -17,5 +17,6 @@ def go_map(g: Game) -> None:
             g.key("m")
             g.sleep(g.CHANGE_SETTLE_MS)
             g.wait_for(atlas.DIALOG_CLOSE_X)
+        g.wait_still()
     else:
         g.sleep(1500)

@@ -340,6 +340,29 @@ class Game:
                 return False
             self.sleep(self.CHANGE_POLL_MS)
 
+    STILL_LEVELS = 6  # per-cell mean difference below which two frames are "the same"
+
+    def wait_still(self, max_ms: float = 1500) -> bool:
+        """Wait until the screen stops changing (two thumbnails CHANGE_POLL_MS apart alike):
+        an expected dialog can be found while it is still scaling in, and a click placed
+        then lands beside its target (Windows cycles 2026-09-07: the tavern chooser missed
+        right after T opened the town). True when still, False on `max_ms`."""
+        if not self.fast():
+            return True
+        end = time.monotonic() + max_ms / 1000
+        before = self._thumbnail()
+        while before is not None:
+            self.sleep(self.CHANGE_POLL_MS)
+            now = self._thumbnail()
+            if now is None or now.shape != before.shape:
+                return False
+            if np.abs(now - before).mean(axis=2).max() < self.STILL_LEVELS:
+                return True
+            if time.monotonic() >= end:
+                return False
+            before = now
+        return False
+
     def wait_gone(self, p: Probe, timeout_ms: float = EXPECT_TIMEOUT_MS) -> bool:
         """Poll until `p` is no longer found (True) or `timeout_ms` elapsed (False)."""
         end = time.monotonic() + timeout_ms / 1000
@@ -365,6 +388,8 @@ class Game:
             self.sleep(self.CHANGE_SETTLE_MS)
             if not self.wait_for(expect, max(self.EXPECT_TIMEOUT_MS, settle_ms)):
                 self.status(f"Expected screen ({expect.name}) did not appear after the click")
+            else:
+                self.wait_still()
             return
         before = self._thumbnail() if self.fast() and settle_ms else None
         self.click()

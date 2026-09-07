@@ -22,6 +22,22 @@ def main_menu(g: Game) -> None:
     cap = int(g.settings.get("SafetyCap") or 0)
     n = 0
     while True:  # SettingsFinder:
+        if g.style == "new":
+            # New adventure style: the main screen is recognised directly (blue mode button)
+            # and the Options dialog has its own X (BigClose would only hit the gear again).
+            if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
+                return
+            if g.found(atlas.MM_SETTINGS_OPEN):
+                g.tap(atlas.NS_OPTIONS_CLOSE)
+            else:
+                if g.found(atlas.MM_RATE_POPUP):
+                    g.tap(atlas.MM_RATE_POPUP_CLOSE)
+                big_close(g)
+            n += 1
+            if cap and n >= cap:
+                g.status(f"MainMenu: safety cap of {cap} iterations reached")
+                return
+            continue
         if g.found(atlas.MM_SETTINGS_OPEN):
             big_close(g)
             return
