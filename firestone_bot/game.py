@@ -289,8 +289,10 @@ class Game:
         bh, bw = h // gh, w // gw
         if bh == 0 or bw == 0:
             return None
-        cropped = img[: bh * gh, : bw * gw].astype(np.float32)
-        return cropped.reshape(gh, bh, gw, bw, 3).mean(axis=(1, 3))
+        # mean straight from the uint8 view: a float32 cast of the whole frame was a 124 MB
+        # temporary per thumbnail at 4K (owner's Mac, 2026-09-07)
+        cropped = img[: bh * gh, : bw * gw]
+        return cropped.reshape(gh, bh, gw, bw, 3).mean(axis=(1, 3), dtype=np.float32)
 
     def wait_change(self, max_ms: float, before: np.ndarray | None = None) -> bool:
         """Wait until the game screen differs from `before` (or from now), at most `max_ms`.

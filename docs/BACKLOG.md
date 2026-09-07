@@ -1,9 +1,5 @@
 # Backlog (owner requests, not yet done)
 
-- Mouse-guard pause pop-up (owner, 2026-09-07): add a third button "Stop the bot" next to
-  "Start a new cycle" and "Continue the cycle" (gui/pause_dialog.py; the decision goes
-  through app._on_user_input, a stop must set the game's stop_event like the Stop button and
-  close the dialog).
 - Activity overlay not visible on Windows (owner, 2026-09-07): the log says "overlay ready
   (capture-safe: True)" and the panel hides for clicks under it, so it exists but the owner
   never sees it over the game; to check on the Windows machine (topmost / click-through
@@ -33,10 +29,6 @@
 - Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
   captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
   rollback button on a packaged install.
-- Map missions detection mode (done 2026-09-06, `MapMode` = detect, features/map_detect.py):
-  verified on one capture only (new style, macOS, missions in progress). Still to check: a
-  map with missions not started yet (does their label look the same?), the classic style,
-  Windows captures, and labels that touch a place name.
 - Classic interface style: the hero-upgrade mode reader returned "unknown" three times in a
   row on the owner's Mac (2026-09-06, cycle 4, references resampled from the classic
   reference screens); `hero-mode-miss.png` is now saved next to the settings when it
@@ -52,10 +44,9 @@
   above; the new-style button probe (NS_STYLE_PROBE) is not checked at 4K yet (no button in the
   classic layout: its absence now simply means classic); the account is level 46, so the
   level-50+ features (arena, engineer, awakening, crystal) are still unchecked at 4K.
-- macOS memory: the Quartz capture leaked 8 MB per grab (fixed 2026-09-07); the process
-  still sits at 0.7-1.3 GB at 4K because every capture is a 31 MB full-client image copied
-  twice; a smaller capture path (grab only the probe rect, which grab() already does) and
-  fewer full-client thumbnails would bring it down.
+- macOS memory (2026-09-07): the per-capture leak is fixed and the two full-frame copies
+  (bitmap copy, float32 cast for thumbnails) were removed without a Mac at hand; to measure
+  on the 4K Mac (expected well under the 0.7-1.3 GB seen before).
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic

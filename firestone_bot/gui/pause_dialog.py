@@ -1,5 +1,6 @@
-"""Pop-up shown when the input guard paused the bot (inputguard.py): start a new cycle or
-continue, with a countdown that restarts on every new movement of the user."""
+"""Pop-up shown when the input guard paused the bot (inputguard.py): start a new cycle,
+continue, or stop the bot (owner request 2026-09-07), with a countdown that restarts on
+every new movement of the user."""
 
 from __future__ import annotations
 
@@ -40,8 +41,8 @@ class PauseDialog:
             self.top,
             text=(
                 f"The bot paused ({guard.reason}). Start a new cycle from the beginning "
-                "(the bot goes back to the main screen by itself), or continue the cycle "
-                "where it stopped?"
+                "(the bot goes back to the main screen by itself), continue the cycle "
+                "where it stopped, or stop the bot?"
             ),
             font=theme.font(13),
             wraplength=470,
@@ -79,6 +80,16 @@ class PauseDialog:
             text_color=theme.MUTED,
             command=lambda: self._fire("continue"),
         ).pack(side="right", padx=(8, 0))
+        ctk.CTkButton(
+            row,
+            text="Stop the bot",
+            height=34,
+            width=120,
+            font=theme.font(13),
+            fg_color=theme.ERR,
+            hover_color=("#a93226", "#e05252"),
+            command=lambda: self._fire("stop"),
+        ).pack(side="left")
         self.top.protocol("WM_DELETE_WINDOW", lambda: self._fire("restart"))
         self.top.after(50, self._lift)
         self._tick()

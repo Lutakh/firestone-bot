@@ -214,8 +214,9 @@ dot) were already skipped when it is off.
 While the bot runs, any mouse movement, click, wheel or key press that is not the bot's own
 pauses it at once (Advanced > Mouse guard, on by default; not in dry runs). A pop-up offers
 **Start a new cycle** (the bot closes what is open, gets back to the main screen by itself
-and starts from the beginning) or **Continue the cycle** (the pointer goes back where the
-bot left it and the cycle resumes exactly where it stopped). Without an answer a new cycle
+and starts from the beginning), **Continue the cycle** (the pointer goes back where the
+bot left it and the cycle resumes exactly where it stopped) or **Stop the bot** (same as the
+Stop button). Without an answer a new cycle
 starts after 30 s; every new movement restarts the countdown. The bot's own events are
 recognised by timing (within 250 ms of a bot action) and position (the pointer still where
 the bot put it). The `injected` flag of the Windows input hook only confirms a hardware

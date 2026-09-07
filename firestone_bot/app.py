@@ -800,6 +800,12 @@ class App:
             if self.game.stop_event.is_set():  # Stop pressed meanwhile: let sleep() unwind
                 self.window.post_call(self._close_pause_dialogs)
                 return "continue"
+        if decision["value"] == "stop":
+            # same path as the Stop button: the stop event makes the bot's next wait raise
+            # BotStopped, so "continue" simply lets the guard hand control back to sleep()
+            self.window.post_call(self.stop)
+            self.game.stop_event.wait(2)
+            return "continue"
         return decision["value"]
 
     def _close_pause_dialogs(self) -> None:

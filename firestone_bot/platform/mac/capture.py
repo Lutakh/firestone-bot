@@ -41,7 +41,9 @@ def _image_to_bgra(image) -> np.ndarray:
     )
     Quartz.CGContextDrawImage(ctx, Quartz.CGRectMake(0, 0, w, h), image)
     del ctx  # the context references buf; drop it before the array takes the buffer
-    return np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4).copy()
+    # no .copy(): the array keeps the bytearray alive, and a copy doubled every capture
+    # (31 MB at 4K, owner's Mac 2026-09-07)
+    return np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4)
 
 
 def grab_screen_points(left: int, top: int, width: int, height: int) -> np.ndarray:
