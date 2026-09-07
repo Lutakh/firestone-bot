@@ -386,9 +386,9 @@ class App:
         if self._guard is not None and self.settings.flag("MouseGuard"):
             self._guard.arm()
         self._banners_start()
+        self._game_in_front()  # before the first capture of the run
         self.runner.start()
         self.window.set_bot_state("running")
-        self._game_in_front()
 
     def _game_in_front(self) -> None:
         """Tk thread: the game window in front of the bot's for the run (the idle
