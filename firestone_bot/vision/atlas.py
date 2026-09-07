@@ -279,6 +279,7 @@ TOWN_TAVERN = Point(719, 957)  # ClaimBeer.ahk:14
 # Yellow arrow of the town's Map button, only on the town screen (measured 2026-09-07): the
 # dialog X alone cannot tell the town from another dialog left open.
 TOWN_OPEN = Probe(35, 447, 65, 465, 0xF6C100, 12, "town_open")
+GAME_NEUTRAL_SPOT = Point(960, 250)  # sky of the battlefield: a click there does nothing
 TOWN_ORACLE = Point(1023, 994)  # ClaimRituals.ahk:10
 TOWN_ENGINEER = Point(1230, 820)  # ClaimEngineer.ahk:9
 

@@ -342,11 +342,21 @@ class Game:
             self.sleep(self.CHANGE_POLL_MS)
 
     def save_diagnostic(self, name: str) -> None:
-        """Keep a capture of the whole client next to the user files (the map state file's
-        folder) when something unexpected is on screen; best effort."""
+        """Keep a capture of the whole client in a `diagnostics` folder next to the user
+        files when something unexpected is on screen (time-stamped, the 40 newest kept);
+        best effort."""
         try:
-            folder = os.path.dirname(os.path.abspath(self.map_state_path))
-            capture.save_png(capture.grab(self.window.client), os.path.join(folder, name))
+            folder = os.path.join(
+                os.path.dirname(os.path.abspath(self.map_state_path)), "diagnostics"
+            )
+            os.makedirs(folder, exist_ok=True)
+            stamp = time.strftime("%H%M%S")
+            capture.save_png(
+                capture.grab(self.window.client), os.path.join(folder, f"{stamp}-{name}")
+            )
+            old = sorted(os.listdir(folder))[:-40]
+            for f in old:
+                os.remove(os.path.join(folder, f))
         except Exception:
             log.debug("diagnostic %s not saved", name, exc_info=True)
 
