@@ -1196,5 +1196,8 @@ BAG_CLOSE_X = Probe(
 # Classic style: the bag panel sits lower (its X at logical (1870, 259); measured 2026-09-06)
 BAG_CLOSE_X_CLASSIC = Probe(1888, 257, 1892, 261, DIALOG_RING, 20, "bag_close_x_classic")
 EVENTS_CLOSE_X = Probe(1467, 75, 1471, 79, DIALOG_RING, 20, "events_close_x", ANCHOR_CENTER)
-BP_CLOSE_X = Probe(1857, 124, 1861, 128, DIALOG_RING, 20, "bp_close_x")
+# The battle pass is a centred dialog whose scale does not follow the HUD model: its X ring
+# sat at logical x 1857 on the 16:9 Mac client but at 1791..1795 on a 3840x2022 client
+# (2026-09-07), so the probe spans both places (nothing orange there on the main screen).
+BP_CLOSE_X = Probe(1786, 108, 1866, 130, DIALOG_RING, 20, "bp_close_x")
 TAVERN_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "tavern_close_x", ANCHOR_CENTER)
