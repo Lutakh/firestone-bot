@@ -57,6 +57,15 @@
   blind after `tap()` (guardian, tavern, scarab, rituals, exotic merchant, alchemist,
   research): give each an entry probe. The engineer's new-war-machine animation itself was
   not captured (only its consequence, the arena looping on the garage).
+- Level 50+ choosers (done 2026-09-08, verified live on the owner's Mac at level 51): the
+  engineer and battles buildings open a centred chooser (engineer 3 cards, battles 2 cards);
+  the arena card shows "Unlocks once you acquire at least 2 war machines" and is skipped for
+  the game day. Still unverified: the same choosers at 4K and on Windows, the war-machine
+  branch of the engineer, the events claim in the classic layout, and the classic bag close
+  probe on the built-in 16:10 screen (misses, measurement inconclusive).
+- Restart noise: a run killed mid-cycle leaves its dialog open; the next start hits the
+  main-menu cap once before recovering (choosers and the bag panel are now closed there,
+  the town window is not, it gets closed by the first step recovery).
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic
