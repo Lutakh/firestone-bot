@@ -105,8 +105,10 @@ def client_rect(outer: Rect, title_px: int, fullscreen: bool) -> Rect:
 
 def is_fullscreen(x: float, y: float, w: float, h: float, screen_w: float, screen_h: float) -> bool:
     """Bounds covering the whole screen, or the whole screen minus the menu bar (fullscreen
-    Space with the menu bar shown): Unity draws no title bar in both cases."""
-    return w >= screen_w and x <= 0 and (y <= 0 and h >= screen_h or h >= screen_h * 0.9)
+    Space with the menu bar shown): Unity draws no title bar in both cases. A zoomed window
+    on a 4K display (2026-09-07: 3840x2051 at y=31 on a 2160 pt screen) keeps its title bar
+    and must not pass: only a window reaching the bottom of the screen counts."""
+    return w >= screen_w and x <= 0 and (y <= 0 and h >= screen_h or y + h >= screen_h - 1)
 
 
 # -- title bar ----------------------------------------------------------------------------

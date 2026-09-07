@@ -13,28 +13,35 @@ from __future__ import annotations
 
 import numpy as np
 
+_srgb = None
+
 
 def _image_to_bgra(image) -> np.ndarray:
-    """Draw a CGImage into an sRGB BGRA bitmap and return it as an (H, W, 4) array."""
+    """Draw a CGImage into an sRGB BGRA bitmap and return it as an (H, W, 4) array.
+
+    The bitmap memory is a Python bytearray handed to CGBitmapContextCreate: a context that
+    allocates its own pixels was never freed by PyObjC once drawn into (measured 2026-09-07:
+    +8 MB per capture, 240 GB after a night of polling; with our own buffer the process
+    stays flat at ~320 MB over 150 captures)."""
     import Quartz
 
+    global _srgb
+    if _srgb is None:
+        _srgb = Quartz.CGColorSpaceCreateWithName(Quartz.kCGColorSpaceSRGB)
     w, h = Quartz.CGImageGetWidth(image), Quartz.CGImageGetHeight(image)
-    cs = Quartz.CGColorSpaceCreateWithName(Quartz.kCGColorSpaceSRGB)
+    buf = bytearray(w * 4 * h)
     ctx = Quartz.CGBitmapContextCreate(
-        None,
+        buf,
         w,
         h,
         8,
         w * 4,
-        cs,
+        _srgb,
         Quartz.kCGImageAlphaPremultipliedFirst | Quartz.kCGBitmapByteOrder32Little,  # BGRA
     )
     Quartz.CGContextDrawImage(ctx, Quartz.CGRectMake(0, 0, w, h), image)
-    srgb = Quartz.CGBitmapContextCreateImage(ctx)
-    data = Quartz.CGDataProviderCopyData(Quartz.CGImageGetDataProvider(srgb))
-    bpr = Quartz.CGImageGetBytesPerRow(srgb)
-    buf = np.frombuffer(bytes(data), dtype=np.uint8)
-    return buf.reshape(h, bpr // 4, 4)[:, :w]
+    del ctx  # the context references buf; drop it before the array takes the buffer
+    return np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4).copy()
 
 
 def grab_screen_points(left: int, top: int, width: int, height: int) -> np.ndarray:
