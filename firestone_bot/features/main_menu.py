@@ -25,7 +25,9 @@ def main_menu(g: Game) -> None:
         if g.style == "new":
             # New adventure style: the main screen is recognised directly (blue mode button)
             # and the Options dialog has its own X (BigClose would only hit the gear again).
-            if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
+            from firestone_bot.vision import layouts
+
+            if layouts.on_new_main_screen(g):
                 return
             if g.found(atlas.MM_SETTINGS_OPEN):
                 g.tap(atlas.NS_OPTIONS_CLOSE)

@@ -82,6 +82,17 @@ NEW = MainScreen(
 BY_NAME = {"classic": CLASSIC, "new": NEW}
 
 
+def on_new_main_screen(g) -> bool:
+    """New style: the blue mode button is there AND its label reads as one of the five upgrade
+    modes. The blue alone also matches the sea of the town screen and the blue buttons of
+    the scarab game (2026-09-07: BigClose skipped inside the tavern, dialogs left open)."""
+    from firestone_bot.features.hero_upgrade import read_upgrade_mode
+
+    if not (g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER)):
+        return False
+    return read_upgrade_mode(g) in atlas.HU_MODE_ORDER
+
+
 def detect_style(g, setting: str = "auto", previous: str | None = None) -> str:
     """'classic' or 'new'. The setting forces a style; auto probes the main screen (the game
     must be on the main screen: the blue mode button is only there).
