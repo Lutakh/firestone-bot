@@ -49,8 +49,8 @@
   bell: the centred-dialog anchors of the events list and page (EVENTS_* in atlas.py) on the
   3840x2022 client, where the battle pass dialog did not follow the HUD anchor model.
 - 4K client (3840x2022 window, 2026-09-07): three cycles clean at 1m50-2m34 with the fixes
-  above; the interface-style probe misses every cycle there (kept by memory, harmless in
-  classic; check NS_STYLE_PROBE on the new style at 4K); the account is level 46, so the
+  above; the new-style button probe (NS_STYLE_PROBE) is not checked at 4K yet (no button in the
+  classic layout: its absence now simply means classic); the account is level 46, so the
   level-50+ features (arena, engineer, awakening, crystal) are still unchecked at 4K.
 - macOS memory: the Quartz capture leaked 8 MB per grab (fixed 2026-09-07); the process
   still sits at 0.7-1.3 GB at 4K because every capture is a 31 MB full-client image copied

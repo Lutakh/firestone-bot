@@ -97,7 +97,8 @@ def detect_style(g, setting: str = "auto", previous: str | None = None) -> str:
     g.sleep(300)
     if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
         return "new"
-    if previous in BY_NAME:
-        g.status(f"Interface style probe missed, keeping {previous}")
-        return previous
-    return "classic"
+    if previous == "new":
+        # A miss on a known new-style account is a pop-up or an animation over the button.
+        g.status("Interface style: new-style button not seen, keeping new")
+        return "new"
+    return "classic"  # no new-style button: the classic layout (owner, 2026-09-07)
