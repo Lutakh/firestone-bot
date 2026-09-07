@@ -16,34 +16,30 @@ from firestone_bot.vision import atlas
 from firestone_bot.vision.atlas import ANCHOR_CENTER, Point
 
 
-def main_menu(g: Game) -> None:
+def main_menu(g: Game) -> bool:
+    """Reach the main screen. Returns True when it was recognised (the settings window
+    opened by the gear, or the new-style mode button), False at the safety cap."""
     g.focus()
     g.sleep(1000)
     g.focus()
     cap = int(g.settings.get("SafetyCap") or 0)
     n = 0
-    while True:  # SettingsFinder:
-        if g.style == "new":
-            # New adventure style: the main screen is recognised directly (blue mode button)
-            # and the Options dialog has its own X (BigClose would only hit the gear again).
-            from firestone_bot.vision import layouts
+    from firestone_bot.vision import layouts
 
-            if layouts.on_new_main_screen(g):
-                return
-            if g.found(atlas.MM_SETTINGS_OPEN):
-                g.tap(atlas.NS_OPTIONS_CLOSE)
-            else:
-                if g.found(atlas.MM_RATE_POPUP):
-                    g.tap(atlas.MM_RATE_POPUP_CLOSE)
-                big_close(g)
-            n += 1
-            if cap and n >= cap:
-                g.status(f"MainMenu: safety cap of {cap} iterations reached")
-                return
-            continue
+    while True:  # SettingsFinder:
+        if g.style == "new" and layouts.on_new_main_screen(g):
+            return True
         if g.found(atlas.MM_SETTINGS_OPEN):
-            big_close(g)
-            return
+            # The settings window only opens from the main screen: close it and we are home.
+            # New adventure style: it has its own X (BigClose would only hit the gear again);
+            # the style may still be wrong at the first cycle, so the other X is tried too.
+            if g.style == "new":
+                g.tap(atlas.NS_OPTIONS_CLOSE)
+                if g.found(atlas.MM_SETTINGS_OPEN):
+                    big_close(g)
+            else:
+                big_close(g)
+            return True
         if g.found(atlas.MM_RATE_POPUP):
             g.tap(atlas.MM_RATE_POPUP_CLOSE)
         big_close(g)
@@ -52,7 +48,7 @@ def main_menu(g: Game) -> None:
             continue
         if cap and n >= cap:
             g.status(f"MainMenu: safety cap of {cap} iterations reached")
-            return
+            return False
 
 
 CHOOSER_CLOSE_PROBES = (atlas.MESSAGE_CLOSE_X, atlas.TAVERN_CLOSE_X, atlas.ENGINEER_CLOSE_X)

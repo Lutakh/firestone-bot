@@ -271,11 +271,17 @@ class Runner:
             # do main screen sections
             g.heartbeat("Starting Bot", important=True)
             g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
-            main_menu.main_menu(g)
+            reached = main_menu.main_menu(g)
             g.focus()
-            g.style = layouts.detect_style(
-                g, s.get("InterfaceStyle"), self._style_seen, self._style_misses
-            )
+            if not reached and s.get("InterfaceStyle", "auto").strip().lower() == "auto":
+                # Not on the main screen: a dialog's blue buttons would read as the new
+                # style (the settings window did, 2026-09-08). Keep what is known.
+                g.style = self._style_seen or "classic"
+                g.status(f"Interface style: main screen not reached, assuming {g.style}")
+            else:
+                g.style = layouts.detect_style(
+                    g, s.get("InterfaceStyle"), self._style_seen, self._style_misses
+                )
             self._style_misses = (
                 self._style_misses + 1
                 if g.style == self._style_seen == "new" and not layouts.new_style_seen(g)
