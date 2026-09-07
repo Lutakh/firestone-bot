@@ -51,6 +51,9 @@ def claim_beer(g: Game) -> None:
         if daily.tokens_left(g.settings) == 0:
             g.status("Tavern: daily token limit already reached, skipping tokens")
         else:
-            if play_tokens(g) and g.settings.flag("CraftArtifact"):
-                craft_artifact(g)
+            play_tokens(g)
+    # Rework: the craft button is checked on every visit (AHK only after a token was played,
+    # so a ready artifact waited until the next token; owner 2026-09-07)
+    if g.settings.flag("CraftArtifact"):
+        craft_artifact(g)
     big_close(g)

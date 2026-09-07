@@ -179,8 +179,11 @@ SHOP_ICON = Point(1857, 583)  # :12
 SHOP_DEALS_HOVER = Point(1100, 600)
 # Green "Free" button of the first daily-deal card, measured 2026-09-06 (extent 488..796 x
 # 850..899); the previous rect sat above the button and the box was never claimed.
-SHOP_MYSTERY_CLAIM_READY = Probe(520, 860, 760, 890, GREEN_BUTTON, 30, "shop_mystery_claim")
-SHOP_MYSTERY_CLAIM = Point(642, 875)
+# Windows client 2026-09-07: the button spans logical (466..712, 806..861); the Mac measure
+# (850..899) put the click BELOW the button, the box was never claimed and every cycle counted
+# as a daily reset. The rect covers both and the click lands on the green pixel found.
+SHOP_MYSTERY_CLAIM_READY = Probe(480, 800, 760, 895, GREEN_BUTTON, 30, "shop_mystery_claim")
+SHOP_MYSTERY_CLAIM = Point(642, 875)  # fallback only
 SHOP_FIRST_TAB = Point(493, 124)  # bundle tab holding the free mystery box
 SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
 SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
@@ -321,10 +324,10 @@ TAVERN_CARDS = (  # :20-21
     Point(1243, 715),
 )
 TAVERN_DISMISS = Point(1257, 49)  # :36
-CRAFT_ARTIFACT_READY = Probe(
-    305, 517, 356, 558, GREEN_BUTTON, 3, "craft_artifact_ready"
-)  # CraftArtifact.ahk:6
-CRAFT_ARTIFACT = Point(227, 507)  # :8
+# 2026-09-07 tavern layout: green "Craft ancient artifact" button bottom left, logical
+# (75..385, 966..1026) with a bell when an artifact is ready (AHK probed (305,517)-(356,558)).
+CRAFT_ARTIFACT_READY = Probe(110, 975, 350, 1015, GREEN_BUTTON, 3, "craft_artifact_ready")
+CRAFT_ARTIFACT = Point(227, 996)
 
 # --- ScarabToken.ahk / Scarab.ahk -------------------------------------------------------------
 SCARAB_GAME_DOT = Probe(
