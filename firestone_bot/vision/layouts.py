@@ -111,7 +111,12 @@ def on_new_main_screen(g) -> bool:
     return read_upgrade_mode(g) in atlas.HU_MODE_ORDER
 
 
-def detect_style(g, setting: str = "auto", previous: str | None = None) -> str:
+def new_style_seen(g) -> bool:
+    """Whether the new-style mode button is on screen right now (no pointer move)."""
+    return bool(g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER))
+
+
+def detect_style(g, setting: str = "auto", previous: str | None = None, misses: int = 0) -> str:
     """'classic' or 'new'. The setting forces a style; auto probes the main screen (the game
     must be on the main screen: the blue mode button is only there).
 
@@ -126,8 +131,10 @@ def detect_style(g, setting: str = "auto", previous: str | None = None) -> str:
     g.sleep(300)
     if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
         return "new"
-    if previous == "new":
-        # A miss on a known new-style account is a pop-up or an animation over the button.
-        g.status("Interface style: new-style button not seen, keeping new")
+    if previous == "new" and misses < 1:
+        # A miss on a known new-style account is a pop-up or an animation over the button;
+        # a second miss in a row means the first detection was wrong (a dialog left open by
+        # a stopped run showed a blue button, 2026-09-08) and the layout is the classic one.
+        g.status("Interface style: new-style button not seen, keeping new for this cycle")
         return "new"
     return "classic"  # no new-style button: the classic layout (owner, 2026-09-07)
