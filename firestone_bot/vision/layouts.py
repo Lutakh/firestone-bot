@@ -54,7 +54,7 @@ CLASSIC = MainScreen(
     chest_grid=atlas.CHEST_GRID,
     chest_dialog_close=None,
     character_icon=atlas.CHARACTER_ICON,
-    character_close_x=atlas.DIALOG_CLOSE_X,
+    character_close_x=atlas.CHARACTER_CLOSE_X,
     quests_badge=atlas.QUESTS_BADGE,
 )
 
@@ -75,7 +75,7 @@ NEW = MainScreen(
     chest_grid=atlas.NS_CHEST_GRID,
     chest_dialog_close=atlas.NS_CHEST_DIALOG_CLOSE,
     character_icon=atlas.CHARACTER_ICON,
-    character_close_x=atlas.NS_CHARACTER_CLOSE_X,
+    character_close_x=atlas.CHARACTER_CLOSE_X,
     quests_badge=atlas.NS_QUESTS_BADGE,
 )
 

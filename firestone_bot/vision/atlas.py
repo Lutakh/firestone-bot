@@ -81,7 +81,12 @@ class Probe:
 # Common colours (AHK 0xRRGGBB literals).
 GREEN_BUTTON = 0x0AA008  # affordable / claim button
 GREEN_BUTTON_2 = 0x16BC15
-RED_DOT = 0xF40000  # notification dot
+# Notification dot. Measured (244,0,0) on the owner's Retina display but (244,33,0) on their
+# 4K display (2026-09-07: every bell probe missed there with the old 3-unit variation, so
+# the battle pass, the events and the shop were never opened): the centre is set between the
+# two and the dots use RED_DOT_VAR.
+RED_DOT = 0xF41000
+RED_DOT_VAR = 32
 IDLE_TROOP = 0x542710  # brown idle-troop marker on the map
 ORANGE_1 = 0xF9AA47
 ORANGE_2 = 0xFCAC47
@@ -96,7 +101,7 @@ MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 # --- ClaimEvents.ahk (main-screen part re-measured 2026-09-04) -------------------------------
 # AHK looked for the red dot in (1719,170)-(1741,204) and clicked the icon at (1691,229): the
 # Events button is now at the bottom left of the main screen (client (583,930), bell (609,907)).
-EVENTS_BELL = Probe(595, 916, 635, 956, RED_DOT, 3, "events_bell")
+EVENTS_BELL = Probe(595, 916, 635, 956, RED_DOT, RED_DOT_VAR, "events_bell")
 EVENTS_ICON = Point(583, 961)
 # Events list: active cards first, 175 px pitch; bell at the top-right corner of a card.
 # The list is a centred dialog: at 16:9 its right-hand edge (bells, X) must be anchored to the
@@ -122,7 +127,7 @@ EVENTS_TOP_EVENT = EVENTS_CARDS[0]  # :15 (AHK clicked (942,359))
 # rect).
 EVENTS_CHALLENGES_TAB = Point(1125, 70, (CENTER, CENTER))  # :20
 EVENTS_CHALLENGES_TAB_BELL = Probe(
-    1290, 44, 1320, 74, RED_DOT, 3, "events_tab_bell", (CENTER, CENTER)
+    1290, 44, 1320, 74, RED_DOT, RED_DOT_VAR, "events_tab_bell", (CENTER, CENTER)
 )
 EVENTS_PAGE_CLOSE = Point(1715, 124, (CENTER, CENTER))  # X of the event page (client (1715,93))
 EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the 2026 layout
@@ -142,9 +147,9 @@ EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the
 
 # --- Battle pass (Python-only, measured 2026-09-04) -----------------------------------------
 BP_ICON = Point(445, 961)  # main-screen button (client (445,930)), left of Events
-BP_BELL = Probe(470, 894, 500, 924, RED_DOT, 3, "bp_bell")
+BP_BELL = Probe(470, 894, 500, 924, RED_DOT, RED_DOT_VAR, "bp_bell")
 BP_REWARDS_TAB = Point(1085, 79)  # tab (client (1085,48))
-BP_REWARDS_BADGE = Probe(1198, 46, 1228, 76, RED_DOT, 3, "bp_rewards_badge")
+BP_REWARDS_BADGE = Probe(1198, 46, 1228, 76, RED_DOT, RED_DOT_VAR, "bp_rewards_badge")
 BP_REWARD_COLUMNS = (360, 1830)  # logical x range of the milestone track
 BP_REWARD_ROWS = ((525, 565), (945, 985))  # logical y bands of the Golden / Free Claim rows
 BP_PARK = Point(960, 1015)
@@ -165,7 +170,7 @@ QUESTS_CLAIM = Point(1503, 309)  # :25
 QUESTS_REWARD_OK = Point(1619, 990)  # :29
 
 # --- Shop.ahk -------------------------------------------------------------------------------
-SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, 3, "shop_red_dot")  # :10
+SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, RED_DOT_VAR, "shop_red_dot")  # :10
 SHOP_ICON = Point(1857, 583)  # :12
 # Shop.ahk:17 clicked the mystery box at (591,857). In the 2026 shop the "Daily deals" row
 # scrolls horizontally: the free mystery box is the FIRST card while claimable (green button
@@ -272,7 +277,9 @@ TOWN_ORACLE = Point(1023, 994)  # ClaimRituals.ahk:10
 TOWN_ENGINEER = Point(1230, 820)  # ClaimEngineer.ahk:9
 
 # --- Guardian.ahk ---------------------------------------------------------------------------
-GUARDIAN_EVOLVE_DOT = Probe(1307, 107, 1346, 136, RED_DOT, 3, "guardian_evolve_dot")  # :14
+GUARDIAN_EVOLVE_DOT = Probe(
+    1307, 107, 1346, 136, RED_DOT, RED_DOT_VAR, "guardian_evolve_dot"
+)  # :14
 GUARDIAN_EVOLVE_TAB = Point(1200, 165)  # :17
 GUARDIAN_EVOLVE_BUTTON = Point(1117, 750)  # :21
 GUARDIAN_BACK_TAB = Point(1049, 171)  # :26
@@ -281,9 +288,14 @@ GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
 # Chaos-rift tab of the guardian screen (Python-only, measured 2026-09-04): third tab, bell on
 # it, bells at the top-right corner of the 4 roster portraits, green Upgrade button.
 GUARDIAN_CHAOS_TAB = Point(1360, 171)
-GUARDIAN_CHAOS_TAB_BELL = Probe(1385, 111, 1415, 141, RED_DOT, 3, "guardian_chaos_tab_bell")
+GUARDIAN_CHAOS_TAB_BELL = Probe(
+    1385, 111, 1415, 141, RED_DOT, RED_DOT_VAR, "guardian_chaos_tab_bell"
+)
 GUARDIAN_ROSTER = tuple(  # (bell probe, portrait click) for roster positions 1..4
-    (Probe(x - 12, 897, x + 12, 921, RED_DOT, 3, f"guardian_bell_{i}"), Point(x - 55, 966))
+    (
+        Probe(x - 12, 897, x + 12, 921, RED_DOT, RED_DOT_VAR, f"guardian_bell_{i}"),
+        Point(x - 55, 966),
+    )
     for i, x in enumerate((805, 945, 1085, 1225), start=1)
 )
 GUARDIAN_CHAOS_UPGRADE_READY = Probe(1580, 691, 1770, 781, GREEN_BUTTON, 3, "guardian_chaos_up")
@@ -315,9 +327,11 @@ CRAFT_ARTIFACT_READY = Probe(
 CRAFT_ARTIFACT = Point(227, 507)  # :8
 
 # --- ScarabToken.ahk / Scarab.ahk -------------------------------------------------------------
-SCARAB_GAME_DOT = Probe(1275, 320, 1310, 360, RED_DOT, 3, "scarab_game_dot")  # ScarabToken.ahk:16
+SCARAB_GAME_DOT = Probe(
+    1275, 320, 1310, 360, RED_DOT, RED_DOT_VAR, "scarab_game_dot"
+)  # ScarabToken.ahk:16
 TAVERN_SCARAB_TAB = Point(1108, 500)  # :19
-SCARAB_TOKEN_DOT = Probe(1860, 667, 1900, 705, RED_DOT, 3, "scarab_token_dot")  # :24
+SCARAB_TOKEN_DOT = Probe(1860, 667, 1900, 705, RED_DOT, RED_DOT_VAR, "scarab_token_dot")  # :24
 SCARAB_TOKEN_TAB = Point(1809, 722)  # :26
 SCARAB_TOKEN_CLAIM = Point(685, 763)  # :31
 # Rework (2026-09-04): token icon inside the green Play button, client (905..955, 900..950).
@@ -330,7 +344,7 @@ SCARAB_PLAY_ICON_PAID = Probe(905, 931, 955, 981, 0xA524A5, 30, "scarab_play_ico
 SCARAB_PLAY_ICON_FREE = Probe(905, 931, 955, 981, 0xBFC5C5, 18, "scarab_play_icon_free")
 
 # --- ClaimRituals.ahk -----------------------------------------------------------------------
-RITUALS_DOT = Probe(871, 341, 903, 382, RED_DOT, 3, "rituals_dot")  # :15
+RITUALS_DOT = Probe(871, 341, 903, 382, RED_DOT, RED_DOT_VAR, "rituals_dot")  # :15
 RITUALS_TAB = Point(830, 420)  # :17
 RITUAL_CLAIMS = (  # :22-45
     (Probe(1259, 463, 1331, 536, GREEN_BUTTON, 3, "ritual_1"), Point(1180, 500)),
@@ -364,7 +378,7 @@ BLESS_UPGRADE = Point(1371, 812)  # :8
 BLESS_CLOSE = Point(1661, 229)  # :14
 
 # --- OracleDaily.ahk ------------------------------------------------------------------------
-ORACLE_GIFT_DOT = Probe(859, 684, 901, 740, RED_DOT, 3, "oracle_gift_dot")  # :7
+ORACLE_GIFT_DOT = Probe(859, 684, 901, 740, RED_DOT, RED_DOT_VAR, "oracle_gift_dot")  # :7
 ORACLE_GIFT_TAB = Point(823, 760)  # :9
 ORACLE_GIFT_CLAIM = Point(711, 791)  # :14
 
@@ -392,7 +406,9 @@ WAR_MACHINES = (  # label order in WMUpgrade.ahk; signature colour in the roster
     ("Talos", 0x226B10),
     ("Thunderclap", 0x3EE0EE),
 )
-WM_LEVEL_DOT = Probe(1358, 103, 1400, 133, RED_DOT, 3, "wm_level_dot")  # WMLevelOnly.ahk:4
+WM_LEVEL_DOT = Probe(
+    1358, 103, 1400, 133, RED_DOT, RED_DOT_VAR, "wm_level_dot"
+)  # WMLevelOnly.ahk:4
 WM_ANVIL_TAB = Point(1337, 170)  # :7
 WM_LEVEL_UPGRADE = Point(1428, 581)  # :12
 WM_BLUEPRINT_TAB = Point(1486, 170)  # WMBlueprintsOnly.ahk:5
@@ -535,7 +551,7 @@ MAIN_GUILD_ICON = Point(1857, 481)  # :12
 # must be anchored to the centre (measured on macOS 2026-09-06: the expeditions bell sat 47 px
 # left of the left-anchored rect).
 GUILD_EXPEDITION_DOT = Probe(
-    450, 410, 380, 490, RED_DOT, 3, "guild_expedition_dot", (CENTER, CENTER)
+    450, 410, 380, 490, RED_DOT, RED_DOT_VAR, "guild_expedition_dot", (CENTER, CENTER)
 )  # :17 (inverted)
 GUILD_EXPEDITIONS = Point(308, 406, (CENTER, CENTER))  # :20
 GUILD_EXPEDITION_START = Point(1321, 331, (CENTER, CENTER))  # :24
@@ -561,7 +577,7 @@ GUILD_NOTIF_2 = Point(230, 667)  # :114
 
 # --- Awaken.ahk -----------------------------------------------------------------------------
 AWAKEN_GREEN = 0x0A9F05
-AWAKEN_DOT = Probe(1107, 745, 1367, 944, RED_DOT, 3, "awaken_dot")  # :8
+AWAKEN_DOT = Probe(1107, 745, 1367, 944, RED_DOT, RED_DOT_VAR, "awaken_dot")  # :8
 AWAKEN_OPEN = Point(1192, 847)  # :11
 AWAKEN_X1 = Point(1577, 400)  # :39
 AWAKEN_BUTTON_ORANGE = Probe(1600, 566, 1845, 612, 0xF4A044, 1, "awaken_button_orange")  # :43
@@ -581,7 +597,7 @@ AWAKEN_MULTIPLIERS = (  # :49-141 x160, x80, x40, x20, x10, x5, x2, x1 (probe, b
 )
 
 # --- Chaos.ahk ------------------------------------------------------------------------------
-CHAOS_DOT = Probe(1525, 695, 1555, 725, RED_DOT, 3, "chaos_dot")  # :8
+CHAOS_DOT = Probe(1525, 695, 1555, 725, RED_DOT, RED_DOT_VAR, "chaos_dot")  # :8
 CHAOS_OPEN = Point(1410, 625)  # :10
 CHAOS_AUTO = Point(1740, 980)  # :13 (Auto/Manual toggle; NOT used by the rework, see chaos.py)
 # Rework (2026-09-04): manual hits with free tokens only. Hit button at client (960,855),
@@ -593,9 +609,9 @@ CHAOS_HIT_ICON_FREE = Probe(905, 911, 955, 951, 0x3182C6, 16, "chaos_hit_icon_fr
 # Rift shop (books), measured 2026-09-04: Shop button right column with its bell, Supplies
 # entry in the shop's left menu with its bell, green price button of the "Tome of power" card.
 RIFT_SHOP = Point(1815, 721)
-RIFT_SHOP_BELL = Probe(1865, 641, 1895, 671, RED_DOT, 3, "rift_shop_bell")
+RIFT_SHOP_BELL = Probe(1865, 641, 1895, 671, RED_DOT, RED_DOT_VAR, "rift_shop_bell")
 RIFT_SUPPLIES = Point(115, 587)
-RIFT_SUPPLIES_BELL = Probe(190, 538, 220, 568, RED_DOT, 3, "rift_supplies_bell")
+RIFT_SUPPLIES_BELL = Probe(190, 538, 220, 568, RED_DOT, RED_DOT_VAR, "rift_supplies_bell")
 RIFT_BOOKS_READY = Probe(580, 775, 770, 808, GREEN_BUTTON, 3, "rift_books_ready")
 RIFT_BOOKS_BUY = Point(675, 792)
 RIFT_BOOKS_PARK = Point(300, 950)
@@ -632,7 +648,7 @@ PTREE_NODES = (  # (setting name, node position) in AHK order
 )
 
 # --- LiberationMissions.ahk / LiberationInProgressCheck.ahk ---------------------------------
-LIB_DOT = Probe(1873, 920, 1900, 954, RED_DOT, 3, "lib_dot")  # :9
+LIB_DOT = Probe(1873, 920, 1900, 954, RED_DOT, RED_DOT_VAR, "lib_dot")  # :9
 LIB_OPEN = Point(1800, 982)  # :11
 LIB_TAB = Point(697, 788)  # :19
 LIB_ALREADY_DONE = Probe(1723, 51, 1797, 123, 0xFF4805, 10, "lib_already_done")  # :34
@@ -862,11 +878,11 @@ NS_STYLE_PROBE = Probe(1640, 946, 1800, 966, 0x1089FF, 6, "ns_style_probe")
 NS_STYLE_PROBE_HOVER = Probe(1640, 946, 1800, 966, 0x54D9F7, 12, "ns_style_probe_hover")
 NS_MAIL_ICON = Point(55, 606)
 NS_EVENTS_ICON = Point(1862, 681)
-NS_EVENTS_BELL = Probe(1885, 636, 1915, 666, RED_DOT, 3, "ns_events_bell")
+NS_EVENTS_BELL = Probe(1885, 636, 1915, 666, RED_DOT, RED_DOT_VAR, "ns_events_bell")
 NS_BP_ICON = Point(1862, 811)
-NS_BP_BELL = Probe(1885, 766, 1915, 796, RED_DOT, 3, "ns_bp_bell")
+NS_BP_BELL = Probe(1885, 766, 1915, 796, RED_DOT, RED_DOT_VAR, "ns_bp_bell")
 NS_SHOP_ICON = Point(1862, 556)
-NS_SHOP_BELL = Probe(1885, 511, 1915, 541, RED_DOT, 3, "ns_shop_bell")
+NS_SHOP_BELL = Probe(1885, 511, 1915, 541, RED_DOT, RED_DOT_VAR, "ns_shop_bell")
 NS_GUILD_ICON = Point(1862, 431)
 NS_BAG_ICON = Point(1455, 821)
 # The bag opens as a panel anchored at the top right (X at client 1868,68; tabs backpack /
@@ -1163,9 +1179,11 @@ GUILD_LEVEL_REGION = (193, 122, 480, 152)  # "Guild level 24" bar under the guil
 # with a hole in the middle (pink background), so the probe tells "a dialog is open" from
 # "main screen". Measured on the Mac (town X centre 255,249,206; gear 225,151,66).
 DIALOG_CLOSE_X = Probe(1849, 81, 1858, 90, 0xFFF9CE, 30, "dialog_close_x")
-# New style: the character page's X sits lower and left (ring at logical (1780..1810, 90..118),
-# measured 2026-09-06); the classic probe never matched and every quests visit was retried.
-NS_CHARACTER_CLOSE_X = Probe(1793, 101, 1802, 110, 0xFFF9CE, 30, "ns_character_close_x")
+# The character page's X sits lower and left than the other dialogs' (ring at logical
+# (1780..1810, 90..118), measured 2026-09-06 in the new style and 2026-09-07 in the classic
+# style on a 4K client: same place in both); DIALOG_CLOSE_X never matched there and every
+# quests visit was retried.
+CHARACTER_CLOSE_X = Probe(1793, 101, 1802, 110, 0xFFF9CE, 30, "character_close_x")
 # Dialogs whose X sits elsewhere (entry probes for `expect=` / open_screen, measured on the
 # Mac 2026-09-06). They look at the orange ring 20 logical px left of the cross centre: the
 # cream centre alone matched cream text and icons of the main screen, the orange never does.
