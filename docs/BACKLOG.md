@@ -52,6 +52,11 @@
 - macOS memory (2026-09-07): the per-capture leak is fixed and the two full-frame copies
   (bitmap copy, float32 cast for thumbnails) were removed without a Mac at hand; to measure
   on the 4K Mac (expected well under the 0.7-1.3 GB seen before).
+- Step recovery (done 2026-09-08, `Runner._step`, `Game.require_screen`): only the shop,
+  engineer and arena raise ScreenNotReached so far; the other town buildings still click
+  blind after `tap()` (guardian, tavern, scarab, rituals, exotic merchant, alchemist,
+  research): give each an entry probe. The engineer's new-war-machine animation itself was
+  not captured (only its consequence, the arena looping on the garage).
 - Level gating follow-ups: the "not in a guild" case (no banner: today the guild features
   simply run and miss), the digit reader on other resolutions than the owner's Mac (templates
   are size-normalised but only checked at 3024x1709), the level regions in the classic

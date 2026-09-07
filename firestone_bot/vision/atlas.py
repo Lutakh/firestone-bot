@@ -185,6 +185,7 @@ SHOP_DEALS_HOVER = Point(1100, 600)
 SHOP_MYSTERY_CLAIM_READY = Probe(480, 800, 760, 895, GREEN_BUTTON, 30, "shop_mystery_claim")
 SHOP_MYSTERY_CLAIM = Point(642, 875)  # fallback only
 SHOP_FIRST_TAB = Point(493, 124)  # bundle tab holding the free mystery box
+SHOP_FIRST_CARD = (500, 420, 780, 840)  # picture of the first daily-deal card (claim check)
 SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
 SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
 SHOP_CHECKIN_OK = Point(1339, 828)  # :31

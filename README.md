@@ -209,6 +209,18 @@ Mouse-wheel scrolls send their notches 50 ms apart instead of 200 (a 35-notch sc
 2 s instead of 7). Modules with a main-screen indicator (event bell, battle-pass bell, shop
 dot) were already skipped when it is off.
 
+## Lost screens: a step is skipped, never the cycle
+
+Every feature of a cycle (events, shop, each town building, guild, map, heroes) runs as
+one step. When its screen does not show after the click and one retry (network lag, a
+leftover dialog, an unlock animation such as a new war machine in the garage), or when
+the step fails, the bot logs it, keeps a capture in the diagnostics folder
+(`step-<name>.png`), closes what is open, goes back to the main screen (and reopens the
+town for a town building) and carries on with the next step. Stop and the mouse-guard
+pause still unwind the whole cycle. Features verify their entry screen with the dialog's
+close button; the shop, engineer and arena log what they are about to do before they
+click, so the log reads in the order things happen.
+
 ## Mouse guard (pause when you use the mouse)
 
 While the bot runs, any mouse movement, click, wheel or key press that is not the bot's own

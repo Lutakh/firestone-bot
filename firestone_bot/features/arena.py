@@ -29,8 +29,8 @@ def arena_battle(g: Game) -> bool:
 
 def arena(g: Game) -> None:
     g.focus()
-    # open battles
-    g.tap(atlas.TOWN_BATTLES)
+    g.status("Arena: opening the battles building")
+    g.require_screen(atlas.TOWN_BATTLES, atlas.DIALOG_CLOSE_X, via_town=True)
     # choose arena of kings
     g.tap(atlas.ARENA_OF_KINGS)
     random_x = random.choice(atlas.ARENA_OPPONENT_COLUMNS)
@@ -46,6 +46,7 @@ def arena(g: Game) -> None:
             big_close(g)
             daily.note_arena_done(g.settings)  # no battles left today
             return
+        g.status("Arena: starting a battle")
         g.tap(atlas.ARENA_FIGHT, 0)
         while not arena_battle(g):
             g.sleep(5000)

@@ -48,6 +48,12 @@ class BotStopped(Exception):
     """Raised from sleep() when the stop event is set; unwinds the current cycle."""
 
 
+class ScreenNotReached(Exception):
+    """A feature's entry screen did not show after the click and the retry: the runner skips
+    the feature and goes back to the main screen (owner request 2026-09-08: a new war
+    machine's unlock animation in the engineer's garage lost a whole cycle)."""
+
+
 @dataclass
 class Hit:
     """A PixelSearch result: screen pixel plus its logical equivalent."""
@@ -419,12 +425,14 @@ class Game:
         if settle_ms:
             self.wait_change(settle_ms, before)
 
-    def open_screen(self, p: Point, expect: Probe, settle_ms: float = 1500) -> bool:
-        """Click a main-screen icon that opens a full-screen dialog. Fast timing: wait for
-        `expect`; when it does not show (the click landed elsewhere, a leftover dialog), go
-        back to the main screen (big X, main-menu check) and click once more. Returns
-        whether the expected screen is there (always True in safe timing, which cannot
-        tell)."""
+    def open_screen(
+        self, p: Point, expect: Probe, settle_ms: float = 1500, via_town: bool = False
+    ) -> bool:
+        """Click an icon that opens a full-screen dialog. Fast timing: wait for `expect`;
+        when it does not show (the click landed elsewhere, a leftover dialog, an animation),
+        go back to the main screen (big X, main-menu check), reopen the town when the icon
+        is a town building (`via_town`), and click once more. Returns whether the expected
+        screen is there (always True in safe timing, which cannot tell)."""
         self.tap(p, settle_ms, expect=expect)
         if not self.fast() or self.found(expect):
             return True
@@ -432,11 +440,24 @@ class Game:
         from firestone_bot.features.main_menu import main_menu
 
         self.status("Screen not reached, returning to the main screen and retrying")
+        self.save_diagnostic(f"screen-miss-{expect.name or 'dialog'}.png")
         big_close(self)
         main_menu(self)
         self.focus()
+        if via_town:
+            from firestone_bot.features.open_town import open_town
+
+            open_town(self)
         self.tap(p, settle_ms, expect=expect)
         return self.found(expect)
+
+    def require_screen(
+        self, p: Point, expect: Probe, settle_ms: float = 1500, via_town: bool = False
+    ) -> None:
+        """open_screen() that raises ScreenNotReached when the screen is not there, so the
+        calling feature is skipped by the runner instead of clicking blind."""
+        if not self.open_screen(p, expect, settle_ms, via_town):
+            raise ScreenNotReached(expect.name or "dialog")
 
     def tap_xy(self, x: int, y: int, settle_ms: float = 1500, anchor=None) -> None:
         self.tap(Point(x, y, anchor), settle_ms)

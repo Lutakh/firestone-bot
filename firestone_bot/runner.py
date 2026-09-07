@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import threading
 import time
 
@@ -42,7 +43,7 @@ from firestone_bot.features import (
     shop,
 )
 from firestone_bot.features.heartbeat import send_heartbeat
-from firestone_bot.game import BotStopped, Game
+from firestone_bot.game import BotStopped, Game, ScreenNotReached
 from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
@@ -216,6 +217,31 @@ class Runner:
                 continue
         g.status("Could not reach the main screen after the pause; the cycle starts anyway")
 
+    def _step(self, name: str, fn, town: bool = False) -> None:
+        """Run one feature of the cycle. A feature whose screen is not reached, or that
+        fails, is skipped: the bot goes back to the main screen (and reopens the town for
+        a town feature) and the cycle carries on with the next step (owner, 2026-09-08).
+        Stop requests and the mouse-guard pause still unwind the whole cycle."""
+        g = self.g
+        try:
+            fn()
+            return
+        except (BotStopped, UserInterrupted):
+            raise
+        except ScreenNotReached as e:
+            g.status(f"{name}: its screen ({e}) did not show, step skipped")
+        except Exception:
+            log.exception("%s failed", name)
+            g.status(f"{name}: failed ({sys.exc_info()[1]!r}), step skipped")
+        g.save_diagnostic(f"step-{name.lower().replace(' ', '-')}.png")
+        g.focus()
+        big_close.big_close(g)
+        big_close.big_close(g)
+        main_menu.main_menu(g)
+        g.focus()
+        if town:
+            open_town.open_town(g)
+
     def _cycle(self) -> bool:
         """One pass of the AHK main loop. False = the bot stops."""
         g, s = self.g, self.settings
@@ -250,12 +276,12 @@ class Runner:
             g.status(f"Interface style: {g.style}")
             self._progress_checks()
             if s.flag("Events"):
-                claim_events.claim_events(g)
+                self._step("Events", lambda: claim_events.claim_events(g))
             if s.flag("BattlePass"):
-                battle_pass.battle_pass(g)
+                self._step("Battle pass", lambda: battle_pass.battle_pass(g))
             if s.flag("Quests"):
                 g.heartbeat("ClaimQuests")
-                quests.claim_quests(g)
+                self._step("Quests", lambda: quests.claim_quests(g))
             g.toast(
                 "Main Menu Check",
                 "Checking to ensure we are on main screen after claiming quests",
@@ -265,72 +291,78 @@ class Runner:
             g.focus()
             # always: the shop visit also detects the daily reset (free mystery box)
             g.heartbeat("Shop")
-            shop.shop(g)
+            self._step("Daily shop", lambda: shop.shop(g))
             if s.flag("Mail"):
                 g.heartbeat("CheckMail")
-                check_mail.check_mail(g)
+                self._step("Mail", lambda: check_mail.check_mail(g))
             if s.flag("Chests"):
                 g.heartbeat("OpenChests")
-                open_chests.open_chests(g)
+                self._step("Open chests", lambda: open_chests.open_chests(g))
             elif s.flag("Bless"):
                 g.heartbeat("OpenBlessChests")
-                open_chests.open_bless_chests(g)
+                self._step("Bless chests", lambda: open_chests.open_bless_chests(g))
         with self._timed("town"):
             # start town section
             open_town.open_town(g)
             g.heartbeat("Guardian")
-            guardian.guardian(g)
+            self._step("Guardian", lambda: guardian.guardian(g), town=True)
             g.heartbeat("ClaimBeer")
-            claim_beer.claim_beer(g)
+            self._step("Tavern beer", lambda: claim_beer.claim_beer(g), town=True)
             if not g.locked("scarab"):
                 g.heartbeat("ScarabToken")
-                scarab_token.scarab_token(g)
+                self._step("Scarab token", lambda: scarab_token.scarab_token(g), town=True)
                 g.heartbeat("Scarab")
-                scarab.scarab(g)
+                self._step("Scarab game", lambda: scarab.scarab(g), town=True)
             if not s.flag("SkipOracle") and not g.locked("oracle"):
                 g.heartbeat("ClaimRituals")
-                claim_rituals.claim_rituals(g)
+                self._step("Oracle rituals", lambda: claim_rituals.claim_rituals(g), town=True)
             # Engineer:
             if not s.flag("NoEng") and not g.locked("engineer"):
                 g.heartbeat("ClaimEngineer")
-                claim_engineer.claim_engineer(g)
+                self._step("Engineer", lambda: claim_engineer.claim_engineer(g), town=True)
             # ExoticSection:
             if s.flag("SellEx"):
                 g.heartbeat("ExoticMerchant")
-                exotic_merchant.exotic_merchant(g)
+                self._step("Exotic merchant", lambda: exotic_merchant.exotic_merchant(g), town=True)
             if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):
                 now = _ms()
                 if self._last_arena <= 0 or now - self._last_arena >= 6 * 60 * 60 * 1000:
                     g.heartbeat("Arena")
-                    arena.arena(g)
+                    self._step("Arena", lambda: arena.arena(g), town=True)
                     self._last_arena = now
             if not s.flag("Alch") and not g.locked("alchemist"):
                 g.heartbeat("Alchemist")
-                alchemist.alchemist(g)
+                self._step("Alchemist", lambda: alchemist.alchemist(g), town=True)
             # ResearchStart:
             if not s.flag("Research"):
                 g.heartbeat("GoResearch")
-                research.go_research(g)
+                self._step("Research", lambda: research.go_research(g), town=True)
             # FinishTown:
             big_close.big_close(g)
         with self._timed("guild"):
             if not s.flag("NoGuild"):
-                guild.guild(g)
+                self._step("Guild", lambda: guild.guild(g))
                 if g.vars.pop("chaos_hits", 0) and s.flag("GuardianChaosUpgrades"):
                     # Python-only: spend the chaos-rift rewards on the guardians right away
-                    guardian_chaos.upgrade_after_chaos(g)
+                    self._step(
+                        "Guardian chaos upgrades", lambda: guardian_chaos.upgrade_after_chaos(g)
+                    )
         with self._timed("map"):
             # MapStartUp:
             if s.flag("MapMissions"):
-                go_map.go_map(g)
-                map_align.align_map(g)
                 g.heartbeat("MapRedeem")
-                map_redeem.map_redeem(g)
+
+                def _map() -> None:
+                    go_map.go_map(g)
+                    map_align.align_map(g)
+                    map_redeem.map_redeem(g)
+
+                self._step("Map", _map)
         with self._timed("heroes"):
             # UpgradeHero:
             if not s.flag("NoHero"):
                 g.heartbeat("HeroUpgrade")
-                hero_upgrade.hero_upgrade(g)
+                self._step("Hero upgrades", lambda: hero_upgrade.hero_upgrade(g))
         # EndingMouseMove:
         g.heartbeat("Delay ending bot")
         self.cycles += 1

@@ -9,8 +9,12 @@ from firestone_bot.vision import atlas
 
 def claim_engineer(g: Game) -> None:
     g.focus()
-    # open engineer
-    g.tap(atlas.TOWN_ENGINEER)
+    g.status("Engineer: opening the garage")
+    # The garage is a full-screen dialog with the standard X; a newly unlocked war machine
+    # plays an intro animation in it (2026-09-08), so the entry is verified and the screen
+    # left to settle before the tabs are clicked.
+    g.require_screen(atlas.TOWN_ENGINEER, atlas.DIALOG_CLOSE_X, via_town=True)
+    g.wait_still()
     # check if option to level WM's is chosen
     if g.settings.UpgradeWM != "Don't Upgrade WM's":
         from firestone_bot.features.wm_upgrade import wm_upgrade
@@ -24,5 +28,6 @@ def claim_engineer(g: Game) -> None:
         g.tap(atlas.ENGINEER_SELECT)
     # ClaimTools:
     if g.settings.flag("EngineerTools") and g.found(atlas.ENGINEER_TOOLS_READY):
+        g.status("Engineer: claiming the tools")
         g.tap(atlas.ENGINEER_TOOLS_CLAIM, 1000)
     big_close(g)
