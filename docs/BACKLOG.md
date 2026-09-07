@@ -1,10 +1,5 @@
 # Backlog (owner requests, not yet done)
 
-- Windows cycle of 2026-09-07 14:54 (after the shop/tavern fix): several fast-timing entry
-  probes missed once and cost a retry each (tavern_close_x x3 around the tavern chooser,
-  dialog_close_x x3 in the guild/tree section; town 1m18s instead of 30s), and MapRedeem hit
-  its safety cap on a completed mission ("Mission is already complete!" x3: the claim click
-  did not take). Not blocking; to measure on the Windows client.
 - Mouse-guard pause pop-up (owner, 2026-09-07): add a third button "Stop the bot" next to
   "Start a new cycle" and "Continue the cycle" (gui/pause_dialog.py; the decision goes
   through app._on_user_input, a stop must set the game's stop_event like the Stop button and
