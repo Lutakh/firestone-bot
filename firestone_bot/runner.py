@@ -273,7 +273,7 @@ class Runner:
             g.toast("Main Menu Check", "Checking to ensure we are on main screen at loop start", 2)
             reached = main_menu.main_menu(g)
             g.focus()
-            if not reached and s.get("InterfaceStyle", "auto").strip().lower() == "auto":
+            if not reached and (s.get("InterfaceStyle") or "auto").strip().lower() == "auto":
                 # Not on the main screen: a dialog's blue buttons would read as the new
                 # style (the settings window did, 2026-09-08). Keep what is known.
                 g.style = self._style_seen or "classic"
