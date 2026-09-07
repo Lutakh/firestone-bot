@@ -32,6 +32,11 @@ class MainScreen:
     bag_chests_tab: Point
     chest_grid: tuple[int, int, int, int]
     chest_dialog_close: Point | None  # None: BigClose + failsafe (classic)
+    chest_open_buttons: tuple  # (probe, button) largest first, in the chest dialog
+    chest_result_ready: tuple[Probe, ...]  # any of them: the opening animation ended
+    chest_open_more: Point  # x50 on the result screen
+    chest_open_more_ready: Probe
+    chest_result_close: Point | None  # None: the result screen closes like the dialog
     character_icon: Point
     character_close_x: Probe  # entry probe of the character page (its X)
     quests_badge: Probe  # red badge on the quests icon: nothing to claim without it
@@ -53,6 +58,11 @@ CLASSIC = MainScreen(
     bag_chests_tab=atlas.BAG_CHESTS_TAB,
     chest_grid=atlas.CHEST_GRID,
     chest_dialog_close=None,
+    chest_open_buttons=atlas.CHEST_OPEN_BUTTONS,
+    chest_result_ready=(),
+    chest_open_more=atlas.CHEST_OPEN_MORE,
+    chest_open_more_ready=atlas.CHEST_OPEN_MORE_READY,
+    chest_result_close=None,
     character_icon=atlas.CHARACTER_ICON,
     character_close_x=atlas.CHARACTER_CLOSE_X,
     quests_badge=atlas.QUESTS_BADGE,
@@ -74,6 +84,11 @@ NEW = MainScreen(
     bag_chests_tab=atlas.NS_BAG_CHESTS_TAB,
     chest_grid=atlas.NS_CHEST_GRID,
     chest_dialog_close=atlas.NS_CHEST_DIALOG_CLOSE,
+    chest_open_buttons=atlas.NS_CHEST_OPEN_BUTTONS,
+    chest_result_ready=(atlas.NS_CHEST_RESULT_OPEN_MORE_READY, atlas.NS_CHEST_RESULT_CLOSE_X),
+    chest_open_more=atlas.NS_CHEST_RESULT_OPEN_MORE,
+    chest_open_more_ready=atlas.NS_CHEST_RESULT_OPEN_MORE_READY,
+    chest_result_close=atlas.NS_CHEST_RESULT_CLOSE,
     character_icon=atlas.CHARACTER_ICON,
     character_close_x=atlas.CHARACTER_CLOSE_X,
     quests_badge=atlas.NS_QUESTS_BADGE,

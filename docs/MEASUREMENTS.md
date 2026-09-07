@@ -207,8 +207,13 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   0x1089FF mode button at client (1630..1810, 915..985) with white text. Bag panel anchored top
   right: X at client (1868,68), tabs at x 1487 y 100/190/285/370, chest grid client
   (1543..1887, 120..730). Chest dialog X at client (1413,55); its three open buttons are wider
-  (client x 615-810 / 860-1060 / 1105-1305, y 750-830) but the AHK probes still fall inside
-  them. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.
+  (client x 615-810 / 860-1060 / 1105-1305, y 750-830): the AHK probes fall inside the WRONG
+  ones (x10 read as x1, x50 as x10), hence `NS_CHEST_OPEN_BUTTONS` (2026-09-07). Opening
+  plays an animation (5.5 s for one chest, about 10 s for fifty) with nothing clickable; the
+  result screen then shows an orange X at client (1845,55) (cross 0xFFF9CD, the bag X 10 px
+  away is 0xFFF0C0) and, when chests are left, x1 / x10 / xN buttons stacked bottom right
+  (client x 1705-1885, y 690-750 / 800-860 / 905-965, N = min(50, stock)); with an empty
+  stock no button at all. The buttons slide in after the X. Character page X at client (1795,72), Options X at (1725,85). Logical = client y + 31.
 - World map north edge (2026-09-05): the Doomfire Island (volcano, "Guardian of Doomfire",
   Titan mission, 4 squads, timed) icon centre is at client (1300,-5), hidden behind the HUD
   with only its pin and timer visible next to the 21/27 squad counter. Dragging the map from

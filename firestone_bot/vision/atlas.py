@@ -901,6 +901,23 @@ NS_BAG_CLOSE = Point(1868, 99)
 NS_BAG_CHESTS_TAB = Point(1487, 316)
 NS_CHEST_GRID = (1543, 150, 1887, 760)
 NS_CHEST_DIALOG_CLOSE = Point(1413, 86)
+# Chest dialog of the new style (Windows 1920x1009, 2026-09-07): x1 / x10 / x50 in one row,
+# a third of a button further left than the classic dialog (the classic probes read x10 as
+# x1 and x50 as x10, and the bot opened ten chests instead of one).
+NS_CHEST_OPEN_BUTTONS = (  # (probe, button): 50, 10, 1
+    (Probe(1115, 790, 1295, 850, GREEN_BUTTON, 1, "ns_chest_open_50"), Point(1205, 821)),
+    (Probe(870, 790, 1050, 850, GREEN_BUTTON, 1, "ns_chest_open_10"), Point(960, 821)),
+    (Probe(625, 790, 805, 850, GREEN_BUTTON, 1, "ns_chest_open_1"), Point(715, 821)),
+)
+# Result screen (loot cards): the "open more" x1 / x10 / x50 buttons are stacked in the
+# bottom-right corner and an orange X sits top right; both only draw once the opening
+# animation ended (5.5 s for one chest). Waiting for them is waiting for the animation.
+NS_CHEST_RESULT_OPEN_MORE = Point(1795, 966)  # x50
+NS_CHEST_RESULT_OPEN_MORE_READY = Probe(1775, 945, 1815, 985, GREEN_BUTTON, 1, "ns_chest_more")
+NS_CHEST_RESULT_CLOSE = Point(1845, 86)
+# tight variation: the bag panel's own X, 10 px away, is 0xFFF0C0
+NS_CHEST_RESULT_CLOSE_X = Probe(1842, 83, 1848, 89, 0xFFF9CD, 6, "ns_chest_result_x")
+CHEST_ANIMATION_TIMEOUT_MS = 90000  # fifty chests take a while
 NS_MODE_BUTTON = Point(1720, 981)
 NS_MODE_TEXT = (1630, 946, 1810, 1016)  # white text on the blue button (shape only: the
 # rect is re-centred on the button found in NS_MODE_SEARCH, see hero_upgrade.find_mode_button)

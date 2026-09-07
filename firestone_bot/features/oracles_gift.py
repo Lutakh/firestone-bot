@@ -3,7 +3,11 @@ signature colour and variation). The open-button rows sit lower than for chests.
 
 from __future__ import annotations
 
-from firestone_bot.features.open_chest_type import close_chest_dialog
+from firestone_bot.features.open_chest_type import (
+    close_chest_dialog,
+    open_more_loop,
+    wait_chest_animation,
+)
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 from firestone_bot.vision.atlas import Probe
@@ -25,13 +29,8 @@ def _open_gift(g: Game, title: str, color: int, variation: int) -> None:
             break
     if target is not None:
         g.tap(target, 0)
-        g.sleep(10000)  # long delay in case 10 or more are opened
-        for _ in range(5):
-            if g.found(atlas.CHEST_OPEN_MORE_READY, variation=3):
-                g.tap(atlas.CHEST_OPEN_MORE, 10000)
-            else:
-                break  # Goto, ...Close
-            g.sleep(100)
+        if wait_chest_animation(g):
+            open_more_loop(g, variation=3)
     # ...Close:
     close_chest_dialog(g)
 
