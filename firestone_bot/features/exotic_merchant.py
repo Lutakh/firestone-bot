@@ -30,15 +30,12 @@ def _sell(g: Game, items) -> None:
 
 
 def wants_visit(g: Game) -> bool:
-    """Selling needs something to sell: a chest opened this cycle (Game.vars). The upgrade
-    and chest purchases justify the visit on their own."""
-    s = g.settings
-    sells = s.flag("SellScrolls") or s.flag("SellAll") or s.flag("SellNoGold")
-    if sells and g.vars.get("chests_opened", 0):
+    """The visit is only worth it after a chest was opened this cycle (Game.vars): selling
+    the loot is what brings the coins the upgrades and chest purchases are paid with
+    (owner, 2026-09-08)."""
+    if g.vars.get("chests_opened", 0):
         return True
-    if s.flag("ExoticUpgrades") or s.flag("BuyEx"):
-        return True
-    g.status("Exotic merchant: no chest opened this cycle, nothing to sell, visit skipped")
+    g.status("Exotic merchant: no chest opened this cycle, visit skipped")
     return False
 
 
@@ -52,12 +49,19 @@ def exotic_merchant(g: Game) -> None:
         _sell(g, atlas.EXOTIC_SCROLLS)
         if s.flag("SellAll"):
             _sell(g, atlas.EXOTIC_GOLD_TOP)
-            # scroll to bottom
+            # scroll to bottom (the pointer must be over the list: it was parked beside it
+            # after the sells and the wheel scrolled nothing, 2026-09-08)
+            g.move_to(atlas.EXOTIC_LIST_HOVER)
+            g.sleep(300)
             g.wheel(-35)
+            g.wait_still()
             _sell(g, atlas.EXOTIC_GOLD_BOTTOM)
             _sell(g, atlas.EXOTIC_ITEMS_BOTTOM)
         elif s.flag("SellNoGold"):
+            g.move_to(atlas.EXOTIC_LIST_HOVER)
+            g.sleep(300)
             g.wheel(-35)
+            g.wait_still()
             _sell(g, atlas.EXOTIC_ITEMS_BOTTOM)
     # ExChecks:
     if s.flag("ExoticUpgrades"):

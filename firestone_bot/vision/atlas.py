@@ -164,6 +164,10 @@ CHARACTER_ICON = Point(90, 112)  # :9
 QUESTS_BADGE = Probe(94, 253, 116, 271, RED_DOT, 30, "quests_badge")
 NS_QUESTS_BADGE = Probe(94, 192, 116, 209, RED_DOT, 30, "ns_quests_badge")
 QUESTS_TAB = Point(1455, 74)  # :14
+# new style: the red bell on the Quests tab of the character page (tab spans client x
+# 1345-1580, y 5-65); the avatar badge on the main screen counts other things too and the
+# tabs were opened for nothing every cycle (owner, 2026-09-08)
+NS_QUESTS_TAB_BELL = (1345, 36, 1590, 100)
 QUESTS_DAILY_TAB = Point(765, 155)  # :19
 QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
 QUESTS_CLAIM_READY = Probe(1544, 286, 1606, 334, GREEN_BUTTON, 3, "quests_claim_ready")  # :23
@@ -389,6 +393,7 @@ BLESS_UPGRADE_READY = Probe(
     1249, 763, 1498, 861, GREEN_BUTTON, 3, "bless_upgrade_ready"
 )  # ClickBless.ahk:6
 BLESS_UPGRADE = Point(1371, 812)  # :8
+BLESS_PARK = Point(1371, 650)  # off the Upgrade button (hovered = lighter green)
 BLESS_CLOSE = Point(1661, 229)  # :14
 
 # --- OracleDaily.ahk ------------------------------------------------------------------------
@@ -449,6 +454,7 @@ WM_BLUEPRINT_CHOICES = {  # Blueprints setting -> stats in click order
 # --- ExoticMerchant.ahk / ExoticUpgrades.ahk / BuyExotic.ahk --------------------------------
 TOWN_EXOTIC_MERCHANT = Point(1459, 650)  # ExoticMerchant.ahk:9
 EXOTIC_PARK = Point(1850, 540)  # off every Sell button (hovered = lighter green)
+EXOTIC_LIST_HOVER = Point(1300, 750)  # inside the item list, where the wheel scrolls it
 EXOTIC_SCROLLS = (  # :34-55 speed, damage, health
     (Probe(1026, 596, 1074, 636, GREEN_BUTTON, 3, "sell_scroll_speed"), Point(959, 596)),
     (Probe(1350, 598, 1401, 634, GREEN_BUTTON, 3, "sell_scroll_damage"), Point(1280, 601)),
@@ -909,6 +915,7 @@ NS_STYLE_PROBE = Probe(1640, 946, 1800, 966, 0x1089FF, 6, "ns_style_probe")
 NS_STYLE_PROBE_HOVER = Probe(1640, 946, 1800, 966, 0x54D9F7, 12, "ns_style_probe_hover")
 NS_OPTIONS_CLOSE = Point(1725, 116)  # X of the Options dialog (BigClose only hits the gear)
 NS_MAIL_ICON = Point(55, 606)
+NS_MAIL_BELL = (20, 560, 115, 650)  # red bell on the mail icon (client x 20-90, y 545-605)
 NS_EVENTS_ICON = Point(1862, 681)
 NS_EVENTS_BELL = Probe(1885, 636, 1915, 666, RED_DOT, RED_DOT_VAR, "ns_events_bell")
 NS_BP_ICON = Point(1862, 811)

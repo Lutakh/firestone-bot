@@ -7,8 +7,9 @@ following MainMenu() does. Reproduced as-is.
 
 from __future__ import annotations
 
+from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, bells
 
 
 def _claim_tab(g: Game, tab: atlas.Point) -> None:
@@ -24,6 +25,12 @@ def claim_quests(g: Game) -> None:
         return
     # open character window
     g.open_screen(g.ms.character_icon, g.ms.character_close_x, 1000)
+    if g.style == "new":
+        g.wait_still()
+        if not bells.has_bell(g, atlas.NS_QUESTS_TAB_BELL):
+            g.status("Quests: no bell on the Quests tab, nothing to claim")
+            big_close(g)
+            return
     # open quests tab
     g.tap(atlas.QUESTS_TAB, 1000)
     _claim_tab(g, atlas.QUESTS_DAILY_TAB)
