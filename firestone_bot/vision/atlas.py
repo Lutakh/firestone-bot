@@ -26,6 +26,7 @@ Anchor = tuple[float, float]
 LEFT, CENTER, RIGHT = 0.0, 0.5, 1.0
 TOP, BOTTOM = 0.0, 1.0
 ANCHOR_CENTER: Anchor = (CENTER, CENTER)  # centred content (dialogs, the world map)
+ANCHOR_BOTTOM_CENTER: Anchor = (CENTER, BOTTOM)  # the main screen's bottom bar
 
 
 def default_anchor(fx: float, fy: float) -> Anchor:
@@ -102,8 +103,14 @@ MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 # --- ClaimEvents.ahk (main-screen part re-measured 2026-09-04) -------------------------------
 # AHK looked for the red dot in (1719,170)-(1741,204) and clicked the icon at (1691,229): the
 # Events button is now at the bottom left of the main screen (client (583,930), bell (609,907)).
-EVENTS_BELL = Probe(595, 916, 635, 956, RED_DOT, RED_DOT_VAR, "events_bell")
-EVENTS_ICON = Point(583, 961)
+# Battle pass and Events belong to the bottom bar, which is centred (like the hero bar):
+# on a 16:9 client they sit 64 px left of where a left anchor puts them (the reference
+# client is 1920x1009, a wider canvas), so the bell probe missed and neither was claimed
+# on the owner's Mac (2026-09-08).
+# The gift's own red reaches logical x 595 (same extent on the Windows reference and the
+# Mac, 2026-09-08) and passed for the bell at the old x1 of 595: the rect starts at 601.
+EVENTS_BELL = Probe(601, 916, 640, 956, RED_DOT, RED_DOT_VAR, "events_bell", ANCHOR_BOTTOM_CENTER)
+EVENTS_ICON = Point(583, 961, ANCHOR_BOTTOM_CENTER)
 # Events list: active cards first, 175 px pitch; bell at the top-right corner of a card.
 # The list is a centred dialog: at 16:9 its right-hand edge (bells, X) must be anchored to the
 # centre, not to the screen edge (measured on macOS 2026-09-06: bell 125 px right of the
@@ -147,8 +154,8 @@ EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the
 )
 
 # --- Battle pass (Python-only, measured 2026-09-04) -----------------------------------------
-BP_ICON = Point(445, 961)  # main-screen button (client (445,930)), left of Events
-BP_BELL = Probe(470, 894, 500, 924, RED_DOT, RED_DOT_VAR, "bp_bell")
+BP_ICON = Point(445, 961, ANCHOR_BOTTOM_CENTER)  # bottom-bar button (client (445,930))
+BP_BELL = Probe(470, 894, 500, 924, RED_DOT, RED_DOT_VAR, "bp_bell", ANCHOR_BOTTOM_CENTER)
 BP_REWARDS_TAB = Point(1085, 79)  # tab (client (1085,48))
 BP_REWARDS_BADGE = Probe(1198, 46, 1228, 76, RED_DOT, RED_DOT_VAR, "bp_rewards_badge")
 BP_REWARD_COLUMNS = (360, 1830)  # logical x range of the milestone track
@@ -159,15 +166,21 @@ BP_CLOSE = Point(1815, 126)  # X of the battle pass (client (1815,95))
 
 # --- Quests.ahk -----------------------------------------------------------------------------
 CHARACTER_ICON = Point(90, 112)  # :9
-# Red badge on the quests icon under the avatar (classic and new layouts differ in y):
+# Red badge on the first icon under the avatar (classic and new layouts differ in y):
 # measured 2026-09-06 on the Mac client, badge extent (90..120, 249..275) / (90..120, 188..213).
+# That column of icons depends on the account (a beer mug with "26" on the level-678
+# reference, a hammer with "5" on the owner's level-55 account, 2026-09-08), so in the
+# classic layout the badge says nothing about the quests and is not used: the character
+# page is opened and the Quests tab's bell decides.
 QUESTS_BADGE = Probe(94, 253, 116, 271, RED_DOT, 30, "quests_badge")
 NS_QUESTS_BADGE = Probe(94, 192, 116, 209, RED_DOT, 30, "ns_quests_badge")
 QUESTS_TAB = Point(1455, 74)  # :14
-# new style: the red bell on the Quests tab of the character page (tab spans client x
-# 1345-1580, y 5-65); the avatar badge on the main screen counts other things too and the
-# tabs were opened for nothing every cycle (owner, 2026-09-08)
-NS_QUESTS_TAB_BELL = (1345, 36, 1590, 100)
+# The red bell on the Quests tab of the character page (tab spans client x 1345-1580,
+# y 5-65; same dialog in both styles, seen on the Mac classic client 2026-09-08): the
+# avatar badge on the main screen counts other things too and the tabs were opened for
+# nothing every cycle (owner, 2026-09-08).
+QUESTS_TAB_BELL = (1345, 36, 1590, 100)
+NS_QUESTS_TAB_BELL = QUESTS_TAB_BELL
 QUESTS_DAILY_TAB = Point(765, 155)  # :19
 QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
 QUESTS_CLAIM_READY = Probe(1544, 286, 1606, 334, GREEN_BUTTON, 3, "quests_claim_ready")  # :23
@@ -210,7 +223,7 @@ MAIL_DELETE_BUTTON = Point(1569, 939)  # :28
 # --- OpenChests.ahk / OpenChestType.ahk / OraclesGift.ahk / MysteryBox.ahk -----------------
 BAG_ICON = Point(1581, 939)  # OpenChests.ahk:30
 BAG_CHESTS_TAB = Point(1487, 460)  # :35
-BAG_CLOSE = Point(1870, 246)  # :159
+BAG_CLOSE = Point(1870, 256)  # :159 (AHK 246; the X ring is centred at y 256, 2026-09-08)
 BAG_SCROLL_HOVER = Point(1720, 608)  # :185 (mouse position while wheeling)
 CHEST_GRID = (1543, 307, 1887, 905)  # OpenChestType.ahk:12 search rect for chest signatures
 CHEST_OPEN_BUTTONS = (  # OpenChestType.ahk:18-36 (probe, button): 11-50, 2-10, 1
@@ -563,24 +576,35 @@ ALCHEMY_SLOTS = (
     ),
 )
 
-# --- Research.ahk and sub-functions -----------------------------------------------------------
+# --- Research: the library's research tree (game 9.1.1, measured 2026-09-08 on the Mac) ----
+# The AHK-era library (two slots with orange "free" / green "done" buttons, blue 0x0D49DE
+# nodes matched at variation 0) is gone. The Firestone tab shows a scrolling tree of blue
+# node boxes (0x2848D8 on the Mac's sRGB capture, 0x0D49DE on Windows: matched at 0x1D49DE
+# +-32, which excludes the tree's own blue background 0x184080 / 0x407DD3); clicking a node
+# opens a centred popup with a green "Research" button (left) and an orange "Complete
+# instantly" gem button (right, never clicked). Two slot panels sit at the bottom left: a
+# running research shows a progress bar and an orange "Speed up" gem button (never
+# clicked), an empty slot reads "Select a firestone research", a finished one is expected
+# to show a green button in the same place as "Speed up" (not seen yet).
 TOWN_LIBRARY = Point(329, 657)  # Research.ahk:12
-RS_FIRESTONE_TREE = Point(1816, 610)  # :18
-RS_NODE_AVAILABLE = 0x0D49DE  # ResearchStart.ahk: blue of an available node (variation 0)
-RS_TREE_HOVER = Point(1429, 944)  # ResearchStart.ahk:5
-RS_START_OR_DISMISS = Point(721, 747)  # ResearchClicks.ahk:6
-RS_SLOT2_LOCKED = Probe(1208, 892, 1264, 931, 0x6F6F6F, 1, "rs_slot2_locked")  # SlotTest:6
-RS_SLOT2_IN_PROGRESS = Probe(1228, 889, 1269, 929, 0x916A37, 3, "rs_slot2_running")  # :13
-RS_SLOT2_FREE = Probe(1234, 912, 1272, 974, ORANGE_1, 3, "rs_slot2_free")  # :20
-RS_SLOT2_DONE = Probe(1234, 912, 1272, 974, GREEN_BUTTON, 3, "rs_slot2_done")  # :31
-RS_SLOT2_CLAIM = Point(1204, 938)  # :22
-RS_SLOT1_IN_PROGRESS = Probe(603, 891, 624, 932, 0x916A37, 3, "rs_slot1_running")  # :48
-RS_SLOT1_FREE = Probe(588, 911, 620, 967, ORANGE_1, 3, "rs_slot1_free")  # :55
-RS_SLOT1_DONE = Probe(588, 911, 620, 967, GREEN_BUTTON, 3, "rs_slot1_done")  # :71
-RS_SLOT1_CLAIM = Point(545, 940)  # :57
-RAST_SLOT2 = Point(1202, 944)  # ResearchAfterStartTest.ahk:8
-RAST_SLOT1 = Point(554, 939)  # :29
-RAST_IN_PROGRESS = Probe(562, 245, 754, 311, 0x8C4221, 10, "rast_in_progress")  # :12
+RS_FIRESTONE_TREE = Point(1816, 610)  # Firestone tab of the right-hand panel (Research.ahk:18)
+RS_TREE_HOVER = Point(1429, 944)  # where the wheel scrolls the tree (ResearchStart.ahk:5)
+RS_PAGE_NOTCHES = 35  # wheel notches between the tree's two pages (WheelDown = page 2)
+RS_TREE_AREA = (40, 110, 1650, 860)  # logical, centre-anchored: the tree without the tabs
+RS_NODE_BOX = 0x1D49DE
+RS_NODE_VAR = 32
+RS_NODE_MIN_W, RS_NODE_MIN_H = 140, 40  # a node box is ~410x100 logical
+RS_POPUP_RESEARCH = Probe(700, 690, 900, 716, 0x0EA10C, 20, "rs_popup_research", ANCHOR_CENTER)
+RS_POPUP_RESEARCH_BUTTON = Point(800, 704, ANCHOR_CENTER)
+RS_POPUP_CLOSE_X = Probe(1215, 200, 1263, 248, DIALOG_RING, 30, "rs_popup_close_x", ANCHOR_CENTER)
+RS_POPUP_CLOSE = Point(1239, 224, ANCHOR_CENTER)
+# Slot panels (bottom-left anchored): the button zone is the right end of each panel.
+RS_SLOT_BUTTONS = ((505, 925, 640, 1010), (1155, 925, 1290, 1010))
+RS_SLOT_RUNNING = 0xF7A242  # orange "Speed up" button
+RS_SLOT_RUNNING_VAR = 30
+RS_SLOT_DONE = (GREEN_BUTTON, GREEN_BUTTON_2)  # a green button: claim it
+RS_SLOT_DONE_VAR = 25
+RS_BUTTON_MIN_W = 40  # logical; the buttons are ~120 wide
 
 # --- Guild.ahk ------------------------------------------------------------------------------
 MAIN_GUILD_ICON = Point(1857, 481)  # :12
@@ -1257,10 +1281,15 @@ BAG_CLOSE_X = Probe(
     1888, 93, 1892, 97, DIALOG_RING, 20, "bag_close_x"
 )  # right of the cross: the town X is close by
 # Classic style: the bag panel sits lower (its X at logical (1870, 259); measured 2026-09-06)
-BAG_CLOSE_X_CLASSIC = Probe(1888, 257, 1892, 261, DIALOG_RING, 20, "bag_close_x_classic")
+# The ring is centred at (1869, 256) with a hole ~24 px wide on the Mac client, where the
+# 4-px rect at x 1888 fell inside the hole and never matched (2026-09-08): the rect now
+# spans the ring band (inner to outer edge) right of the cross.
+BAG_CLOSE_X_CLASSIC = Probe(1884, 252, 1904, 262, DIALOG_RING, 20, "bag_close_x_classic")
 EVENTS_CLOSE_X = Probe(1467, 75, 1471, 79, DIALOG_RING, 20, "events_close_x", ANCHOR_CENTER)
 # The battle pass is a centred dialog whose scale does not follow the HUD model: its X ring
 # sat at logical x 1857 on the 16:9 Mac client but at 1791..1795 on a 3840x2022 client
 # (2026-09-07), so the probe spans both places (nothing orange there on the main screen).
-BP_CLOSE_X = Probe(1786, 108, 1866, 130, DIALOG_RING, 20, "bp_close_x")
+# Kept below y 116: the town's X ring (centre y ~85) reached into a taller rect and passed
+# for the battle pass when the town was still open (2026-09-08).
+BP_CLOSE_X = Probe(1786, 116, 1866, 136, DIALOG_RING, 20, "bp_close_x")
 TAVERN_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "tavern_close_x", ANCHOR_CENTER)

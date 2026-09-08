@@ -147,6 +147,14 @@ and scaled with the canvas, and `map_start` now clicks every mission point with 
 centre anchor (`atlas.ANCHOR_CENTER`); the thirds rule would have been 45 px off for points
 near the edges.
 
+Bottom bar anchoring (2026-09-08, Mac 3024x1695 client against the 1920x1009 reference):
+under a centre-bottom anchor the Battle pass bell sits at logical (482, 913) and the Events
+gift at (581, 938), the atlas values exactly (`BP_BELL` 470-500 x 894-924, `EVENTS_ICON`
+(583, 961)); with the left anchor of the thirds rule they were 64 px off and the bell probes
+missed. The reference canvas is 2056 units wide (1920 / 0.934) where a 16:9 client's is
+1920: centred groups move by half the difference. The gift's own red reaches x 595 on both
+clients, so the events bell probe starts at 601.
+
 Not done: 125 % DPI (needs a change of the Windows display scaling, left to the owner), a
 third window size, the wheel-notch comparison at two sizes, and a full cycle at 1280x720.
 

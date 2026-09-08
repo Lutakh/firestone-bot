@@ -73,8 +73,10 @@ def claim_rewards(g: Game) -> int:
 def battle_pass(g: Game) -> None:
     g.focus()
     if not g.found(g.ms.bp_bell):
+        g.status("Battle pass: no bell on the button, nothing to claim")
         return
-    g.open_screen(g.ms.bp_icon, atlas.BP_CLOSE_X, 2500)
+    g.status("Battle pass: bell found, opening the battle pass")
+    g.require_screen(g.ms.bp_icon, atlas.BP_CLOSE_X, 2500)
     if g.found(atlas.BP_REWARDS_BADGE):
         g.tap(atlas.BP_REWARDS_TAB, 2500)
         claim_rewards(g)

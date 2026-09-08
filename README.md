@@ -208,6 +208,15 @@ instead of every second.
 Mouse-wheel scrolls send their notches 50 ms apart instead of 200 (a 35-notch scroll takes
 2 s instead of 7). Modules with a main-screen indicator (event bell, battle-pass bell, shop
 dot) were already skipped when it is off.
+The Battle pass and Events buttons belong to the bottom bar, which the game centres like the
+hero bar: their points and bell probes carry a centre-bottom anchor (on a 16:9 client they
+sit 64 px left of a left-anchored guess, so neither was claimed on macOS until 2026-09-08).
+Quests are gated by the red bell on the Quests tab of the character page, not by the badge
+of the first icon under the avatar, whose meaning depends on the account. Research uses the
+tree of the current library: the two slot panels at the bottom read as running (orange
+"Speed up"), finished (green button, claimed) or empty; an empty slot gets the rightmost
+node whose popup offers the green "Research" button, page 2 first; the gem buttons
+("Complete instantly", "Speed up") are never clicked.
 
 ## Lost screens: a step is skipped, never the cycle
 

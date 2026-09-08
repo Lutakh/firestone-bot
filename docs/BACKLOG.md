@@ -52,10 +52,10 @@
 - macOS memory (2026-09-07): the per-capture leak is fixed and the two full-frame copies
   (bitmap copy, float32 cast for thumbnails) were removed without a Mac at hand; to measure
   on the 4K Mac (expected well under the 0.7-1.3 GB seen before).
-- Step recovery (done 2026-09-08, `Runner._step`, `Game.require_screen`): only the shop,
-  engineer and arena raise ScreenNotReached so far; the other town buildings still click
-  blind after `tap()` (guardian, tavern, scarab, rituals, exotic merchant, alchemist,
-  research): give each an entry probe. The engineer's new-war-machine animation itself was
+- Step recovery (done 2026-09-08, `Runner._step`, `Game.require_screen`): the shop,
+  engineer, arena, quests, battle pass and research raise ScreenNotReached; the other town
+  buildings still click blind after `tap()` (guardian, tavern, scarab, rituals, exotic
+  merchant, alchemist): give each an entry probe. The engineer's new-war-machine animation itself was
   not captured (only its consequence, the arena looping on the garage).
 - Level 50+ choosers (done 2026-09-08, verified live on the owner's Mac at level 51): the
   engineer and battles buildings open a centred chooser (engineer 3 cards, battles 2 cards);
@@ -63,6 +63,16 @@
   the game day. Still unverified: the same choosers at 4K and on Windows, the war-machine
   branch of the engineer, the events claim in the classic layout, and the classic bag close
   probe on the built-in 16:10 screen (misses, measurement inconclusive).
+- Library research (rewritten 2026-09-08 for the tree of game 9.1.1, verified live on the
+  Mac: slot 2 started from page 2): the finished state (a green button in the slot panel)
+  has not been seen yet; if the game shows something else when a research completes, the
+  slot reads "empty" and the node clicks fail harmlessly (popup closed, diagnostic saved).
+  A locked second slot is untested. The Windows node colour (0x0D49DE) is covered by the
+  tolerance but unverified there.
+- Bottom-bar anchors (done 2026-09-08): Battle pass / Events are centre-anchored. Other HUD
+  groups may hide the same error on non-reference aspects; only the 1920x1009 reference and
+  16:9 clients have been checked. The events bell with a bell actually present is unverified
+  on the Mac (probe moved off the gift's own red).
 - Restart noise: a run killed mid-cycle leaves its dialog open; the next start hits the
   main-menu cap once before recovering (choosers and the bag panel are now closed there,
   the town window is not, it gets closed by the first step recovery).

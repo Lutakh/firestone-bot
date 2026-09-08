@@ -1,157 +1,122 @@
-"""Port of Functions/Research.ahk and its sub-functions (ResearchSlotTest.ahk,
-ResearchStart.ahk, ResearchClicks.ahk, ResearchAfterStartTest.ahk).
+"""Library: keep the two firestone research slots busy (rewritten 2026-09-08 for the
+research tree of game 9.1.1; the AHK Research.ahk flow and its slot probes no longer match
+anything on screen and its "free completion" click landed on the gem "Speed up" button).
 
-The AHK globals Slot1InProcess / Slot2InProcess live in `g.vars`. ResearchAfterStartTest
-(`RAST`) is not included by any AHK file; ported for completeness, unused by the main loop.
+Flow: open the library (entry probe), select the Firestone tab, read the two slot panels at
+the bottom (green button = finished, claim it; orange "Speed up" = running; neither =
+empty), then for each empty slot try the tree's node boxes from the right (deeper nodes
+first, page 2 then page 1, like the AHK): a node whose popup offers the green "Research"
+button is started; any other popup is closed. The gem buttons ("Complete instantly",
+"Speed up") are never clicked.
 """
 
 from __future__ import annotations
 
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
-from firestone_bot.vision.atlas import Probe
+from firestone_bot.vision import atlas, blobs
+from firestone_bot.vision.atlas import Point
 
-S1 = "Slot1InProcess"
-S2 = "Slot2InProcess"
-
-
-def research_slot_test(g: Game) -> None:
-    v = g.vars
-    # make sure slot 2 is purchased
-    g.toast("Slot 2 Status", "Checking status of slot 2...", 1.5)
-    if g.found(atlas.RS_SLOT2_LOCKED):
-        g.toast("Slot 2 Status", "Slot 2 not purchased - setting to in progress", 1.5)
-        v[S2] = 1
-    elif g.found(atlas.RS_SLOT2_IN_PROGRESS):
-        g.toast("Slot 2 Status", "Slot 2 is in progress.", 1.5)
-        v[S2] = 1
-    elif g.found(atlas.RS_SLOT2_FREE):
-        g.move_to(atlas.RS_SLOT2_CLAIM)
-        g.toast("Slot 2 Status", "Slot 2 is able to be completed for free.", 1.5)
-        g.click()
-        g.sleep(1000)
-        v[S2] = 0
-    elif g.found(atlas.RS_SLOT2_DONE):
-        g.toast("Slot 2 Status", "Slot 2 is completed and ready to claim.", 1.5)
-        g.tap(atlas.RS_SLOT2_CLAIM, 1000)
-        v[S2] = 0
-    else:
-        g.toast("Slot 2 Status", "Slot 2 is not in progress.", 1.5)
-        v[S2] = 0
-    # Slot1Check:
-    g.toast("Slot 1 Status", "Checking status of slot 1... ", 1.5)
-    if g.found(atlas.RS_SLOT1_IN_PROGRESS):
-        g.toast("Slot 1 Status", "Slot 1 is in progress.", 1.5)
-        v[S1] = 1
-        return
-    if g.found(atlas.RS_SLOT1_FREE):
-        g.move_to(atlas.RS_SLOT1_CLAIM)
-        g.toast("Slot 1 Status", "Slot 1 is able to be completed for free.", 1.5)
-        g.click()
-        g.sleep(1000)
-        v[S1] = 0
-        if v.get(S2) == 1:
-            v[S1], v[S2] = 1, 0
-            g.toast(
-                "Changing Slot Status",
-                "Changing Slot 1 to In Process and Slot 2 to Not in Process",
-                2,
-            )
-            return
-    if g.found(atlas.RS_SLOT1_DONE):
-        g.toast("Slot 1 Status", "Slot 1 is completed and ready to claim.", 1.5)
-        g.tap(atlas.RS_SLOT1_CLAIM, 1000)
-        v[S1] = 0
-        if v.get(S2) == 1:
-            v[S1], v[S2] = 1, 0
-            g.toast(
-                "Changing Slot Status",
-                "Changing Slot 1 to In Process and Slot 2 to Not in Process",
-                2,
-            )
-        return
-    g.toast("Slot 1 Status", "Slot 1 is not in progress.", 1.5)
-    v[S1] = 0
+MAX_NODES_PER_PAGE = 8
+SLOT_ANCHOR = (atlas.LEFT, atlas.BOTTOM)
 
 
-def research_clicks(g: Game) -> None:
-    # start or safely click away from spend gems
-    g.tap(atlas.RS_START_OR_DISMISS, 1000)
-    research_slot_test(g)
+def slot_state(g: Game, slot: int) -> str:
+    """'done' (green button), 'running' (orange Speed up), or 'empty'."""
+    zone = atlas.RS_SLOT_BUTTONS[slot]
+    for colour in atlas.RS_SLOT_DONE:
+        if blobs.find_blobs(
+            g, zone, colour, atlas.RS_SLOT_DONE_VAR, anchor=SLOT_ANCHOR, min_w=atlas.RS_BUTTON_MIN_W
+        ):
+            return "done"
+    if blobs.find_blobs(
+        g,
+        zone,
+        atlas.RS_SLOT_RUNNING,
+        atlas.RS_SLOT_RUNNING_VAR,
+        anchor=SLOT_ANCHOR,
+        min_w=atlas.RS_BUTTON_MIN_W,
+    ):
+        return "running"
+    return "empty"
 
 
-def _scan_page(g: Game, width: int) -> bool:
-    """Scan columns from x=1700 down to 0 for an available node. True = slot 2 became busy."""
-    i = 0
-    while True:
-        i += 1
-        xcheck = 1700 - (i - 1) * 100
-        probe = Probe(xcheck, 300, xcheck + width, 750, atlas.RS_NODE_AVAILABLE, 0, "rs_node")
-        hit = g.search(probe)
-        if hit is not None:
-            g.click_screen(hit.sx, hit.sy)  # MouseClick, Left, X, Y, 1, 0
-            g.sleep(500)
-            research_clicks(g)
-        if g.vars.get(S2) == 1:
+def _slot_button(slot: int) -> Point:
+    x1, y1, x2, y2 = atlas.RS_SLOT_BUTTONS[slot]
+    return Point((x1 + x2) // 2, (y1 + y2) // 2, SLOT_ANCHOR)
+
+
+def tree_nodes(g: Game) -> list[blobs.Blob]:
+    """Node boxes on the visible tree page, rightmost first."""
+    found = blobs.find_blobs(
+        g,
+        atlas.RS_TREE_AREA,
+        atlas.RS_NODE_BOX,
+        atlas.RS_NODE_VAR,
+        anchor=atlas.ANCHOR_CENTER,
+        min_w=atlas.RS_NODE_MIN_W,
+        min_h=atlas.RS_NODE_MIN_H,
+    )
+    return sorted(found, key=lambda b: -b.cx)
+
+
+def _try_node(g: Game, node: blobs.Blob, slot: int) -> bool:
+    g.tap(Point(node.cx, node.cy, atlas.ANCHOR_CENTER), 800)
+    g.wait_still()
+    if g.found(atlas.RS_POPUP_RESEARCH):
+        g.tap(atlas.RS_POPUP_RESEARCH_BUTTON, 1000)
+        g.wait_still()
+        if slot_state(g, slot) == "running":
             return True
-        if xcheck < 100:
-            return False
+        g.status(f"Research: the Research button did not start slot {slot + 1}")
+    if g.found(atlas.RS_POPUP_CLOSE_X):
+        g.tap(atlas.RS_POPUP_CLOSE, 500)
+        g.wait_still()
+    return False
 
 
-def research_start(g: Game) -> None:
+def start_research(g: Game, slot: int) -> bool:
+    """Start a research in an empty slot; True when the slot is running afterwards.
+    Leaves the tree on page 1."""
     g.move_to(atlas.RS_TREE_HOVER)
-    g.toast("Setup", "Scrolling to ensure tree setup", 1.5)
-    if g.vars.get(S2) == 1:
-        return
-    # Page 2
-    g.wheel(-35)
-    if _scan_page(g, 100):
-        return
-    g.wheel(35)
-    # look for available research - Page 1
-    if _scan_page(g, 50):
-        return
+    for page, notches in ((2, -atlas.RS_PAGE_NOTCHES), (1, atlas.RS_PAGE_NOTCHES)):
+        g.wheel(notches)
+        g.wait_still()
+        nodes = tree_nodes(g)
+        g.status(f"Research: {len(nodes)} node(s) on page {page}")
+        for node in nodes[:MAX_NODES_PER_PAGE]:
+            if _try_node(g, node, slot):
+                g.status(f"Research: slot {slot + 1} started (page {page}, node at x={node.cx})")
+                if page == 2:
+                    g.move_to(atlas.RS_TREE_HOVER)
+                    g.wheel(atlas.RS_PAGE_NOTCHES)
+                return True
+    g.status(f"Research: slot {slot + 1} is free but no node could be started")
+    g.save_diagnostic("research-no-node.png")
+    return False
 
 
 def go_research(g: Game) -> None:
     g.focus()
-    # open Library
-    g.tap(atlas.TOWN_LIBRARY, 1000, expect=atlas.DIALOG_CLOSE_X)
-    # select Firestone tree
+    g.status("Research: opening the library")
+    g.require_screen(atlas.TOWN_LIBRARY, atlas.DIALOG_CLOSE_X, via_town=True)
     g.tap(atlas.RS_FIRESTONE_TREE, 1000)
-    research_slot_test(g)
-    if g.vars.get(S1, 0) == 0:
-        research_start(g)
-    if g.vars.get(S2, 0) == 0:
-        research_start(g)
+    g.wait_still()
+    for slot in range(len(atlas.RS_SLOT_BUTTONS)):
+        state = slot_state(g, slot)
+        if state == "done":
+            g.status(f"Research: slot {slot + 1} finished, claiming it")
+            g.tap(_slot_button(slot), 1500)
+            g.wait_still()
+            state = slot_state(g, slot)
+        if state == "running":
+            g.status(f"Research: slot {slot + 1} in progress")
+        elif state == "empty":
+            g.status(f"Research: slot {slot + 1} is free, looking for a node to start")
+            start_research(g, slot)
+        else:
+            g.status(f"Research: slot {slot + 1} still shows a green button, left alone")
     big_close(g)
 
 
 research = go_research  # entry point for tools/run_feature.py
-
-
-def research_after_start_test(g: Game) -> None:
-    """ResearchAfterStartTest.ahk `RAST()`; not reachable from the AHK main loop."""
-    v = g.vars
-    g.toast("Slot 2 Status", "Checking status of slot 2...", 1.5)
-    g.tap(atlas.RAST_SLOT2, 500)
-    if g.found(atlas.RAST_IN_PROGRESS):
-        g.toast("Slot 2 Status", "Slot 2 is in progress.", 1.5)
-        v[S2] = 1
-        big_close(g)
-    else:
-        g.toast("Slot 2 Status", "Slot 2 is not in progress.", 1.5)
-        v[S2] = 0
-    if v.get(S1) == 1:
-        g.toast("Slot 1 Status", "Slot 1 is in Progress - skipping test", 1.5)
-        return
-    g.toast("Slot 1 Status", "Checking status of slot 1... ", 1.5)
-    g.tap(atlas.RAST_SLOT1, 500)
-    if g.found(atlas.RAST_IN_PROGRESS):
-        g.toast("Slot 1 Status", "Slot 1 is in progress.", 1.5)
-        v[S1] = 1
-        big_close(g)
-    else:
-        g.toast("Slot 1 Status", "Slot 1 is not in progress.", 1.5)
-        v[S1] = 0

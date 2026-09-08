@@ -37,7 +37,9 @@ def _first_card_with_bell(g: Game) -> int | None:
 def claim_events(g: Game) -> None:
     g.focus()
     if not g.found(g.ms.events_bell):
+        g.status("Events: no bell on the button, nothing to claim")
         return
+    g.status("Events: bell found, opening the events list")
     # open events
     g.open_screen(g.ms.events_icon, atlas.EVENTS_CLOSE_X)
     total = 0
