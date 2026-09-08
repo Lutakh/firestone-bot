@@ -248,6 +248,7 @@ class Runner:
         """One pass of the AHK main loop. False = the bot stops."""
         g, s = self.g, self.settings
         cycle_start = _ms()
+        g.vars["chests_opened"] = 0  # counted by open_chest_type, read by the exotic merchant
         if s.flag("RestartGame") and (
             s.flag("RestartGameTest") or _ms() - self._last_restart >= self._restart_ms
         ):
@@ -333,7 +334,7 @@ class Runner:
                 g.heartbeat("ClaimEngineer")
                 self._step("Engineer", lambda: claim_engineer.claim_engineer(g), town=True)
             # ExoticSection:
-            if s.flag("SellEx"):
+            if s.flag("SellEx") and exotic_merchant.wants_visit(g):
                 g.heartbeat("ExoticMerchant")
                 self._step("Exotic merchant", lambda: exotic_merchant.exotic_merchant(g), town=True)
             if s.flag("PVP") and not daily.arena_done(s) and not g.locked("arena"):

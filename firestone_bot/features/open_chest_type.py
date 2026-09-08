@@ -17,7 +17,7 @@ import time
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas, chest_grid
-from firestone_bot.vision.atlas import Probe
+from firestone_bot.vision.atlas import Point, Probe
 
 
 def _click_equip(g: Game) -> bool:
@@ -110,15 +110,43 @@ def _click_chest(g: Game, name: str | None, color: int, variation: int) -> bool:
     return True
 
 
+def find_open_buttons(g: Game) -> list[Point]:
+    """Centres of the green buttons in the dialog's button row (new style), left to right.
+    The row holds x1 / x10 / x50, or fewer when the stock is small (x1 / x3 for three
+    Lunar chests, 2026-09-08: the fixed x50 point fell beside the x3 button)."""
+    from firestone_bot.vision.probes import match_mask
+
+    x1, y1, x2, y2 = atlas.NS_CHEST_BUTTON_ROW
+    img = g.region_image((x1, y1, x2, y2))
+    green = match_mask(img, atlas.GREEN_BUTTON, 3)
+    cols = green.mean(axis=0) > 0.3
+    fx = (x2 - x1) / cols.shape[0]
+    out: list[Point] = []
+    start = None
+    for i, on in enumerate(list(cols) + [False]):
+        if on and start is None:
+            start = i
+        elif not on and start is not None:
+            if (i - start) * fx >= atlas.NS_CHEST_BUTTON_MIN_W:
+                out.append(Point(x1 + int((start + i) / 2 * fx), (y1 + y2) // 2))
+            start = None
+    return out
+
+
 def open_chest_type(g: Game, color: int, variation: int = 2, name: str | None = None) -> None:
     if not _click_chest(g, name, color, variation):
         return
     # pick the largest open button: 11-50, then 2-10, then 1
     target = None
-    for probe, button in g.ms.chest_open_buttons:
-        if g.found(probe):
-            target = button
-            break
+    if g.style == "new":
+        g.wait_still()
+        buttons = find_open_buttons(g)
+        target = buttons[-1] if buttons else None
+    else:
+        for probe, button in g.ms.chest_open_buttons:
+            if g.found(probe):
+                target = button
+                break
     if target is None:
         # NoOpenButton:
         g.toast("Open Chests", "No Open Button Available", 1.5)
@@ -126,6 +154,7 @@ def open_chest_type(g: Game, color: int, variation: int = 2, name: str | None = 
         return
     g.tap(target, 0)
     if wait_chest_animation(g):
+        g.vars["chests_opened"] = g.vars.get("chests_opened", 0) + 1
         _click_equip(g)
         open_more_loop(g)
     close_chest_dialog(g)

@@ -13,7 +13,7 @@
   probes (orange ring of their close button). Still to do: measure on a slow connection; the
   Windows client of the owner is not checked yet with the fast mode.
 - Chest icons without a reference (new style, `vision/chest_refs.py`): Titan, Platinum,
-  Galaxy, Cosmic, Nebula, Solar, Lunar, the Oracle gift and the Mystery box were not in the
+  Galaxy, Cosmic, Nebula, Solar, the Oracle gift and the Mystery box were not in the
   owner's bag on 2026-09-07; they fall back to the AHK colour search, which proved
   unreliable in this style (see MEASUREMENTS). To record from the bag when the owner owns
   one (tools: capture the Chests tab, `chest_grid.thumbnail` of the 96 px window).

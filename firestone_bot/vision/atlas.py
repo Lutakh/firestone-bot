@@ -448,6 +448,7 @@ WM_BLUEPRINT_CHOICES = {  # Blueprints setting -> stats in click order
 
 # --- ExoticMerchant.ahk / ExoticUpgrades.ahk / BuyExotic.ahk --------------------------------
 TOWN_EXOTIC_MERCHANT = Point(1459, 650)  # ExoticMerchant.ahk:9
+EXOTIC_PARK = Point(1850, 540)  # off every Sell button (hovered = lighter green)
 EXOTIC_SCROLLS = (  # :34-55 speed, damage, health
     (Probe(1026, 596, 1074, 636, GREEN_BUTTON, 3, "sell_scroll_speed"), Point(959, 596)),
     (Probe(1350, 598, 1401, 634, GREEN_BUTTON, 3, "sell_scroll_damage"), Point(1280, 601)),
@@ -498,6 +499,9 @@ BATTLES_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "battles_close_x"
 # until closed.
 MESSAGE_CLOSE_X = Probe(1346, 343, 1350, 347, DIALOG_RING, 20, "message_close_x", ANCHOR_CENTER)
 MESSAGE_CLOSE = Point(1368, 345, ANCHOR_CENTER)
+# the arena screen's X sits lower than the generic dialog X (client (1800,110), 2026-09-08):
+# DIALOG_CLOSE_X missed and the step was skipped every cycle
+ARENA_CLOSE_X = Probe(1796, 137, 1804, 145, 0xFFF9CE, 30, "arena_close_x")
 ARENA_OPPONENT_COLUMNS = (700, 954, 1220)  # :19
 ARENA_OPPONENT_Y = 630  # :30
 ARENA_REFRESH = Point(871, 195)  # :25
@@ -929,6 +933,11 @@ NS_CHEST_OPEN_BUTTONS = (  # (probe, button): 50, 10, 1
     (Probe(870, 790, 1050, 850, GREEN_BUTTON, 1, "ns_chest_open_10"), Point(960, 821)),
     (Probe(625, 790, 805, 850, GREEN_BUTTON, 1, "ns_chest_open_1"), Point(715, 821)),
 )
+# Row of the dialog's open buttons: with fewer than three (a Lunar chest x3 shows x1 / x3
+# only, centred) the fixed points miss, so the green rectangles are located in this row
+# and the rightmost one (the largest count) is clicked.
+NS_CHEST_BUTTON_ROW = (600, 781, 1320, 861)
+NS_CHEST_BUTTON_MIN_W = 100  # logical px: a button is about 195 wide
 # Result screen (loot cards): the "open more" x1 / x10 / x50 buttons are stacked in the
 # bottom-right corner and an orange X sits top right; both only draw once the opening
 # animation ended (5.5 s for one chest). Waiting for them is waiting for the animation.

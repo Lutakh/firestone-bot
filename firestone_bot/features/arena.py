@@ -33,7 +33,7 @@ def arena(g: Game) -> None:
     g.require_screen(atlas.TOWN_BATTLES, atlas.BATTLES_CLOSE_X, via_town=True)
     # choose arena of kings (a greyed card opens nothing: the step is then skipped)
     g.status("Arena: opening the Arena of Kings")
-    g.tap(atlas.ARENA_OF_KINGS, expect=atlas.DIALOG_CLOSE_X)
+    g.tap(atlas.ARENA_OF_KINGS, expect=atlas.ARENA_CLOSE_X)
     if g.found(atlas.MESSAGE_CLOSE_X):
         # "Unlocks once you acquire at least 2 war machines." (2026-09-08): not today
         g.status("Arena: not available yet (game message), skipped until the next game day")
@@ -41,7 +41,8 @@ def arena(g: Game) -> None:
         big_close(g)
         daily.note_arena_done(g.settings)
         return
-    if g.fast() and not g.found(atlas.DIALOG_CLOSE_X):
+    if g.fast() and not g.found(atlas.ARENA_CLOSE_X):
+        g.save_diagnostic("arena-miss.png")  # what was on screen instead (owner, 2026-09-08)
         raise ScreenNotReached("arena of kings")
     random_x = random.choice(atlas.ARENA_OPPONENT_COLUMNS)
     g.sleep(6000)
