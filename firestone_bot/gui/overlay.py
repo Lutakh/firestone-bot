@@ -32,9 +32,9 @@ log = logging.getLogger("firestone_bot.overlay")
 LINES = 4
 WIDTH_PT = 520
 ALPHA = 0.82
-BG = "#101418"
-FG = "#e8edf2"
-FG_DIM = "#9aa4ad"
+BG = "#2d2e28"
+FG = "#e5b52c"
+FG_DIM = "#d0c5aa"
 FONT = ("Helvetica", 13) if sys.platform == "darwin" else ("Segoe UI", 10)
 MARGIN = 12
 OVERLAY_TITLE = "firestone-bot-overlay"

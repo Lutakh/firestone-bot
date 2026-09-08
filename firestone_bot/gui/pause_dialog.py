@@ -86,8 +86,8 @@ class PauseDialog:
             height=34,
             width=120,
             font=theme.font(13),
-            fg_color=theme.ERR,
-            hover_color=("#a93226", "#e05252"),
+            fg_color=theme.STOP,
+            hover_color=theme.STOP_HOVER,
             command=lambda: self._fire("stop"),
         ).pack(side="left")
         self.top.protocol("WM_DELETE_WINDOW", lambda: self._fire("restart"))

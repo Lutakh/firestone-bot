@@ -9,7 +9,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
             "- Use the Steam or Epic version (the browser version is not supported yet).\n"
             "- Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar "
             "at the bottom. Other window sizes with the same aspect are supported; see the "
-            "Dashboard's Environment card.\n"
+            "Overview > Diagnostics.\n"
             "- Game Settings (top right): NOT fullscreen. Game language: English."
         ),
     ),
@@ -25,7 +25,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
             "- System Settings > Privacy & Security: grant Screen Recording and Accessibility "
             "to FirestoneBot.app (or to the terminal app that runs the bot from source). "
             "Without Screen Recording every probe misses; without Accessibility no click "
-            "reaches the game. The Dashboard's Environment card names the missing one.\n"
+            "reaches the game. The Overview > Diagnostics names the missing one.\n"
             "- Retina displays are handled (captures in pixels, mouse in points).\n"
             "- Exit hotkey: Cmd + Esc."
         ),
@@ -54,18 +54,18 @@ HOME_SECTIONS: list[tuple[str, str]] = [
 HOME_TEXT = "\n\n".join(f"{title.upper()}:\n{body}" for title, body in HOME_SECTIONS)
 
 WHERE_THINGS_ARE = (
-    "Everyday switches: Main screen, Town, Guild & Tree, Missions & WM. "
-    "Rare options: Advanced. Live status: Dashboard. "
+    "Everyday switches: Heroes & chests, Town, Guild & tree, Missions. "
+    "Rare options: Settings. Live status: the session console. "
     "Locked features (engineer, arena, scarab, alchemist, oracle, guild buildings) are skipped "
     "until the account or guild level unlocks them; the levels are read on screen each cycle.\n"
     "Settings are saved automatically to settings.ini next to the executable (macOS: in "
-    "~/Library/Application Support/FirestoneBot, see Advanced > Files)."
+    "~/Library/Application Support/FirestoneBot, see Settings > Files)."
 )
 
 SHORTCUTS: list[tuple[str, str]] = [
     ("Win+Esc / Cmd+Esc", "Exit the bot (global hotkey, works while the game has the focus)"),
     ("F5", "Re-check the environment (game window, capture)"),
     ("Ctrl+S", "Save settings now"),
-    ("Ctrl+1 … Ctrl+7", "Switch page (Dashboard … Help)"),
+    ("Ctrl+1 … Ctrl+7", "Switch page (Overview … Help)"),
     ("Ctrl+Q", "Exit"),
 ]

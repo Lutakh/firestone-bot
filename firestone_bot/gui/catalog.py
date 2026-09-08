@@ -253,7 +253,7 @@ OPTIONS: dict[str, Option] = {
     "Bless": Option(
         "Upgrade blessings",
         "Also opens the celestial chests it needs when 'Open chests' is off "
-        "(Main screen > Chests).",
+        "(Heroes & chests > Chests).",
         "switch",
     ),
     "DailyOracle": Option("Claim the daily oracle", "Once-a-day oracle reward.", "switch"),

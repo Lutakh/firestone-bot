@@ -15,7 +15,9 @@ from firestone_bot.gui.widgets import Card, ReadOnlyValue, page_frame, page_titl
 
 def build(parent, ctx: PageContext):
     page, content = page_frame(parent)
-    page_title(content, "Advanced", "Rare options, counters and files.")
+    page_title(
+        content, "Settings", "Cycle behavior, appearance, daily limits and application files."
+    )
     s = ctx.settings
 
     cycle = place_card(Card(content, ctx, "Cycle"))
@@ -131,7 +133,7 @@ def build(parent, ctx: PageContext):
 
     upd.note(
         f"Version {__version__}. The bot checks the project's GitHub releases at start-up and "
-        "once a day; a newer version shows an Update button on the Dashboard (download, "
+        "once a day; a newer version shows an Update button above the navigation (download, "
         f"checksum, install, restart). Releases: {RELEASES_PAGE}",
         kind="grey",
     )

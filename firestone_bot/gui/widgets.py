@@ -39,12 +39,49 @@ def _state(enabled: bool) -> str:
     return "normal" if enabled else "disabled"
 
 
+def defer_scrollbar_updates(view, scrollbar, axis="y") -> None:
+    """Coalesce scroll fractions before CTk redraws the thumb.
+
+    CTk 5.2 calls update_idletasks inside every thumb draw. Tk 9 can issue
+    another scroll callback during that draw while wrapped content is resizing.
+    Its geometry-driven draws also enter the idle loop recursively, triggering
+    thousands of redundant Configure events before a page becomes visible.
+    Let the normal event loop paint that canvas on macOS/Tk 9 and schedule the
+    latest fraction without changing wheel/drag behavior or scroll position.
+    """
+    if MAC_TK9:
+        scrollbar._canvas.update_idletasks = lambda: None
+    state = {"pending": None, "after": None}
+
+    def draw():
+        state["after"] = None
+        fraction = state["pending"]
+        if fraction is not None and fraction != scrollbar.get():
+            scrollbar.set(*fraction)
+
+    def changed(first, last):
+        fraction = (float(first), float(last))
+        if fraction == state["pending"]:
+            return
+        state["pending"] = fraction
+        if state["after"] is None:
+            state["after"] = view.after(16, draw)
+
+    view.configure(**{f"{axis}scrollcommand": changed})
+
+
+def stabilize_textbox(textbox) -> None:
+    defer_scrollbar_updates(textbox._textbox, textbox._y_scrollbar)
+    defer_scrollbar_updates(textbox._textbox, textbox._x_scrollbar, "x")
+
+
 def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
     """Wheel scrolling customtkinter does not handle: <Button-4>/<Button-5> on X11, and on
     macOS with Tk 9 the trackpad's <TouchpadScroll> (pixel deltas, no <MouseWheel> at all)
     plus <MouseWheel> deltas that are now multiples of 120 (ctk scrolls 120 units per notch).
     macOS with Tk 8.6: ctk's handler is kept (see MAC_TK9)."""
     canvas = scrollable._parent_canvas
+    defer_scrollbar_updates(canvas, scrollable._scrollbar)
 
     def mine(event) -> bool:
         return scrollable.check_if_master_is_canvas(event.widget)
@@ -128,14 +165,26 @@ def autowrap(frame, labels, offset: int = 0, minimum: int = 120) -> None:
         if width > 1:
             apply(width)
 
-    def on_resize(_event) -> None:
-        # coalesce the burst of <Configure> events of a resize into one measurement
+    def on_resize(event) -> None:
+        # Toplevel bindings also receive every child's Configure event. Wrapping
+        # those children again recursively invalidates scrollbars and can starve Tk.
+        if event.widget is not top:
+            return
         if state["after"] is None:
             state["after"] = frame.after(150, measure)
 
     frame.after_idle(measure)
     top = frame.winfo_toplevel()
-    top.bind("<Configure>", on_resize, add="+")
+    if not hasattr(top, "_wrap_callbacks"):
+        top._wrap_callbacks = []
+
+        def resized(event):
+            if event.widget is top:
+                for callback in top._wrap_callbacks:
+                    callback(event)
+
+        top.bind("<Configure>", resized, add="+")
+    top._wrap_callbacks.append(on_resize)
 
 
 # -- base control -------------------------------------------------------------------------------
@@ -228,6 +277,17 @@ class _Picker(Control):
             widget.set(self.label_of(self.var.get()))
 
 
+class _OptionMenu(ctk.CTkOptionMenu):
+    """Avoid CTk's nested idle loop while building option-heavy pages on Tk 9."""
+
+    def _draw(self, no_color_updates=False):
+        if MAC_TK9:
+            # CTk calls this during construction as well as geometry changes.
+            # The main event loop will paint the canvas after the page is built.
+            self._canvas.update_idletasks = lambda: None
+        super()._draw(no_color_updates)
+
+
 class Choice(_Picker):
     def __init__(
         self,
@@ -240,7 +300,7 @@ class Choice(_Picker):
         width: int = MENU_WIDTH,
     ) -> None:
         super().__init__(ctx, name, values, display, unknown_note)
-        self.widget = ctk.CTkOptionMenu(
+        self.widget = _OptionMenu(
             parent, values=self.labels, command=self._chosen, width=width, font=theme.font(13)
         )
         self.widget.set(self.label_of(self.var.get()))
@@ -412,8 +472,27 @@ class CheckGrid(Control):
             c = Check(self.widget, ctx, key, label)
             c.widget.grid(row=1 + i // columns, column=i % columns, sticky="w", padx=4, pady=3)
             self.checks.append(c)
-        for c in range(columns):
-            self.widget.grid_columnconfigure(c, weight=1, uniform="cg")
+        active_columns = [None]
+
+        def reflow(event):
+            cell_width = max(
+                (check.widget.winfo_reqwidth() + 12 for check in self.checks), default=160
+            )
+            count = max(1, min(columns, event.width // cell_width))
+            if active_columns[0] == count:
+                return
+            active_columns[0] = count
+            top.grid_configure(columnspan=count)
+            for column in range(columns):
+                self.widget.grid_columnconfigure(
+                    column,
+                    weight=1 if column < count else 0,
+                    uniform="cg" if column < count else "",
+                )
+            for index, check in enumerate(self.checks):
+                check.widget.grid_configure(row=1 + index // count, column=index % count)
+
+        self.widget.bind("<Configure>", reflow, add="+")
 
     def _set_all(self, value: str) -> None:
         self.ctx.binder.set_many(dict.fromkeys(self.keys, value))
@@ -497,7 +576,7 @@ class OrderedList(Control):
             prefix = self.row_labels[i] if self.row_labels else f"{i + 1}."
             lbl.configure(
                 text=f"{prefix}  {self.display.get(value, value)}",
-                text_color=theme.MUTED if not self.valid else ("gray10", "gray90"),
+                text_color=theme.MUTED if not self.valid else theme.INK,
             )
         n = len(self.order)
         for i, b in enumerate(self.buttons):
@@ -560,7 +639,8 @@ class ReadOnlyValue:
             text_color=theme.MUTED,
             font=theme.font(12, family=theme.MONO_FAMILY if mono else theme.FONT_FAMILY),
         )
-        self.value.grid(row=0, column=1, sticky="w", padx=(12, 0))
+        self.value.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 4))
+        autowrap(self.widget, [self.value], offset=8)
         if copy:
             ctk.CTkButton(self.widget, text="Copy", width=60, height=26, command=self._copy).grid(
                 row=0, column=2, padx=(8, 0)
@@ -718,9 +798,9 @@ class StatePill:
         self.widget = ctk.CTkLabel(
             parent,
             text="Idle",
-            corner_radius=12,
-            fg_color=theme.NEUTRAL,
-            text_color="white",
+            corner_radius=3,
+            fg_color=theme.GRAPHITE,
+            text_color=theme.CREAM,
             font=theme.font(12, "bold"),
             padx=12,
             height=26,
@@ -731,7 +811,11 @@ class StatePill:
         if (text, kind) == self._state:
             return
         self._state = (text, kind)
-        self.widget.configure(text=text, fg_color=theme.colour(kind))
+        self.widget.configure(
+            text=text.upper(),
+            fg_color=theme.GRAPHITE,
+            text_color=theme.BRASS if kind != "err" else "#f5a78a",
+        )
 
 
 # -- rows and cards -----------------------------------------------------------------------------
@@ -776,8 +860,30 @@ class OptionRow:
         w.pack(side="left")
         self.control_widget = w
 
-        # The help line keeps its static HELP_WRAP: a per-row <Configure> handler adjusting it
-        # re-fired layout events for the whole page (see autowrap).
+        last_width = [None]
+
+        def reflow(event):
+            if last_width[0] == event.width:
+                return
+            last_width[0] = event.width
+            stacked = event.width < 680
+            holder.grid_configure(
+                row=1 if stacked else 0,
+                column=0 if stacked else 1,
+                sticky="w" if stacked else "e",
+                padx=(0, 0) if stacked else (16, 0),
+                pady=(6, 0) if stacked else (0, 0),
+            )
+            available = event.width - (0 if stacked else holder.winfo_reqwidth() + 16)
+            wrap = max(160, available - 4)
+            if self.help.cget("wraplength") != wrap:
+                self.help.configure(wraplength=wrap)
+            if self.label.cget("wraplength") != wrap:
+                self.label.configure(wraplength=wrap)
+
+        self.widget.bind("<Configure>", reflow, add="+")
+
+        # Ignore height-only events so wrapping does not cause a geometry loop.
         if isinstance(self.control, Control):
             self.control.note_cb = self.set_note
             if self.control.note:
@@ -794,7 +900,7 @@ class OptionRow:
     def set_enabled(self, enabled: bool) -> None:
         if hasattr(self.control, "set_enabled"):
             self.control.set_enabled(enabled)
-        self.label.configure(text_color=("gray10", "gray90") if enabled else theme.MUTED)
+        self.label.configure(text_color=theme.INK if enabled else theme.MUTED)
 
 
 class Card(ctk.CTkFrame):
@@ -810,7 +916,7 @@ class Card(ctk.CTkFrame):
         master_help: str | None = None,
         expand: bool = False,
     ) -> None:
-        super().__init__(parent, corner_radius=10)
+        super().__init__(parent, corner_radius=5, border_width=2, border_color=theme.BORDER)
         self.ctx = ctx
         self._items: list[tuple[object, bool]] = []
         self._row = 0
@@ -819,12 +925,24 @@ class Card(ctk.CTkFrame):
         header.grid_columnconfigure(0, weight=1)
         titles = ctk.CTkFrame(header, fg_color="transparent")
         titles.grid(row=0, column=0, sticky="ew")
-        ctk.CTkLabel(titles, text=title, anchor="w", font=theme.font(15, "bold")).pack(anchor="w")
+        title_label = ctk.CTkLabel(
+            titles,
+            text=title.upper(),
+            anchor="w",
+            font=theme.font(16, "bold", theme.DISPLAY_FAMILY),
+            fg_color=theme.GRAPHITE,
+            text_color=theme.CREAM,
+            corner_radius=3,
+            padx=12,
+            pady=4,
+        )
+        title_label.pack(anchor="w")
+        autowrap(header, [title_label], offset=24)
         if master and master_help is None:
             master_help = OPTIONS[master].help
         text = subtitle or master_help
         if text:
-            ctk.CTkLabel(
+            subtitle_label = ctk.CTkLabel(
                 titles,
                 text=text,
                 anchor="w",
@@ -832,11 +950,13 @@ class Card(ctk.CTkFrame):
                 wraplength=HELP_WRAP,
                 text_color=theme.MUTED,
                 font=theme.font(12),
-            ).pack(anchor="w")
+            )
+            subtitle_label.pack(anchor="w")
+            autowrap(header, [subtitle_label], offset=8)
         self.master_switch: Switch | None = None
         if master:
             mrow = ctk.CTkFrame(header, fg_color="transparent")
-            mrow.grid(row=0, column=1, sticky="ne", padx=(16, 0))
+            mrow.grid(row=1, column=0, sticky="w", pady=(8, 4))
             ctk.CTkLabel(mrow, text=OPTIONS[master].label, font=theme.font(13)).pack(
                 side="left", padx=(0, 8)
             )
@@ -899,8 +1019,20 @@ class Card(ctk.CTkFrame):
         out = []
         for text, cmd in specs:
             b = ctk.CTkButton(f, text=text, command=cmd, height=30, font=theme.font(13))
-            b.pack(side="left", padx=(0, 8))
             out.append(b)
+        previous_columns = [None]
+
+        def flow(event):
+            columns = max(1, event.width // max(150, max(b.winfo_reqwidth() for b in out) + 8))
+            if columns == previous_columns[0]:
+                return
+            previous_columns[0] = columns
+            for i, button in enumerate(out):
+                button.grid(row=i // columns, column=i % columns, sticky="w", padx=(0, 8), pady=4)
+
+        f.bind("<Configure>", flow, add="+")
+        for i, button in enumerate(out):
+            button.grid(row=i, column=0, sticky="w", pady=4)
         self.add(f, always_enabled=always_enabled, pady=(6, 2))
         return out
 
@@ -975,9 +1107,9 @@ def page_frame(parent, scrollable: bool = True):
 
 
 def page_title(content, title: str, subtitle: str | None = None) -> None:
-    ctk.CTkLabel(content, text=title, anchor="w", font=theme.font(20, "bold")).pack(
-        anchor="w", pady=(0, 2)
-    )
+    ctk.CTkLabel(
+        content, text=title.upper(), anchor="w", font=theme.font(25, "bold", theme.DISPLAY_FAMILY)
+    ).pack(anchor="w", pady=(0, 2))
     if subtitle:
         lbl = ctk.CTkLabel(
             content,

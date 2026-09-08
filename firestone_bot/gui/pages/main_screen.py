@@ -11,7 +11,7 @@ def build(parent, ctx: PageContext):
     page, content = page_frame(parent)
     page_title(
         content,
-        "Main screen",
+        "Heroes & chests",
         "What the bot claims and opens on the main screen at the start of every cycle, and the "
         "hero upgrades at the end.",
     )

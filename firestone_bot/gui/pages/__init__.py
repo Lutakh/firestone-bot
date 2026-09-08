@@ -6,12 +6,12 @@ from firestone_bot.gui.context import PageContext
 
 PAGE_ORDER = ["dashboard", "main", "town", "guild", "missions", "advanced", "help"]
 PAGE_TITLES = {
-    "dashboard": "Dashboard",
-    "main": "Main screen",
+    "dashboard": "Overview",
+    "main": "Heroes & chests",
     "town": "Town",
-    "guild": "Guild & Tree",
-    "missions": "Missions & WM",
-    "advanced": "Advanced",
+    "guild": "Guild & tree",
+    "missions": "Missions",
+    "advanced": "Settings",
     "help": "Help",
 }
 

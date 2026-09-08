@@ -25,18 +25,19 @@ import customtkinter as ctk
 from firestone_bot import __version__
 from firestone_bot.gui import theme
 from firestone_bot.gui.binding import Binder
+from firestone_bot.gui.console import Flame, SessionPanel
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.logging_bridge import QueueLogHandler
 from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
-from firestone_bot.gui.widgets import StatePill, StatusDot, apply_window_icon
+from firestone_bot.gui.widgets import StatusDot, apply_window_icon
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
 log = logging.getLogger("firestone_bot.gui")
 
-DEFAULT_GEOMETRY = "1180x760"
-MIN_SIZE = (980, 640)
-SIDEBAR_WIDTH = 200
+DEFAULT_GEOMETRY = "1360x860"
+MIN_SIZE = (1100, 720)
+SIDEBAR_WIDTH = 172
 SELFTEST_PERIOD = 30.0
 SELFTEST_TIMEOUT = 10.0
 APPEARANCES = ["System", "Light", "Dark"]
@@ -89,9 +90,9 @@ class MainWindow:
         self.ui_queue: queue.Queue[tuple[str, object]] = queue.Queue()
         self._closed = False
 
-        appearance = str(self.gui_state.get("appearance") or "system")
+        appearance = str(self.gui_state.get("appearance") or "light")
         ctk.set_appearance_mode(appearance)
-        ctk.set_default_color_theme("dark-blue")
+        theme.install()
         self.root = ctk.CTk()
         self.root.report_callback_exception = lambda exc, val, tb: log.error(
             "Tk callback failed", exc_info=(exc, val, tb)
@@ -171,14 +172,19 @@ class MainWindow:
         )
 
         self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_rowconfigure(2, weight=1)
         self._set_window_icon()
         self._build_top_banner()
+        self._build_header()
         self._build_sidebar()
         self.content = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
-        self.content.grid(row=1, column=1, sticky="nsew")
+        self.content.grid(row=2, column=1, sticky="nsew")
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
+        self.session = SessionPanel(self.root, self.ctx)
+        self.session.grid(row=2, column=2, sticky="nsew", padx=(0, 12), pady=(0, 10))
+        for name in ("start_btn", "dry_btn", "stop_btn", "pill"):
+            setattr(self, name, getattr(self.session, name))
         self._build_status_strip()
 
         self.pages: dict[str, ctk.CTkBaseClass] = {}
@@ -203,87 +209,96 @@ class MainWindow:
                 return geo
         return DEFAULT_GEOMETRY
 
+    def _build_header(self) -> None:
+        header = ctk.CTkFrame(
+            self.root,
+            fg_color=theme.GRAPHITE,
+            corner_radius=5,
+            border_width=2,
+            border_color=theme.BORDER,
+        )
+        header.grid(row=1, column=0, columnspan=3, sticky="ew", padx=12, pady=12)
+        Flame(header).pack(side="left", padx=(16, 12), pady=10)
+        ctk.CTkLabel(
+            header,
+            text="FIRESTONE",
+            text_color=theme.CREAM,
+            font=theme.font(30, "bold", theme.DISPLAY_FAMILY),
+        ).pack(side="left")
+        ctk.CTkLabel(
+            header,
+            text=" BOT ",
+            fg_color=theme.BRASS,
+            text_color=theme.GRAPHITE,
+            font=theme.font(23, "bold", theme.DISPLAY_FAMILY),
+        ).pack(side="left", padx=12)
+        ctk.CTkLabel(
+            header,
+            text=f"AUTOMATION CONSOLE   /   v{__version__}",
+            text_color=theme.CREAM,
+            font=theme.font(12, family=theme.MONO_FAMILY),
+        ).pack(side="right", padx=20)
+
     def _build_sidebar(self) -> None:
-        side = ctk.CTkFrame(self.root, corner_radius=0, width=SIDEBAR_WIDTH)
-        side.grid(row=1, column=0, sticky="nsew")
+        side = ctk.CTkFrame(
+            self.root,
+            width=SIDEBAR_WIDTH,
+            fg_color=theme.GRAPHITE,
+            border_color=theme.BORDER,
+            border_width=2,
+            corner_radius=5,
+        )
+        side.grid(row=2, column=0, sticky="nsew", padx=(12, 0), pady=(0, 10))
         side.grid_propagate(False)
         side.grid_columnconfigure(0, weight=1)
         side.grid_rowconfigure(1, weight=1)
-        head = ctk.CTkFrame(side, fg_color="transparent")
-        head.grid(row=0, column=0, sticky="ew", padx=16, pady=(18, 10))
-        ctk.CTkLabel(head, text="Firestone Bot", anchor="w", font=theme.font(18, "bold")).pack(
-            anchor="w"
-        )
-        ctk.CTkLabel(
-            head, text=f"v{__version__}", anchor="w", text_color=theme.MUTED, font=theme.font(11)
-        ).pack(anchor="w")
-
         nav = ctk.CTkFrame(side, fg_color="transparent")
-        nav.grid(row=1, column=0, sticky="new", padx=10)
-        self.nav_buttons: dict[str, ctk.CTkButton] = {}
-        for name in PAGE_ORDER:
-            b = ctk.CTkButton(
+        nav.grid(row=0, column=0, sticky="new", padx=10, pady=14)
+        self.nav_buttons = {}
+        for index, name in enumerate(PAGE_ORDER):
+            button = ctk.CTkButton(
                 nav,
-                text=PAGE_TITLES[name],
+                text=f"{index + 1:02}  {PAGE_TITLES[name]}",
                 command=lambda n=name: self.show_page(n),
-                fg_color="transparent",
-                text_color=("gray10", "gray90"),
-                hover_color=("gray80", "gray28"),
+                fg_color=theme.GRAPHITE,
+                hover_color=theme.GRAPHITE_HOVER,
+                text_color=theme.CREAM,
+                border_color="#736c57",
+                border_width=2,
                 anchor="w",
-                height=34,
-                font=theme.font(13),
+                width=148,
+                height=48,
+                font=theme.font(12, "bold"),
             )
-            b.pack(fill="x", pady=2)
-            self.nav_buttons[name] = b
-
+            button.pack(fill="x", pady=(0, 8))
+            self.nav_buttons[name] = button
         bottom = ctk.CTkFrame(side, fg_color="transparent")
-        bottom.grid(row=2, column=0, sticky="sew", padx=16, pady=(8, 14))
-        self.start_btn = ctk.CTkButton(
+        bottom.grid(row=2, column=0, sticky="sew", padx=12, pady=14)
+        ctk.CTkButton(
             bottom,
-            text="START",
-            command=self._start,
-            fg_color=theme.OK,
-            hover_color=("#177a42", "#2fb86c"),
-            height=40,
-            font=theme.font(14, "bold"),
-        )
-        self.start_btn.pack(fill="x", pady=(0, 6))
-        self.dry_btn = ctk.CTkButton(
-            bottom,
-            text="DRY RUN",
-            command=self._dry_run,
-            fg_color="transparent",
-            border_width=1,
-            text_color=("gray10", "gray90"),
-            height=34,
-            font=theme.font(13, "bold"),
-        )
-        self.dry_btn.pack(fill="x", pady=(0, 6))
-        self.stop_btn = ctk.CTkButton(
-            bottom,
-            text="STOP",
-            command=self._stop,
-            fg_color=theme.ERR,
-            hover_color=("#96261c", "#e05252"),
-            height=34,
-            font=theme.font(13, "bold"),
-        )
-        self.stop_btn.pack(fill="x", pady=(0, 10))
-        self.pill = StatePill(bottom)
-        self.pill.widget.pack(pady=(0, 10))
-        ctk.CTkSegmentedButton(
-            bottom, values=APPEARANCES, variable=self.appearance_var, font=theme.font(11), height=26
+            text="JOURNAL",
+            command=lambda: self.show_dashboard_tab("Journal"),
+            width=140,
+            height=32,
         ).pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(
+            bottom,
+            text="RETRO CONSOLE",
+            text_color=theme.BRASS,
+            font=theme.font(11, "bold", theme.DISPLAY_FAMILY),
+        ).pack()
         ctk.CTkButton(
             bottom,
             text="Exit",
             command=self.request_exit,
-            fg_color="transparent",
-            text_color=theme.MUTED,
-            hover_color=("gray80", "gray28"),
+            width=140,
             height=28,
-            font=theme.font(12),
-        ).pack(fill="x")
+            fg_color="transparent",
+        ).pack(fill="x", pady=(8, 0))
+
+    def show_dashboard_tab(self, tab: str) -> None:
+        self.show_page("dashboard")
+        self.dash.tabs.set(tab)
 
     def _set_window_icon(self) -> None:
         """The bot icon (assets/icon.ico + icon-256.png, same image as the exe / .app)."""
@@ -292,7 +307,7 @@ class MainWindow:
     def _build_top_banner(self) -> None:
         """Full-width coloured banner above the sidebar and pages, used for updates."""
         self.top_banner = ctk.CTkFrame(self.root, corner_radius=0, fg_color=theme.BANNER_BG["info"])
-        self.top_banner.grid(row=0, column=0, columnspan=2, sticky="ew")
+        self.top_banner.grid(row=0, column=0, columnspan=3, sticky="ew")
         self.top_banner.grid_columnconfigure(1, weight=1)
         self.top_banner_dot = StatusDot(self.top_banner, "info", size=10)
         self.top_banner_dot.widget.grid(row=0, column=0, padx=(16, 0), pady=10)
@@ -330,7 +345,7 @@ class MainWindow:
 
     def _build_status_strip(self) -> None:
         strip = ctk.CTkFrame(self.root, corner_radius=0, height=28)
-        strip.grid(row=2, column=0, columnspan=2, sticky="ew")
+        strip.grid(row=3, column=0, columnspan=3, sticky="ew")
         strip.grid_propagate(False)
         strip.grid_columnconfigure(1, weight=1)
         self.strip_dot = StatusDot(strip, "grey")
@@ -342,7 +357,11 @@ class MainWindow:
         )
         self.save_label.grid(row=0, column=2, sticky="e", padx=12)
         ctk.CTkLabel(
-            strip, text="Win+Esc exits", anchor="e", text_color=theme.MUTED, font=theme.font(11)
+            strip,
+            text="Cmd+Esc exits" if sys.platform == "darwin" else "Win+Esc exits",
+            anchor="e",
+            text_color=theme.MUTED,
+            font=theme.font(11),
         ).grid(row=0, column=3, sticky="e", padx=(0, 12))
 
     def _bind_keys(self) -> None:
@@ -379,9 +398,10 @@ class MainWindow:
         for n, b in self.nav_buttons.items():
             active = n == name
             b.configure(
-                fg_color=("#3a7ebf", "#1f538d") if active else "transparent",
-                text_color="white" if active else ("gray10", "gray90"),
-                font=theme.font(13, "bold" if active else "normal"),
+                fg_color=theme.BRASS if active else theme.GRAPHITE,
+                text_color=theme.GRAPHITE if active else theme.CREAM,
+                border_color=theme.BRASS if active else "#736c57",
+                font=theme.font(12, "bold"),
             )
 
     # -- appearance ---------------------------------------------------------------------------
@@ -510,6 +530,7 @@ class MainWindow:
                 b.configure(state=state)
         if hasattr(self, "dash"):
             self.dash.set_buttons(start, dry, stop)
+        self.session.set_running(running)
         self.strip_dot.set(kind)
         activity = self.activity_text
         strip = text if activity in ("", "Idle", text) else f"{text} · {activity}"
