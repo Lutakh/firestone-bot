@@ -43,7 +43,7 @@ class FakeScheduler:
 
 
 def make(tmp_path, running=False):
-    settings = Settings(path=str(tmp_path / "settings.ini"))
+    settings = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     saves = []
     original = settings.save
 

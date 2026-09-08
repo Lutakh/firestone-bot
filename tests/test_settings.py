@@ -46,3 +46,17 @@ def test_roundtrip_utf8(tmp_path):
 def test_missing_file_gives_defaults(tmp_path):
     s = Settings.load(str(tmp_path / "nope.ini"))
     assert s.flag("SellEx")
+
+
+def test_save_refuses_to_overwrite_a_file_it_did_not_load(tmp_path):
+    import pytest
+
+    from firestone_bot.settings import SettingsNotLoaded
+
+    path = str(tmp_path / "settings.ini")
+    Settings(path=path).save()  # no file yet: fine
+    fresh = Settings(path=path)
+    with pytest.raises(SettingsNotLoaded):
+        fresh.save()
+    fresh.save(force=True)
+    Settings.load(path).save()  # loaded: fine

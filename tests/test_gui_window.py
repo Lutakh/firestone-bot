@@ -18,7 +18,7 @@ from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP, Settings
 def window(tmp_path_factory):
     """One root per module: a second Tk root in the same process is flaky on Windows."""
     tmp_path = tmp_path_factory.mktemp("gui")
-    settings = Settings(path=str(tmp_path / "settings.ini"))
+    settings = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     calls = []
     flags = {"running": False}
     try:

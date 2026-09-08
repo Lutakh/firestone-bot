@@ -176,12 +176,17 @@ def _parser() -> configparser.ConfigParser:
     return cp
 
 
+class SettingsNotLoaded(RuntimeError):
+    """save() on an existing file from a Settings that was never loaded from it."""
+
+
 @dataclass
 class Settings:
     path: str = "settings.ini"
     values: dict[str, str] = field(default_factory=dict)
     extra: dict[str, dict[str, str]] = field(default_factory=dict)  # unknown keys, preserved
     encoding: str = "utf-16"
+    loaded: bool = False  # read from `path` (or `path` did not exist yet): save() may write it
 
     def __post_init__(self) -> None:
         for k, (_, d) in {**SETTINGS_MAP, **EXTRA_SETTINGS}.items():
@@ -209,7 +214,7 @@ class Settings:
     # -- persistence -------------------------------------------------------------------
     @classmethod
     def load(cls, path: str = "settings.ini") -> Settings:
-        s = cls(path=path)
+        s = cls(path=path, loaded=True)
         if not os.path.exists(path):
             return s
         text, s.encoding = _read_text(path)
@@ -224,8 +229,16 @@ class Settings:
                     s.extra.setdefault(section, {})[key] = value
         return s
 
-    def save(self, path: str | None = None) -> None:
+    def save(self, path: str | None = None, force: bool = False) -> None:
+        """Write every setting to `path`. A Settings that was not loaded from an existing
+        file refuses to overwrite one (2026-09-08: a test script built Settings(path=...)
+        instead of Settings.load(...) and the daily-reset save wiped the owner's file with
+        the defaults); `force` writes anyway."""
         path = path or self.path
+        if not force and not self.loaded and os.path.exists(path):
+            raise SettingsNotLoaded(
+                f"refusing to overwrite {path}: load it first (Settings.load) or pass force=True"
+            )
         cp = _parser()
         for k, (section, default) in {**SETTINGS_MAP, **EXTRA_SETTINGS}.items():
             if k in EXTRA_SETTINGS and self.values[k] == default:

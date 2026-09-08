@@ -5,7 +5,7 @@ from firestone_bot.settings import Settings
 
 
 def test_token_limit_and_reset(tmp_path):
-    s = Settings(path=str(tmp_path / "settings.ini"))
+    s = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     assert daily.tokens_left(s) is None  # MaxTokens 0 = unlimited
     s.set("MaxTokens", 2)
     assert daily.tokens_left(s) == 2
@@ -29,7 +29,7 @@ def test_bad_values_are_zero():
 
 
 def test_chaos_limit_and_reset(tmp_path):
-    s = Settings(path=str(tmp_path / "settings.ini"))
+    s = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     assert daily.chaos_left(s) == 10  # default MaxChaos
     for _ in range(10):
         daily.note_chaos_hit(s)
@@ -41,7 +41,7 @@ def test_chaos_limit_and_reset(tmp_path):
 
 
 def test_scarab_limit_and_reset(tmp_path):
-    s = Settings(path=str(tmp_path / "settings.ini"))
+    s = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     assert daily.scarab_left(s) == 10
     daily.note_scarab_play(s)
     assert daily.scarab_left(s) == 9
@@ -63,7 +63,7 @@ def test_guardian_order_parsing():
 
 
 def test_crystal_limit_and_reset(tmp_path):
-    s = Settings(path=str(tmp_path / "settings.ini"))
+    s = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     assert daily.crystal_left(s) == 5
     daily.note_crystal_hit(s)
     assert daily.crystal_left(s) == 4
