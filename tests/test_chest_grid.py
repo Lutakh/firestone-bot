@@ -54,3 +54,21 @@ def test_known_names_cover_the_owned_chests():
     ):
         assert chest_grid.known(name)
     assert not chest_grid.known("Titan")
+
+
+def test_bag_plan_opens_gifts_and_boxes_without_chests():
+    from firestone_bot.features.open_chests import bag_plan
+
+    class S:
+        def __init__(self, **on):
+            self.on = on
+
+        def flag(self, key):
+            return bool(self.on.get(key))
+
+    assert bag_plan(S()) == (False, False, False, False)
+    assert bag_plan(S(MysteryBoxes=1)) == (False, False, True, False)
+    assert bag_plan(S(OracleGifts=1, Chests=1)) == (True, True, False, False)
+    assert bag_plan(S(Bless=1)) == (False, False, False, False)
+    assert bag_plan(S(Bless=1, BlessingChests=1)) == (False, False, False, True)
+    assert bag_plan(S(Bless=1, Chests=1)) == (True, False, False, True)

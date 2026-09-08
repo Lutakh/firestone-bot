@@ -66,7 +66,8 @@ def build(parent, ctx: PageContext):
 
     oracle = place_card(Card(content, ctx, "Oracle", master="SkipOracle"))
     oracle.option("Rituals")
-    oracle.option("Bless")
+    # Bless also opens the celestial chests from the bag: acts with the oracle visit off
+    oracle.option("Bless", always_enabled=True)
     oracle.option("DailyOracle")
 
     engineer = place_card(Card(content, ctx, "Engineer", master="NoEng"))

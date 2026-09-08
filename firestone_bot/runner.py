@@ -310,12 +310,9 @@ class Runner:
             if s.flag("Mail"):
                 g.heartbeat("CheckMail")
                 self._step("Mail", lambda: check_mail.check_mail(g))
-            if s.flag("Chests"):
+            if any(open_chests.bag_plan(s)):
                 g.heartbeat("OpenChests")
-                self._step("Open chests", lambda: open_chests.open_chests(g))
-            elif s.flag("Bless"):
-                g.heartbeat("OpenBlessChests")
-                self._step("Bless chests", lambda: open_chests.open_bless_chests(g))
+                self._step("Open chests", lambda: open_chests.open_bag(g))
         with self._timed("town"):
             # start town section
             open_town.open_town(g)

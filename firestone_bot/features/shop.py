@@ -12,6 +12,8 @@ detected; the check-in part still depends on the Shop setting.
 
 from __future__ import annotations
 
+import logging
+
 from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.main_menu import main_menu
@@ -19,6 +21,23 @@ from firestone_bot.game import Game
 from firestone_bot.state import hours_since
 from firestone_bot.vision import atlas
 from firestone_bot.vision.probes import match_mask
+
+log = logging.getLogger("firestone_bot.shop")
+
+
+def _claim_button_shown(g: Game) -> bool:
+    """A wide green rectangle in the claim box is the Free button; the tick drawn there once
+    the box is claimed is a small mark. The share of green (0.4 of the box) was at the
+    threshold on the Windows client (0.3998, 2026-09-08: the box was never claimed)."""
+    p = atlas.SHOP_MYSTERY_CLAIM_READY
+    green = match_mask(g.region_image((p.x1, p.y1, p.x2, p.y2)), p.color, p.variation)
+    rows = green.mean(axis=1) > 0.3
+    cols = green.mean(axis=0) > 0.3
+    fx = (p.x2 - p.x1) / green.shape[1]  # logical px per capture px
+    fy = (p.y2 - p.y1) / green.shape[0]
+    width, height = float(cols.sum() * fx), float(rows.sum() * fy)
+    log.debug("free box: green rectangle %.0f x %.0f logical px", width, height)
+    return width >= atlas.SHOP_MYSTERY_BUTTON_MIN_W and height >= atlas.SHOP_MYSTERY_BUTTON_MIN_H
 
 
 def claim_free_mystery_box(g: Game) -> bool:
@@ -33,9 +52,7 @@ def claim_free_mystery_box(g: Game) -> bool:
     if hit is None:
         g.status("Daily shop: no free mystery box to claim")
         return False
-    p = atlas.SHOP_MYSTERY_CLAIM_READY
-    green = match_mask(g.region_image((p.x1, p.y1, p.x2, p.y2)), p.color, p.variation)
-    if float(green.mean()) < atlas.SHOP_MYSTERY_BUTTON_FILL:
+    if not _claim_button_shown(g):
         g.status("Daily shop: the free box was already claimed today (green tick, no button)")
         return False
     g.status("Daily shop: free mystery box found, claiming it")

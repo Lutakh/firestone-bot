@@ -35,35 +35,55 @@ def _close_bag(g: Game, after_ms: int) -> None:
     g.sleep(after_ms)
 
 
-def open_chests(g: Game) -> None:
+def bag_plan(s) -> tuple[bool, bool, bool, bool]:
+    """(gear and jewel chests, Oracle's gifts, mystery boxes, celestial chests) to open on
+    this visit. AHK opened the gifts and boxes only inside OpenChests; the rework opens
+    them whenever their own option is on (the free daily mystery box lands in the bag even
+    with "Open chests" off, owner's Discord, 2026-09-08). Celestial chests: with Chests on
+    when Bless is on, with Chests off when Bless and BlessingChests are on (AHK)."""
+    chests = s.flag("Chests")
+    bless = s.flag("Bless") and (chests or s.flag("BlessingChests"))
+    return chests, s.flag("OracleGifts"), s.flag("MysteryBoxes"), bless
+
+
+def open_bag(g: Game) -> None:
+    """The bag visit of the main loop: nothing to do = the bag is not opened."""
+    chests, gifts, boxes, bless = bag_plan(g.settings)
+    if not (chests or gifts or boxes or bless):
+        return
     _open_bag_chests_tab(g)
-    # Gear chests: an unknown value starts at Titan (opens all), like the AHK fall-through.
-    _open_group(g, atlas.GEAR_CHESTS, atlas.GEAR_CHEST_START.get(g.settings.GearChestExclude, 0))
-    # JewelChests:
-    _open_group(g, atlas.JEWEL_CHESTS, atlas.JEWEL_CHEST_START.get(g.settings.JewelChestExclude, 0))
+    if chests:
+        # Gear chests: an unknown value starts at Titan (opens all), like the AHK fall-through.
+        _open_group(
+            g, atlas.GEAR_CHESTS, atlas.GEAR_CHEST_START.get(g.settings.GearChestExclude, 0)
+        )
+        # JewelChests:
+        _open_group(
+            g, atlas.JEWEL_CHESTS, atlas.JEWEL_CHEST_START.get(g.settings.JewelChestExclude, 0)
+        )
     # Gifts:
-    if g.settings.flag("OracleGifts"):
+    if gifts:
         g.toast("Open Chests", "Opening Oracle Gifts", 1.5)
         oracles_gift(g)
-    if g.settings.flag("MysteryBoxes"):
+    if boxes:
         g.toast("Open Chests", "Opening Mystery Boxes", 1.5)
         mystery_box(g)
-    if g.settings.flag("Bless"):
+    if bless:
         open_bless_chests(g)  # closes the bag itself
-    # AHK returns WITHOUT closing the bag when Bless is off, and closed it a second time when
-    # Bless was on (a click on the Town icon in classic, on the settings gear in the new style).
-    # Rework: the bag is closed exactly once, whatever the Bless setting.
+    # AHK returned WITHOUT closing the bag when Bless was off, and closed it a second time
+    # when Bless was on (a click on the Town icon in classic, on the settings gear in the new
+    # style). Rework: the bag is closed exactly once, whatever the Bless setting.
     else:
         _close_bag(g, 1500)
 
 
+def open_chests(g: Game) -> None:
+    """AHK OpenChests(): kept as a name, the bag visit is open_bag."""
+    open_bag(g)
+
+
 def open_bless_chests(g: Game) -> None:
-    """Celestial (blessing) chests. Called from open_chests, or from the main loop when Bless is
-    on and Chests is off."""
-    if not g.settings.flag("Chests"):
-        if not g.settings.flag("BlessingChests"):
-            return
-        _open_bag_chests_tab(g)
+    """Celestial (blessing) chests, the bag already open on its Chests tab (open_bag)."""
     # OpenBlessChestsNoBag:
     g.move_to(atlas.BAG_SCROLL_HOVER)
     g.toast("Open Chests", "Scrolling to ensure bottom gifts are visible", 1.5)

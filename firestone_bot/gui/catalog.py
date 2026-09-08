@@ -173,7 +173,10 @@ OPTIONS: dict[str, Option] = {
         "switch",
     ),
     "Chests": Option(
-        "Open chests", "Opens gear, jewel and celestial chests from the bag.", "switch"
+        "Open chests",
+        "Opens gear and jewel chests from the bag (celestial chests follow Upgrade blessings). "
+        "Oracle's gifts and mystery boxes have their own switch below.",
+        "switch",
     ),
     "GearChestExclude": Option(
         "Keep gear chests",
@@ -242,7 +245,12 @@ OPTIONS: dict[str, Option] = {
     "MaxTokens": Option(
         "Tokens per day", "Daily cap; resets with the daily shop.", "num", zero_means="0 = no limit"
     ),
-    "Beer": Option("Claim beer", _inv("Beer"), "switch"),
+    "Beer": Option(
+        "Visit the tavern",
+        "Claims the beer; off = the tavern is skipped, tokens and the artifact too. "
+        + _inv("Beer"),
+        "switch",
+    ),
     "Scarab": Option("Play the scarab game", _inv("Scarab"), "switch"),
     "MaxScarab": Option(
         "Scarab plays per day", "Free-token plays only.", "num", zero_means="0 = no limit"
@@ -252,8 +260,9 @@ OPTIONS: dict[str, Option] = {
     ),
     "Bless": Option(
         "Upgrade blessings",
-        "Also opens the celestial chests it needs when 'Open chests' is off "
-        "(Main screen > Chests).",
+        "Also opens the celestial chests from the bag (with Open chests off, only when "
+        "'Open blessing chests even when chests are off' is on). Acts even with the oracle "
+        "visit off.",
         "switch",
     ),
     "DailyOracle": Option("Claim the daily oracle", "Once-a-day oracle reward.", "switch"),
@@ -367,8 +376,14 @@ OPTIONS: dict[str, Option] = {
     ),
     "Campaign": Option("Claim the campaign", "Campaign rewards after the map missions.", "switch"),
     "MailDelete": Option("Delete read mail", "After claiming the attachments.", "switch"),
-    "OracleGifts": Option("Open Oracle's gifts", "From the bag, after the chests.", "switch"),
-    "MysteryBoxes": Option("Open mystery boxes", "From the bag, after the chests.", "switch"),
+    "OracleGifts": Option(
+        "Open Oracle's gifts", "From the bag, even when Open chests is off.", "switch"
+    ),
+    "MysteryBoxes": Option(
+        "Open mystery boxes",
+        "From the bag, even when Open chests is off (the free daily box lands there).",
+        "switch",
+    ),
     "BattlePass": Option(
         "Claim the battle pass rewards",
         "When the Battle pass button shows a bell: Rewards tab, every green Claim button.",

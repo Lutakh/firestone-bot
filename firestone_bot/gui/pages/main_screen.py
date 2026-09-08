@@ -21,10 +21,13 @@ def build(parent, ctx: PageContext):
         card.option(key)
 
     chests = place_card(Card(content, ctx, "Chests (bag)", master="Chests"))
-    for key in ("GearChestExclude", "JewelChestExclude", "CelestialChestExclude"):
+    for key in ("GearChestExclude", "JewelChestExclude"):
         chests.option(key)
-    chests.option("OracleGifts")
-    chests.option("MysteryBoxes")
+    # the rows below also act with the master OFF (gifts and boxes on their own switch,
+    # celestial chests through Upgrade blessings): never greyed
+    chests.option("CelestialChestExclude", always_enabled=True)
+    chests.option("OracleGifts", always_enabled=True)
+    chests.option("MysteryBoxes", always_enabled=True)
     blessing = chests.option("BlessingChests", always_enabled=True)
 
     def grey_blessing(*_):

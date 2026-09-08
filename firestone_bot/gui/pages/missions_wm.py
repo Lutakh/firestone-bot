@@ -55,6 +55,7 @@ def build(parent, ctx: PageContext):
         lambda: ctx.binder.set_many({"NoEng": "0"}),
         visible=False,
     )
+    wm.note("Upgrades happen during the engineer visit: Town > Engineer must be on.")
     which = wm.option("UpgradeWM")
     mode = wm.option("WMOptions")
     blueprints = wm.option("Blueprints")
