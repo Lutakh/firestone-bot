@@ -12,12 +12,30 @@ chaos rift hits of the day (runner, via Game.vars["chaos_hits"]).
 
 from __future__ import annotations
 
+import time
+
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.open_town import open_town
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 
 MAX_UPGRADES_PER_GUARDIAN = 50  # safety: the button greys out when the currency runs out
+BUTTON_BACK_MS = 3000  # patience for the Upgrade button to be green again after a click
+
+
+def _upgrade_ready(g: Game) -> bool:
+    """The green Upgrade button, read with the pointer parked (hovered it is lighter green
+    and the probe missed: one upgrade per guardian instead of all of them, 2026-09-08) and
+    with patience: right after a click it is pressed / greyed for a moment."""
+    g.move_to(atlas.GUARDIAN_CHAOS_PARK)
+    g.sleep(300)
+    end = time.monotonic() + BUTTON_BACK_MS / 1000
+    while True:
+        if g.found(atlas.GUARDIAN_CHAOS_UPGRADE_READY):
+            return True
+        if time.monotonic() >= end:
+            return False
+        g.sleep(250)
 
 
 def guardian_order(g: Game) -> list[int]:
@@ -41,11 +59,14 @@ def upgrade_on_guardian_screen(g: Game) -> int:
             continue
         g.tap(portrait)
         bought = 0
-        while bought < MAX_UPGRADES_PER_GUARDIAN and g.found(atlas.GUARDIAN_CHAOS_UPGRADE_READY):
-            g.tap(atlas.GUARDIAN_CHAOS_UPGRADE)
+        while bought < MAX_UPGRADES_PER_GUARDIAN and _upgrade_ready(g):
+            g.tap(atlas.GUARDIAN_CHAOS_UPGRADE, 0)
+            g.sleep(500)  # let Unity take the click before the pointer leaves the button
             bought += 1
         if bought:
             g.status(f"Guardian {idx}: {bought} chaos-rift upgrade(s)")
+        else:
+            g.status(f"Guardian {idx}: Upgrade button not green, next guardian")
         total += bought
     # back to the first tab, where the training probes of guardian() live
     g.tap(atlas.GUARDIAN_BACK_TAB, 1000)

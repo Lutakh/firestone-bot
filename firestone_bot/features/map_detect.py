@@ -30,9 +30,11 @@ WHITE_MIN = 240  # every channel at least this: the digit body
 DARK_MAX = 90  # every channel below this: the outline
 # Logical px (multiplied by the capture factor in find_labels)
 OUTLINE_REACH = 2  # between a digit pixel and its outline
-DIGIT_H = (8, 21)  # digit blob height
+DIGIT_H = (8, 21)  # digit blob height (a whole digit)
+FRAGMENT_H = 4  # a digit cut in two by anti-aliasing at the zoomed-out size (a "0" or a "5"
+# splits into 5 + 6 px halves, Windows 2026-09-08): fragments join a label but do not make one
 DIGIT_W = (2, 38)  # digit blob width (merged digits allowed)
-ROW_GAP = 9  # largest gap between two blobs of one label
+ROW_GAP = 12  # largest gap between two blobs of one label (a colon plus a split digit)
 ROW_ALIGN = 5  # vertical centre tolerance inside one label
 LABEL_W = (22, 125)  # whole label width
 PANEL_MAX_X = 285  # logical: labels left of this are the HUD panel of running missions
@@ -78,10 +80,11 @@ def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, in
     for dy in range(-r, r + 1):
         for dx in range(-r, r + 1):
             near |= np.roll(np.roll(dark, dy, 0), dx, 1)
+    fragment_h = FRAGMENT_H * f
     digits = [
         b
         for b in _blobs(white & near)
-        if digit_h[0] <= b[3] - b[1] <= digit_h[1] and digit_w[0] <= b[2] - b[0] <= digit_w[1]
+        if fragment_h <= b[3] - b[1] <= digit_h[1] and digit_w[0] <= b[2] - b[0] <= digit_w[1]
     ]
     digits.sort(key=lambda b: b[0])
     used = [False] * len(digits)
@@ -101,8 +104,9 @@ def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, in
                 group.append(c)
                 used[j] = True
                 right = max(right, c[2])
-        if len(group) < 2:
-            continue
+        whole = [c for c in group if c[3] - c[1] >= digit_h[0] and c[2] - c[0] < c[3] - c[1]]
+        if len(group) < 2 or len(whole) < 2:
+            continue  # a lone blob, fragments only, or wide shapes (the stars over an icon)
         x0, y0 = min(g[0] for g in group), min(g[1] for g in group)
         x1, y1 = max(g[2] for g in group), max(g[3] for g in group)
         if label_w[0] <= x1 - x0 <= label_w[1]:

@@ -14,7 +14,19 @@ def alchemist(g: Game) -> None:
     g.tap(atlas.TOWN_ALCHEMIST)
     # collect completed experiments (only when the slot is running)
     collect = g.settings.flag("AlchCollect")
-    for slot in atlas.ALCHEMY_SLOTS if collect else ():
+    blood, dust, coin = atlas.ALCHEMY_SLOTS
+    # Only the slots the user runs are looked at (a user reported the bot "collecting" the
+    # dust experiment with Use dust off, 2026-09-08); AHK probed all three.
+    wanted = [
+        slot
+        for slot, on in (
+            (blood, not g.settings.flag("DragonBlood")),
+            (dust, not g.settings.flag("Dust")),
+            (coin, g.settings.flag("Coin")),
+        )
+        if on
+    ]
+    for slot in wanted if collect else ():
         if g.found(slot.not_running):
             g.toast("Alchemy Status", f"{slot.name} alchemy is not running", 1.5)
         elif g.found(slot.complete):
@@ -23,13 +35,12 @@ def alchemist(g: Game) -> None:
             g.click()
             g.sleep(1000)
     # free to complete
-    for slot in atlas.ALCHEMY_SLOTS if collect else ():
+    for slot in wanted if collect else ():
         if g.found(slot.free):
             g.move_to(slot.collect)
             g.toast("Alchemy Status", f"{slot.name} experiment is free to complete", 1.5)
             g.click()
             g.sleep(1000)
-    blood, dust, coin = atlas.ALCHEMY_SLOTS
     # check if don't use Dragon Blood is checked
     if not g.settings.flag("DragonBlood"):
         _start(g, blood)

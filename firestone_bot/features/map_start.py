@@ -50,6 +50,8 @@ def _detect_and_click(g: Game, state: MapState, offset: int) -> bool:
     points = map_detect.find_missions(g)
     where = "" if not offset else (" (map moved down)" if offset > 0 else " (map moved up)")
     g.status(f"Map: {len(points)} mission icon(s) detected on the screen{where}")
+    if not points:
+        g.save_diagnostic("map-no-icon.png")
     for x, y in points:
         if state.was_clicked(x, y - offset):
             continue
@@ -82,19 +84,32 @@ def map_start_detected(g: Game, state: MapState) -> None:
     scroll = atlas.MAP_DETECT_SCROLL
     moved = False
     try:
-        for offset in (0, scroll, -scroll):
-            if offset:
-                g.status("Map: idle troops left, looking beyond the edge")
-                _drag_map(g, offset)
-                moved = True
-            more = _detect_and_click(g, state, offset)
-            if offset:
-                _drag_map(g, -offset)
-            if not more:
+        # Two passes at most: when the first one clicked nothing while troops are idle, the
+        # map is put back to its reference place (a dragged or zoomed map hides the labels)
+        # and searched once more with a fresh memory (owner, 2026-09-08: the map was left
+        # with missions still to start).
+        for attempt in (1, 2):
+            more = True
+            for offset in (0, scroll, -scroll):
+                if offset:
+                    g.status("Map: idle troops left, looking beyond the edge")
+                    _drag_map(g, offset)
+                    moved = True
+                more = _detect_and_click(g, state, offset)
+                if offset:
+                    _drag_map(g, -offset)
+                if not more:
+                    break
+            if not more or not g.found(atlas.MAP_TROOP_IDLE):
                 break
-        else:
-            if g.found(atlas.MAP_TROOP_IDLE):
-                state.reset()  # every icon tried: the memory hid something, next cycle redoes
+            state.reset()  # every icon tried: the memory hid something
+            if attempt == 1:
+                g.status("Map: idle troops left after a full search, re-aligning and retrying")
+                map_align.align_map(g)
+                moved = False
+            else:
+                g.status("Map: idle troops left but no mission to start was found")
+                g.save_diagnostic("map-troops-left.png")
     finally:
         if moved:
             map_align.align_map(g)  # recentre exactly before leaving

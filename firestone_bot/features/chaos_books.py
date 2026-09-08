@@ -24,16 +24,20 @@ def buy_books(g: Game) -> int:
         g.status("Chaos rift shop: no notification, nothing to buy")
         return 0
     g.tap(atlas.RIFT_SHOP, 2000)
-    if not g.found(atlas.RIFT_SUPPLIES_BELL):
-        g.status("Chaos rift shop: Supplies has no notification, leaving")
-        big_close(g)
-        return 0
+    # Fast timing returned as soon as the shop started to draw and the bell probe missed
+    # (2026-09-08: "Supplies has no notification", shop closed at once). Wait for the
+    # bell with patience; without it, still look at the Supplies page: the book button
+    # decides.
+    g.wait_still()
+    if not g.wait_for(atlas.RIFT_SUPPLIES_BELL, 3000):
+        g.status("Chaos rift shop: Supplies shows no notification, checking the page anyway")
     g.tap(atlas.RIFT_SUPPLIES, 2000)
+    g.wait_still()
     bought = 0
     while bought < MAX_BOOKS_PER_VISIT:
         g.move_to(atlas.RIFT_BOOKS_PARK)  # hover would turn the button lighter green
         g.sleep(500)
-        if not g.found(atlas.RIFT_BOOKS_READY):
+        if not g.wait_for(atlas.RIFT_BOOKS_READY, 2500 if bought else 4000):
             break
         g.tap(atlas.RIFT_BOOKS_BUY, 0)
         g.sleep(500)  # let Unity process the click before the pointer leaves the button

@@ -87,13 +87,18 @@ def landmark_offset(g: Game, landmark: list[dict] | None = None) -> tuple[float,
     """(correlation, dx, dy): how far (logical px) the landmark sits from its reference place
     (the reference that correlates best wins)."""
     best = (-2.0, 0, 0)
-    for lm in landmark or load_landmark():
-        x1, y1, x2, y2 = lm["rect"]
-        s, m = lm["scale"], atlas.MAP_LANDMARK_SEARCH
-        big = _gray_logical(g, (x1 - m, y1 - m, x2 + m, y2 + m), s)
-        c, dx, dy = best_match(big, lm["gray"])
-        if c > best[0]:
-            best = (c, round(dx / s) - m, round(dy / s) - m)
+    # a near search first (0.5 s), then a wide one (2.5 s): the map left 220 px off by an
+    # interrupted detection pass was never found again (2026-09-08, search radius 100)
+    for m in (atlas.MAP_LANDMARK_SEARCH, atlas.MAP_LANDMARK_SEARCH_WIDE):
+        for lm in landmark or load_landmark():
+            x1, y1, x2, y2 = lm["rect"]
+            s = lm["scale"]
+            big = _gray_logical(g, (x1 - m, y1 - m, x2 + m, y2 + m), s)
+            c, dx, dy = best_match(big, lm["gray"])
+            if c > best[0]:
+                best = (c, round(dx / s) - m, round(dy / s) - m)
+        if best[0] >= MIN_CORRELATION:
+            break
     return best
 
 
@@ -107,7 +112,10 @@ def align_map(g: Game) -> bool:
         g.sleep(200)
         g.wheel(-atlas.MAP_ZOOM_OUT_NOTCHES, 100)
         g.sleep(800)
+    if g.vars.get("map_align_off"):
+        return False  # gave up earlier in this run (see below)
     landmark = load_landmark()
+    previous = None
     for _ in range(MAX_PASSES):
         c, dx, dy = landmark_offset(g, landmark)
         if c < MIN_CORRELATION:
@@ -115,6 +123,19 @@ def align_map(g: Game) -> bool:
             return False
         if abs(dx) <= TOLERANCE and abs(dy) <= TOLERANCE:
             return True
+        if (
+            previous is not None
+            and abs(dx - previous[0]) <= TOLERANCE
+            and abs(dy - previous[1]) <= TOLERANCE
+        ):
+            # The drag changed nothing: the map is already where the game puts it and the
+            # reference is off for this client (a user, 2026-09-08: "out of position while
+            # at default, fails to move it every time"). Leave it and stop trying this run.
+            g.status("Map: dragging does not move the landmark, keeping the map as it is")
+            g.save_diagnostic("map-align-stuck.png")
+            g.vars["map_align_off"] = True
+            return False
+        previous = (dx, dy)
         g.status(f"Map: moved by ({dx}, {dy}) px, dragging it back")
         x, y = atlas.MAP_NORTH_DRAG_FROM
         g.drag(x, y, x - dx, y - dy, anchor=atlas.ANCHOR_CENTER)

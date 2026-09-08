@@ -313,6 +313,7 @@ GUARDIAN_ROSTER = tuple(  # (bell probe, portrait click) for roster positions 1.
 )
 GUARDIAN_CHAOS_UPGRADE_READY = Probe(1580, 691, 1770, 781, GREEN_BUTTON, 3, "guardian_chaos_up")
 GUARDIAN_CHAOS_UPGRADE = Point(1672, 731)
+GUARDIAN_CHAOS_PARK = Point(1672, 600)  # off the button (hovered = lighter green)
 
 # --- ClaimBeer.ahk / UseTavernToken.ahk / CraftArtifact.ahk -----------------------------------
 TAVERN_BEER_TAB = Point(773, 500)  # ClaimBeer.ahk:18
@@ -1105,6 +1106,7 @@ MAP_WHEEL_CENTRE = Point(960, 520, ANCHOR_CENTER)
 MAP_LANDMARK_RECT = (310, 765, 489, 847)  # centre anchor
 MAP_LANDMARK_SCALE = 0.5
 MAP_LANDMARK_SEARCH = 100
+MAP_LANDMARK_SEARCH_WIDE = 260  # covers a detection drag (MAP_DETECT_SCROLL) left undone
 # Mission detection mode (features/map_detect.py): the map area searched for duration labels
 # (HUD panels, the zoom slider and the buttons excluded) and the label-to-icon distance.
 MAP_DETECT_AREA = (100, 160, 1700, 960)
