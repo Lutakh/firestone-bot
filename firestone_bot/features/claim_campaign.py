@@ -16,8 +16,17 @@ def claim_campaign(g: Game) -> None:
         big_close(g)
         big_close(g)
         return
+    # The loot button is at the very bottom left of the campaign map, i.e. under the overlay
+    # panel (placed bottom-left when it is capture-safe). Verified live at 2560x1302 with the
+    # panel over it, 2026-09-09: the probe reads through it (the panel is left out of the
+    # captures) and the click goes through it (macOS click-through), the loot was claimed.
+    # Said out loud so that a next "the claim does not work" can be told apart from a loot
+    # that was simply not ready yet (it fills over 6 h).
     if g.found(atlas.CAMPAIGN_CLAIM_READY):
+        g.status("Campaign: claiming the war machine loot")
         g.tap(atlas.CAMPAIGN_CLAIM, 1000)
+    else:
+        g.status("Campaign: no loot to claim yet")
     if g.settings.flag("Liberation"):
         liberation_missions(g)
     big_close(g)
