@@ -116,6 +116,7 @@ READ_ONLY_KEYS = {
     "ChaosCountDaily",
     "LastChaosReset",
     "ChaosBooksDaily",
+    "MailSweepDaily",
     "CrystalCountDaily",
     "LastPlatform",
     "ScarabCountDaily",

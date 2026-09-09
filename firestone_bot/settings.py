@@ -52,6 +52,7 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "ChaosGuardianOrder": ("CommonOptions", "1,2,3,4"),
     "ChaosBooks": ("CommonOptions", "1"),
     "ChaosBooksDaily": ("CommonOptions", "0"),
+    "MailSweepDaily": ("CommonOptions", "0"),
     "MaxScarab": ("CommonOptions", "10"),
     "ScarabCountDaily": ("CommonOptions", "0"),
     "MaxCrystals": ("CommonOptions", "5"),

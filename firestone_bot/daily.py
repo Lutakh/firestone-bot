@@ -43,6 +43,7 @@ def mark_daily_reset(settings: Settings) -> None:
     settings.set("LastChaosReset", settings.get("LastTokenReset"))
     settings.set("ScarabCountDaily", 0)
     settings.set("ChaosBooksDaily", 0)
+    settings.set("MailSweepDaily", 0)
     settings.set("CrystalCountDaily", 0)
     settings.save()
     log.info("daily reset detected: token and arena counters cleared")
@@ -93,6 +94,15 @@ def scarab_left(settings: Settings) -> int | None:
 
 def note_scarab_play(settings: Settings) -> None:
     settings.set("ScarabCountDaily", _int(settings, "ScarabCountDaily") + 1)
+    settings.save()
+
+
+def mail_swept(settings: Settings) -> bool:
+    return _int(settings, "MailSweepDaily") == 1
+
+
+def note_mail_swept(settings: Settings) -> None:
+    settings.set("MailSweepDaily", 1)
     settings.save()
 
 

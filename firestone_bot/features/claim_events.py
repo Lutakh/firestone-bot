@@ -55,6 +55,11 @@ def claim_events(g: Game) -> None:
             n = _claim_challenges(g)
             total += n
             g.status(f"Events: card {idx + 1}, {n} challenge reward(s) claimed")
+            if n == 0:
+                # A bell with no green Claim is normal (a new event, nothing finished yet),
+                # but it is also what a mis-measured claim probe looks like on another
+                # client: keep the page so the three rows can be checked.
+                g.save_diagnostic("events-no-claim.png")
             g.tap(atlas.EVENTS_PAGE_CLOSE)
             if n == 0:
                 break  # bell but nothing green: avoid looping on the same card
