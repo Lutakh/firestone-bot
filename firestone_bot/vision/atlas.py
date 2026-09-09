@@ -185,8 +185,13 @@ QUESTS_TAB_BELL = (1345, 36, 1590, 100)
 NS_QUESTS_TAB_BELL = QUESTS_TAB_BELL
 QUESTS_DAILY_TAB = Point(765, 155)  # :19
 QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
-QUESTS_CLAIM_READY = Probe(1544, 286, 1606, 334, GREEN_BUTTON, 3, "quests_claim_ready")  # :23
-QUESTS_CLAIM = Point(1503, 309)  # :25
+# The quests dialog is centred, and the AHK rect sat past the right edge of the Claim button
+# of the first row (the orange "go to" button has since pushed it left): re-measured on the
+# live layout at 2560x1302, the button spans logical (centre-anchored) x 1321-1555, y 277-326.
+QUESTS_CLAIM_READY = Probe(
+    1360, 285, 1520, 320, GREEN_BUTTON, 3, "quests_claim_ready", ANCHOR_CENTER
+)  # :23
+QUESTS_CLAIM = Point(1438, 301, ANCHOR_CENTER)  # :25
 QUESTS_REWARD_OK = Point(1619, 990)  # :29
 
 # --- Shop.ahk -------------------------------------------------------------------------------
@@ -606,13 +611,21 @@ RS_POPUP_RESEARCH = Probe(700, 690, 900, 716, 0x0EA10C, 20, "rs_popup_research",
 RS_POPUP_RESEARCH_BUTTON = Point(800, 704, ANCHOR_CENTER)
 RS_POPUP_CLOSE_X = Probe(1215, 200, 1263, 248, DIALOG_RING, 30, "rs_popup_close_x", ANCHOR_CENTER)
 RS_POPUP_CLOSE = Point(1239, 224, ANCHOR_CENTER)
-# Slot panels (bottom-left anchored): the button zone is the right end of each panel.
-RS_SLOT_BUTTONS = ((505, 925, 640, 1010), (1155, 925, 1290, 1010))
+# Slot panels (bottom-left anchored). The two fixed button zones of 2026-09-08 were measured
+# on the Mac's own aspect and missed at 2560x1302: the bot read the running slot as finished
+# and clicked its orange "Speed up" gem button (2026-09-09). The buttons are now looked up as
+# colour blobs in one strip covering both panels, and the slot is the half the blob falls in;
+# within a slot the rightmost blob wins (the button sits at the right end of its panel, right
+# of the "Completed" progress bar).
+RS_SLOT_STRIP = (60, 880, 1450, 1010)
+RS_SLOT_SPLIT = 950  # logical x between the two panels (buttons at ~645 and ~1290)
 RS_SLOT_RUNNING = 0xF7A242  # orange "Speed up" button
 RS_SLOT_RUNNING_VAR = 30
 RS_SLOT_DONE = (GREEN_BUTTON, GREEN_BUTTON_2)  # a green button: claim it
 RS_SLOT_DONE_VAR = 25
-RS_BUTTON_MIN_W = 40  # logical; the buttons are ~120 wide
+RS_BUTTON_MIN_W = 40  # logical; the buttons are ~160 wide and 60-105 high
+RS_BUTTON_MIN_H = 25
+RS_SLOT_COUNT = 2
 
 # --- Guild.ahk ------------------------------------------------------------------------------
 MAIN_GUILD_ICON = Point(1857, 481)  # :12

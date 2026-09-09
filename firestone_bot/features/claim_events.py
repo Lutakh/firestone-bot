@@ -29,7 +29,9 @@ def _claim_challenges(g: Game) -> int:
 
 def _first_card_with_bell(g: Game) -> int | None:
     for i, bell in enumerate(atlas.EVENTS_CARD_BELLS):
-        if g.found(bell):
+        # counted, not probed: the card bell is a red sprite whose exact shade drifts with the
+        # canvas scale (it missed the RED_DOT probe at 2560x1302 on macOS, 2026-09-09)
+        if bells.bell_in(g, bell):
             return i
     return None
 
@@ -48,7 +50,7 @@ def claim_events(g: Game) -> None:
         if idx is None:
             break
         g.tap(atlas.EVENTS_CARDS[idx])
-        if g.found(atlas.EVENTS_CHALLENGES_TAB_BELL):
+        if bells.bell_in(g, atlas.EVENTS_CHALLENGES_TAB_BELL):
             g.tap(atlas.EVENTS_CHALLENGES_TAB)
             n = _claim_challenges(g)
             total += n

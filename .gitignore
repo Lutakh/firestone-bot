@@ -14,3 +14,6 @@ dist_next/
 build_next/
 progress.json
 diagnostics/
+
+# scratch drivers and live captures (session work, never committed)
+scratchpad/

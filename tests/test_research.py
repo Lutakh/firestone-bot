@@ -50,13 +50,15 @@ class FakeGame:
 
 def _fake_find_blobs(g, nodes):
     def find(game, rect, color=None, variation=0, **kw):
-        if rect in atlas.RS_SLOT_BUTTONS:
-            state = g.slots[atlas.RS_SLOT_BUTTONS.index(rect)]
-            if color in atlas.RS_SLOT_DONE and state == "green":
-                return [blobs.Blob(0, 0, 100, 40, 1)]
-            if color == atlas.RS_SLOT_RUNNING and state == "orange":
-                return [blobs.Blob(0, 0, 100, 40, 1)]
-            return []
+        if rect == atlas.RS_SLOT_STRIP:
+            # one button per slot, in the half of the strip that slot occupies
+            out = []
+            for slot, state in enumerate(g.slots):
+                cx = 645 if slot == 0 else 1290
+                want = "green" if color in atlas.RS_SLOT_DONE else "orange"
+                if state == want:
+                    out.append(blobs.Blob(cx - 80, 920, cx + 80, 980, 1))
+            return out
         return list(nodes)
 
     return find
@@ -125,3 +127,18 @@ def test_go_research_claims_a_finished_slot_then_starts(monkeypatch):
     assert any("slot 1 finished" in s for s in g.statuses)
     assert any("slot 2 in progress" in s for s in g.statuses)
     assert g.statuses[-1] == "big_close"
+
+
+def test_slot_button_is_the_rightmost_blob_of_its_half(monkeypatch):
+    """The "Completed" progress bar is green too and sits left of the Claim button."""
+    g = FakeGame([None, None])
+
+    def find(game, rect, color=None, variation=0, **kw):
+        if rect == atlas.RS_SLOT_STRIP and color in atlas.RS_SLOT_DONE:
+            return [blobs.Blob(1000, 920, 1180, 980, 1), blobs.Blob(1210, 920, 1370, 980, 1)]
+        return []
+
+    monkeypatch.setattr(blobs, "find_blobs", find)
+    state, button = research.slot_buttons(g)[1]
+    assert state == "done"
+    assert button.x == 1290 and button.anchor == research.SLOT_ANCHOR

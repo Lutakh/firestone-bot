@@ -129,7 +129,10 @@ def detect_style(g, setting: str = "auto", previous: str | None = None, misses: 
         return setting
     g.move_to(atlas.NS_MODE_PARK)
     g.sleep(300)
-    if g.found(atlas.NS_STYLE_PROBE) or g.found(atlas.NS_STYLE_PROBE_HOVER):
+    # the blue alone is not enough: on a classic account at 2560x1302 the bottom bar (centred)
+    # slid the blue Fellowship shield into the edge-anchored probe rect and a whole cycle ran
+    # in the new layout (2026-09-09), so the button's label is read as well
+    if on_new_main_screen(g):
         return "new"
     if previous == "new" and misses < 1:
         # A miss on a known new-style account is a pop-up or an animation over the button;

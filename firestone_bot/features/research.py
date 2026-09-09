@@ -21,29 +21,46 @@ MAX_NODES_PER_PAGE = 8
 SLOT_ANCHOR = (atlas.LEFT, atlas.BOTTOM)
 
 
-def slot_state(g: Game, slot: int) -> str:
-    """'done' (green button), 'running' (orange Speed up), or 'empty'."""
-    zone = atlas.RS_SLOT_BUTTONS[slot]
-    for colour in atlas.RS_SLOT_DONE:
-        if blobs.find_blobs(
-            g, zone, colour, atlas.RS_SLOT_DONE_VAR, anchor=SLOT_ANCHOR, min_w=atlas.RS_BUTTON_MIN_W
-        ):
-            return "done"
-    if blobs.find_blobs(
+def _strip_blobs(g: Game, colour: int, variation: int) -> list[blobs.Blob]:
+    return blobs.find_blobs(
         g,
-        zone,
-        atlas.RS_SLOT_RUNNING,
-        atlas.RS_SLOT_RUNNING_VAR,
+        atlas.RS_SLOT_STRIP,
+        colour,
+        variation,
         anchor=SLOT_ANCHOR,
         min_w=atlas.RS_BUTTON_MIN_W,
-    ):
-        return "running"
-    return "empty"
+        min_h=atlas.RS_BUTTON_MIN_H,
+    )
 
 
-def _slot_button(slot: int) -> Point:
-    x1, y1, x2, y2 = atlas.RS_SLOT_BUTTONS[slot]
-    return Point((x1 + x2) // 2, (y1 + y2) // 2, SLOT_ANCHOR)
+def slot_buttons(g: Game) -> dict[int, tuple[str, Point]]:
+    """State and button of each busy slot, read from the strip covering both panels.
+
+    A green button ('done', to claim) wins over the orange "Speed up" ('running'); a slot with
+    neither is empty. The rightmost blob of a slot is its button: the "Completed" progress bar
+    is green too and sits left of the Claim button.
+    """
+    out: dict[int, tuple[str, Point]] = {}
+    found: list[tuple[str, blobs.Blob]] = []
+    for colour in atlas.RS_SLOT_DONE:
+        found += [("done", b) for b in _strip_blobs(g, colour, atlas.RS_SLOT_DONE_VAR)]
+    found += [
+        ("running", b) for b in _strip_blobs(g, atlas.RS_SLOT_RUNNING, atlas.RS_SLOT_RUNNING_VAR)
+    ]
+    for slot in range(atlas.RS_SLOT_COUNT):
+        here = [(kind, b) for kind, b in found if (b.cx < atlas.RS_SLOT_SPLIT) == (slot == 0)]
+        for kind in ("done", "running"):
+            same = [b for k, b in here if k == kind]
+            if same:
+                b = max(same, key=lambda b: b.cx)
+                out[slot] = (kind, Point(b.cx, b.cy, SLOT_ANCHOR))
+                break
+    return out
+
+
+def slot_state(g: Game, slot: int) -> str:
+    """'done' (green button), 'running' (orange Speed up), or 'empty'."""
+    return slot_buttons(g).get(slot, ("empty", None))[0]
 
 
 def tree_nodes(g: Game) -> list[blobs.Blob]:
@@ -102,11 +119,11 @@ def go_research(g: Game) -> None:
     g.require_screen(atlas.TOWN_LIBRARY, atlas.DIALOG_CLOSE_X, via_town=True)
     g.tap(atlas.RS_FIRESTONE_TREE, 1000)
     g.wait_still()
-    for slot in range(len(atlas.RS_SLOT_BUTTONS)):
-        state = slot_state(g, slot)
+    for slot in range(atlas.RS_SLOT_COUNT):
+        state, button = slot_buttons(g).get(slot, ("empty", None))
         if state == "done":
             g.status(f"Research: slot {slot + 1} finished, claiming it")
-            g.tap(_slot_button(slot), 1500)
+            g.tap(button, 1500)
             g.wait_still()
             state = slot_state(g, slot)
         if state == "running":
