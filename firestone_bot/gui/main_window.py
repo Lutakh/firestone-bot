@@ -263,7 +263,7 @@ class MainWindow:
                 corner_radius=4,
                 font=theme.font(13),
             )
-            button.grid(row=0, column=index + (1 if index else 0), padx=3)
+            button.grid(row=0, column=index, padx=3)
             self.nav_buttons[name] = button
         self.skin_menu = OptionMenu(
             nav,
@@ -278,7 +278,7 @@ class MainWindow:
             text_color=theme.ON_HEADER,
         )
         self.skin_menu.set(f"Skin: {theme.current_skin()}")
-        self.skin_menu.grid(row=0, column=1, padx=(0, 10))
+        self.skin_menu.grid(row=0, column=len(PAGE_ORDER), padx=(10, 0))
 
     def _build_commands(self) -> None:
         dock = ctk.CTkFrame(self.shell, fg_color=theme.SURFACE_ALT, corner_radius=0)

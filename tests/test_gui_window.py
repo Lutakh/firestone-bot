@@ -155,7 +155,8 @@ def test_skin_switch_preserves_active_settings_runtime_and_logs(window):
         assert len(variable.trace_info()) == 1  # only Binder survives; no destroyed editor
         saved = json.loads(Path(window.state_path).read_text(encoding="utf-8"))
         assert saved["skin"] == skin and saved["page"] == "journal"
-        assert int(window.skin_menu.grid_info()["column"]) == 1
+        assert int(window.skin_menu.grid_info()["column"]) == 4
+        assert int(window.nav_buttons["workshop"].grid_info()["column"]) == 3
         assert int(window.nav_buttons["camp"].grid_info()["column"]) == 0
 
     window.flags["running"] = False

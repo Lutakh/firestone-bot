@@ -316,7 +316,7 @@ bot then says so and runs the guild features as before (they fail harmlessly).
 ## GUI
 
 The native window uses a horizontal navigation bar and persistent Start bot / Dry run /
-Stop commands. **Skin**, immediately beside **Camp**, switches between **Fieldbook**
+Stop commands. **Skin**, at the end of the header after **Workshop**, switches between **Fieldbook**
 (ivory and forest green), **Retro** (charcoal, parchment and amber), and **Futuristic**
 (blue and cyan). All three skins share the same layout, controls and live settings.
 A skin change preserves the active session, selected editor, pending saves and journal.

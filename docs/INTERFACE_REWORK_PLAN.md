@@ -4,7 +4,7 @@
 
 Implement the approved interactive Fieldbook mockup in the real native Python bot on
 `python-rework`. Keep every supported bot function and setting, and use English throughout
-the interface and code. Add a **Skin** dropdown immediately beside **Camp**. Fieldbook,
+the interface and code. Add a **Skin** dropdown at the end of the header after **Workshop**. Fieldbook,
 Retro and Futuristic share the same navigation and behavior. Skin changes are presentation
 only and survive application restarts. Finish with a commit on `python-rework` and publish
 that branch; do not merge the earlier retro branch wholesale.
@@ -42,7 +42,7 @@ No further design approval is needed for this scope.
 - [x] Carry over and verify bounded Tk 9 layout/scrolling fixes.
 - [x] Implement Automations using the current setting catalog and real feature gates.
 - [x] Implement Workshop and preserve all existing application actions.
-- [x] Replace shell with horizontal navigation and Skin dropdown beside Camp.
+- [x] Replace shell with horizontal navigation and Skin dropdown after Workshop.
 - [x] Implement Camp and separate Journal with real runtime data.
 - [x] Preserve settings, log history and state across skin changes; clean up view callbacks.
 - [x] Add focused regression tests for settings, navigation, skin persistence and runtime.
