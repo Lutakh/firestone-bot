@@ -19,7 +19,8 @@ from firestone_bot.features.big_close import big_close
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
 from firestone_bot.state import hours_since
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, blobs
+from firestone_bot.vision.atlas import Point
 from firestone_bot.vision.probes import match_mask
 
 log = logging.getLogger("firestone_bot.shop")
@@ -40,10 +41,34 @@ def _claim_button_shown(g: Game) -> bool:
     return width >= atlas.SHOP_MYSTERY_BUTTON_MIN_W and height >= atlas.SHOP_MYSTERY_BUTTON_MIN_H
 
 
+def shop_tabs(g: Game) -> list[blobs.Blob]:
+    """The unselected shop tabs, left to right (the selected tab is not tan, so it is
+    missing from the list: a tab is only ever looked up while another one is selected)."""
+    return sorted(
+        blobs.find_blobs(
+            g,
+            atlas.SHOP_TAB_STRIP,
+            atlas.SHOP_TAB_BG,
+            atlas.SHOP_TAB_BG_VAR,
+            anchor=atlas.ANCHOR_CENTER,
+            min_w=atlas.SHOP_TAB_MIN_W,
+            min_h=atlas.SHOP_TAB_MIN_H,
+        ),
+        key=lambda b: b.cx,
+    )
+
+
+def _tap_tab(g: Game, tab: blobs.Blob) -> None:
+    g.tap(Point(tab.cx, tab.cy, atlas.ANCHOR_CENTER), 1200)
+    g.wait_still()
+
+
 def claim_free_mystery_box(g: Game) -> bool:
     """Scroll the daily deals back to the start and claim the free box. True when it was
     claimable (= the game day has just reset)."""
-    g.tap(atlas.SHOP_FIRST_TAB, 700)  # the shop may reopen on the last tab visited
+    tabs = shop_tabs(g)
+    if tabs:  # the shop may reopen on the last tab visited
+        _tap_tab(g, tabs[0])
     g.move_to(atlas.SHOP_DEALS_HOVER)
     g.sleep(500)
     g.wheel(30)
@@ -77,6 +102,33 @@ def claim_free_mystery_box(g: Game) -> bool:
     return False
 
 
+def check_in(g: Game) -> None:
+    """Daily check-in: the calendar tab is the rightmost one; its green "Check In" button is
+    clicked only where it is actually found. The AHK clicked two fixed points blind, which at
+    another aspect landed on a paid bundle and opened the Steam checkout (2026-09-09)."""
+    tabs = shop_tabs(g)
+    if not tabs:
+        g.status("Daily shop: no tab found, check-in skipped")
+        return
+    _tap_tab(g, tabs[-1])
+    button = blobs.find_blobs(
+        g,
+        atlas.SHOP_CHECKIN_BAR,
+        atlas.SHOP_CHECKIN_GREEN,
+        atlas.SHOP_CHECKIN_GREEN_VAR,
+        anchor=atlas.ANCHOR_CENTER,
+        min_w=atlas.SHOP_CHECKIN_MIN_W,
+        min_h=atlas.SHOP_CHECKIN_MIN_H,
+    )
+    if not button:
+        g.status("Daily shop: nothing to check in today")
+        return
+    b = max(button, key=lambda b: b.w * b.h)
+    g.status("Daily shop: checking in")
+    g.tap(Point(b.cx, b.cy, atlas.ANCHOR_CENTER), 2000)
+    g.wait_still()
+
+
 def shop(g: Game) -> None:
     g.focus()
     # The red dot is the cheap trigger; near the expected reset time (23 h after the last
@@ -92,17 +144,7 @@ def shop(g: Game) -> None:
         daily.mark_daily_reset(g.settings)
         g.status("Daily shop: free mystery box claimed, daily counters reset")
     if g.settings.flag("Shop"):
-        # open daily check-in
-        g.tap(atlas.SHOP_CHECKIN_TAB, 1000)
-        # check in
-        g.move_to(atlas.SHOP_CHECKIN_CLAIM)
-        g.sleep(3000)
-        g.click()
-        g.sleep(1000)
-        g.move_to(atlas.SHOP_CHECKIN_OK)
-        g.sleep(3000)
-        g.click()
-        g.sleep(1000)
+        check_in(g)
     big_close(g)
     g.toast(
         "Main Menu Check", "Checking to ensure we are on main screen after redeeming shop gifts", 2

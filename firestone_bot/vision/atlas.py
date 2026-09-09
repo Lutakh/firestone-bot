@@ -209,15 +209,27 @@ SHOP_DEALS_HOVER = Point(1100, 600)
 # as a daily reset. The rect covers both and the click lands on the green pixel found.
 SHOP_MYSTERY_CLAIM_READY = Probe(480, 800, 760, 895, GREEN_BUTTON, 30, "shop_mystery_claim")
 SHOP_MYSTERY_CLAIM = Point(642, 875)  # fallback only
-SHOP_FIRST_TAB = Point(493, 124)  # bundle tab holding the free mystery box
 SHOP_FIRST_CARD = (500, 420, 780, 840)  # picture of the first daily-deal card (claim check)
 # the Free button is a 250 x 55 logical px green rectangle (Windows 2026-09-08); the tick
 # shown once claimed is far smaller
 SHOP_MYSTERY_BUTTON_MIN_W = 120
 SHOP_MYSTERY_BUTTON_MIN_H = 30
-SHOP_CHECKIN_TAB = Point(1440, 125)  # :22
-SHOP_CHECKIN_CLAIM = Point(1346, 894)  # :27
-SHOP_CHECKIN_OK = Point(1339, 828)  # :31
+# The shop tabs are a CENTRED row whose length depends on the account (promotions come and
+# go), so no fixed coordinate can name a tab: at 2560x1302 the AHK check-in point missed the
+# calendar tab and the blind clicks that followed landed on a paid bundle, which opened the
+# Steam checkout of a $4.99 pack (2026-09-09, nothing was bought). The tabs are found as
+# colour blobs instead: the check-in one is the rightmost, the bundle one the leftmost. The
+# selected tab is NOT tan, so a tab is only looked up while another one is selected.
+SHOP_TAB_STRIP = (318, 71, 1603, 174)  # centre-anchored, the row above the dialog
+SHOP_TAB_BG = 0xC4A088  # tan background of an unselected tab
+SHOP_TAB_BG_VAR = 26
+SHOP_TAB_MIN_W, SHOP_TAB_MIN_H = 60, 30
+# "Claim your daily reward" bar of the check-in page and its green Check In button (an olive
+# green of its own, not GREEN_BUTTON). Nothing is ever clicked there without this button.
+SHOP_CHECKIN_BAR = (741, 800, 1495, 875)
+SHOP_CHECKIN_GREEN = 0x44941F
+SHOP_CHECKIN_GREEN_VAR = 40
+SHOP_CHECKIN_MIN_W, SHOP_CHECKIN_MIN_H = 60, 25
 
 # --- CheckMail.ahk --------------------------------------------------------------------------
 MAIL_ICON = Point(56, 777)  # :8
