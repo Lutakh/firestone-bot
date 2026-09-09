@@ -23,6 +23,7 @@ def buy_books(g: Game) -> int:
     if not g.found(atlas.RIFT_SHOP_BELL):
         g.status("Chaos rift shop: no notification, nothing to buy")
         return 0
+    g.wait_still()
     g.tap(atlas.RIFT_SHOP, 2000)
     # Fast timing returned as soon as the shop started to draw and the bell probe missed
     # (2026-09-08: "Supplies has no notification", shop closed at once). Wait for the

@@ -18,6 +18,7 @@ from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas, chest_grid
 from firestone_bot.vision.atlas import Point, Probe
+from firestone_bot.vision.buttons import green_buttons
 
 
 def _click_equip(g: Game) -> bool:
@@ -114,23 +115,9 @@ def find_open_buttons(g: Game) -> list[Point]:
     """Centres of the green buttons in the dialog's button row (new style), left to right.
     The row holds x1 / x10 / x50, or fewer when the stock is small (x1 / x3 for three
     Lunar chests, 2026-09-08: the fixed x50 point fell beside the x3 button)."""
-    from firestone_bot.vision.probes import match_mask
-
-    x1, y1, x2, y2 = atlas.NS_CHEST_BUTTON_ROW
-    img = g.region_image((x1, y1, x2, y2))
-    green = match_mask(img, atlas.GREEN_BUTTON, 3)
-    cols = green.mean(axis=0) > 0.3
-    fx = (x2 - x1) / cols.shape[0]
-    out: list[Point] = []
-    start = None
-    for i, on in enumerate(list(cols) + [False]):
-        if on and start is None:
-            start = i
-        elif not on and start is not None:
-            if (i - start) * fx >= atlas.NS_CHEST_BUTTON_MIN_W:
-                out.append(Point(x1 + int((start + i) / 2 * fx), (y1 + y2) // 2))
-            start = None
-    return out
+    return green_buttons(
+        g, atlas.NS_CHEST_BUTTON_ROW, min_w=atlas.NS_CHEST_BUTTON_MIN_W, variation=3
+    )
 
 
 def open_chest_type(g: Game, color: int, variation: int = 2, name: str | None = None) -> None:

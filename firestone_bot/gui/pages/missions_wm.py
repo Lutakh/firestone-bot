@@ -33,6 +33,8 @@ def build(parent, ctx: PageContext):
         )
         return holder["list"]
 
+    prio.option("MapOpen")
+    prio.option("MapHotkey", width=80)
     prio.option("MapMode")
     prio.row("Categories", "Top = filled first (coordinates mode).", make_list)
     prio.buttons(

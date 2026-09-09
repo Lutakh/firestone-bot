@@ -736,6 +736,13 @@ LIB_MISSIONS_PAGE1 = (  # after 63 wheel-ups: 60, 40, 20, 10, 5 stars
     Point(157, 758),
 )
 LIB_DUNGEON = Point(1223, 794)  # :188
+# The two daily-mission screens are a horizontal row of cards; the wheel scrolls it (measured
+# 2026-09-09: 10 notches move it by about one card). Only a card with something to do carries
+# a green button, so the row is scanned instead of clicking fixed card positions.
+LIB_CARD_AREA = (130, 211, 1780, 861)
+LIB_ROW_HOVER = Point(960, 500)  # over the row, where the wheel scrolls it
+LIB_SCROLL_STEP = 8
+LIB_SCROLL_TO_START = 40  # enough notches to reach the first card
 LIB_DUNGEON_120 = Point(1149, 763)  # :194
 LIB_DUNGEON_70 = Point(768, 762)  # :209
 LIB_DONE = Probe(990, 703, 1059, 737, GREEN_BUTTON, 10, "lib_done")  # InProgressCheck:5
@@ -956,6 +963,7 @@ NS_SHOP_ICON = Point(1862, 556)
 NS_SHOP_BELL = Probe(1885, 511, 1915, 541, RED_DOT, RED_DOT_VAR, "ns_shop_bell")
 NS_GUILD_ICON = Point(1862, 431)
 NS_BAG_ICON = Point(1455, 821)
+NS_MAP_ICON = Point(1862, 351)  # right column of the new-style main screen, under Town
 # The bag opens as a panel anchored at the top right (X at client 1868,68; tabs backpack /
 # scroll / chests / gems at client x 1487, y 100 / 190 / 285 / 370; chest grid rows at client
 # y 180-700). The chest dialog is the same as in classic but its own X (client 1413,55) is

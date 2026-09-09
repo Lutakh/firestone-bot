@@ -17,6 +17,11 @@
   owner's bag on 2026-09-07; they fall back to the AHK colour search, which proved
   unreliable in this style (see MEASUREMENTS). To record from the bag when the owner owns
   one (tools: capture the Chests tab, `chest_grid.thumbnail` of the 96 px window).
+- Liberation / Dungeon missions with something to do (2026-09-09): everything was already
+  finished on the owner's account, so only the "nothing to start" path was verified live.
+  The click on a card's green button saves `liberation-mission.png` / `dungeon-mission.png`
+  in the diagnostics folder: use it to check the wait for the reward (`liberation_in_progress`
+  still uses the AHK probes LIB_DONE / LIB_DONE_CLAIM).
 - 125 % DPI and 4K (Parsec virtual display) validation runs (plan 4.6).
 - macOS follow-ups (port done 2026-09-05, docs/MACOS_PORT.md): mixed-scale multi-monitor
   setups (one Retina factor is applied to every coordinate), `window_tool --client` through

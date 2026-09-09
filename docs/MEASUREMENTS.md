@@ -224,7 +224,14 @@ which is what the AHK routine clicks too. Captures: `captures/steam_boot.png`,
   result screen then shows an orange X at client (1845,55) (cross 0xFFF9CD, the bag X 10 px
   away is 0xFFF0C0) and, when chests are left, x1 / x10 / xN buttons stacked bottom right
   (client x 1705-1885, y 690-750 / 800-860 / 905-965, N = min(50, stock)); with an empty
-  stock no button at all. The buttons slide in after the X. Chest grid slots: columns at
+  stock no button at all. The buttons slide in after the X. Main screen right column
+  (new style, client): Town 195, Map 320, Guild 440, Market 565, Events 690, Battle pass 810
+  at x 1862; the Map icon opens the world map without the M hotkey (2026-09-09). Daily
+  missions (campaign screen, "Daily missions" button bottom right): a dialog with two green
+  Open buttons (Liberation client (698,768), Dungeon (1221,768)); each screen is a
+  horizontal row of cards, the wheel scrolls it (10 notches = about one card), and a card
+  with nothing to do shows "Area has been liberated" / "Dungeon has been cleared" with NO
+  green button (measured: zero green pixels in the card area 130,211-1780,861 logical). Chest grid slots: columns at
   client x 1595 / 1720 / 1845, rows at y 185 / 310 / 430 / 545 / 670, icons about 100 px;
   the AHK signature colours are unreliable on these icons (Uncommon's colour is 2 levels
   from the Golden jewel chest and 5 from its own icon, Common's 2 from Emerald, Opal's 24

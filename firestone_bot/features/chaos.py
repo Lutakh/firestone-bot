@@ -36,7 +36,9 @@ def _open_rift(g: Game) -> None:
 
 def hit_chaos(g: Game) -> None:
     need_hits = daily.chaos_left(g.settings) != 0
-    need_books = g.settings.flag("ChaosBooks") and not daily.books_done(g.settings)
+    # The books are looked at on every visit: the runes come from the hits of the day, so a
+    # shop that had nothing at the first cycle has something later (owner, 2026-09-09).
+    need_books = g.settings.flag("ChaosBooks")
     if not (need_hits or need_books):
         return  # nothing left for today: the rift is not opened again until the reset
     g.focus()
@@ -64,9 +66,8 @@ def hit_chaos(g: Game) -> None:
         # leave and come back: the battle resolves and the button is green again
         big_close(g)
         _open_rift(g)
-    if need_books:
-        # once a day, after the hits: buy the books in the rift shop when its bell shows
-        buy_books(g)
+    if need_books and buy_books(g):
+        # after the hits: buy what the rift shop offers (checked at every cycle)
         daily.note_books_done(g.settings)
     big_close(g)
     if hits:

@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from firestone_bot import daily
+from firestone_bot import daily, stats
 from firestone_bot.features import (
     alchemist,
     arena,
@@ -379,7 +379,9 @@ class Runner:
         # EndingMouseMove:
         g.heartbeat("Delay ending bot")
         self.cycles += 1
-        took = fmt_duration(_ms() - cycle_start)
+        cycle_ms = _ms() - cycle_start
+        stats.note_cycle(s, cycle_ms)
+        took = fmt_duration(cycle_ms)
         self._log_sections(g)
         if self.max_cycles and self.cycles >= self.max_cycles:
             g.status(f"Cycle {self.cycles} done in {took} (max cycles reached)")

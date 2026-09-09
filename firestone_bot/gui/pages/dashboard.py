@@ -17,6 +17,7 @@ from firestone_bot.gui import theme
 from firestone_bot.gui.catalog import format_ahk_stamp
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.widgets import Card, LinkButton, Meter, StatePill, StatusDot, autowrap
+from firestone_bot.stats import average_cycle_ms, cycles_total, fmt_ms
 
 ENV_ROWS = [
     ("window", "Game window"),
@@ -122,6 +123,29 @@ class DashboardView:
             font=theme.font(13),
         )
         control.add(self.activity_label, always_enabled=True, pady=(2, 6))
+        # all-time statistics (settings.ini [Stats]): they survive a restart, the live "Last
+        # cycle" of the Today card does not (owner, 2026-09-09)
+        grid = ctk.CTkFrame(control.body, fg_color="transparent")
+        grid.grid_columnconfigure(0, weight=1)
+        grid.grid_columnconfigure(1, weight=0)
+        self.stat_values = {}
+        for row, (key, label) in enumerate(
+            (
+                ("cycles", "Cycles completed"),
+                ("last", "Last cycle"),
+                ("average", "Average cycle"),
+                ("total", "Total time in cycles"),
+            )
+        ):
+            ctk.CTkLabel(grid, text=label, anchor="w", font=theme.font(12)).grid(
+                row=row, column=0, sticky="w"
+            )
+            value = ctk.CTkLabel(
+                grid, text="-", anchor="e", font=theme.font(12, "bold"), text_color=theme.MUTED
+            )
+            value.grid(row=row, column=1, sticky="e")
+            self.stat_values[key] = value
+        control.add(grid, always_enabled=True, pady=(2, 6))
         self.window_banner = control.banner("warn", WINDOW_MISSING, visible=False)
         self.open_log_btn = ctk.CTkButton(
             control.body,
@@ -278,7 +302,8 @@ class DashboardView:
         if self.cycle_label.cget("text") != c:
             self.cycle_label.configure(text=c)
         # the duration lives in the Today card, readable whatever the window size
-        d = f"{duration} (cycle {cycle})" if duration and cycle else duration or "-"
+        stored = fmt_ms(self.ctx.settings.get("LastCycleMs"))
+        d = f"{duration} (cycle {cycle})" if duration and cycle else duration or stored
         if self.cycle_value.cget("text") != d:
             self.cycle_value.configure(text=d)
         crashed = kind == "err"
@@ -353,6 +378,14 @@ class DashboardView:
             text = "-" if value is None else str(value)
             if label.cget("text") != text:
                 label.configure(text=text)
+        for key, text in (
+            ("cycles", str(cycles_total(s) or "-")),
+            ("last", fmt_ms(s.get("LastCycleMs"))),
+            ("average", fmt_ms(average_cycle_ms(s))),
+            ("total", fmt_ms(s.get("CycleMsTotal"))),
+        ):
+            if self.stat_values[key].cget("text") != text:
+                self.stat_values[key].configure(text=text)
         reset = format_ahk_stamp(s.get("LastTokenReset"), "not detected yet")
         text = f"Last daily reset: {reset}"
         if self.reset_label.cget("text") != text:

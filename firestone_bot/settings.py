@@ -137,6 +137,12 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "SafetyCap": ("PythonOptions", "3"),  # cap on unbounded loops (owner: 3 by default, 2026-09-06)
     "GamePlatform": ("PythonOptions", "auto"),  # store used to launch the game: auto/steam/epic
     "InterfaceStyle": ("PythonOptions", "auto"),  # main-screen layout: auto/classic/new
+    "MapOpen": ("PythonOptions", "auto"),  # world map: auto/icon/hotkey
+    "MapHotkey": ("PythonOptions", "m"),  # key pressed when the hotkey is used
+    # Statistics of every cycle ever run (runner._cycle, shown on the dashboard)
+    "CyclesTotal": ("Stats", "0"),
+    "CycleMsTotal": ("Stats", "0"),
+    "LastCycleMs": ("Stats", "0"),
     "LastPlatform": ("PythonOptions", ""),  # store detected the last time (read-only)
     # Per-action switches (owner request 2026-09-04): one ON/OFF per bot action that had none
     # in the AHK settings. Default ON = the AHK behaviour.

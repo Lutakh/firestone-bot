@@ -11,6 +11,7 @@ from firestone_bot import daily
 from firestone_bot.gui.catalog import READ_ONLY_LABELS, format_ahk_stamp
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.widgets import Card, ReadOnlyValue, page_frame, page_title, place_card
+from firestone_bot.stats import average_cycle_ms, fmt_ms
 
 
 def build(parent, ctx: PageContext):
@@ -97,6 +98,30 @@ def build(parent, ctx: PageContext):
                 counters.body, ctx, READ_ONLY_LABELS[key], lambda k=key: format_ahk_stamp(s.get(k))
             )
         )
+
+    stats = place_card(Card(content, ctx, "Bot statistics (read-only)"))
+    stats.add(
+        ReadOnlyValue(
+            stats.body, ctx, READ_ONLY_LABELS["CyclesTotal"], lambda: s.get("CyclesTotal") or "0"
+        )
+    )
+    for key, getter in (
+        ("LastCycleMs", lambda: fmt_ms(s.get("LastCycleMs"))),
+        ("CycleMsTotal", lambda: fmt_ms(s.get("CycleMsTotal"))),
+    ):
+        stats.add(ReadOnlyValue(stats.body, ctx, READ_ONLY_LABELS[key], getter))
+    stats.add(ReadOnlyValue(stats.body, ctx, "Average cycle", lambda: fmt_ms(average_cycle_ms(s))))
+    stats.note("Kept in settings.ini; the time counted is the time spent inside cycles.")
+
+    def reset_stats():
+        if ctx.call("is_running"):
+            return
+        if messagebox.askyesno("Reset statistics", "Clear the cycle statistics?", parent=None):
+            for key in ("CyclesTotal", "CycleMsTotal", "LastCycleMs"):
+                s.set(key, "0")
+            s.save()
+
+    stats.buttons(("Reset statistics", reset_stats))
 
     def reset_counters():
         if ctx.call("is_running"):

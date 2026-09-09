@@ -120,6 +120,9 @@ READ_ONLY_KEYS = {
     "LastPlatform",
     "ScarabCountDaily",
     "ClientID",
+    "CyclesTotal",
+    "CycleMsTotal",
+    "LastCycleMs",
 }
 
 # Switches shown as "ON = the bot does it" although the ini key means "skip"/"don't".
@@ -417,6 +420,21 @@ OPTIONS: dict[str, Option] = {
     "Damage": Option("Damage Specialization", "Personal tree upgrade.", "check"),
     "Heal": Option("Healer Specialization", "Personal tree upgrade.", "check"),
     # -- Missions & war machines -----------------------------------------------------------
+    "MapOpen": Option(
+        "How the map is opened",
+        "The Map icon of the main screen works on every keyboard; the shortcut is the game's "
+        "own key (M by default), which sits elsewhere on an AZERTY layout. Automatic uses the "
+        "icon on the new adventure style and the shortcut on the classic one.",
+        "choice",
+        ("auto", "icon", "hotkey"),
+        {"auto": "Automatic", "icon": "Map icon", "hotkey": "Keyboard shortcut"},
+    ),
+    "MapHotkey": Option(
+        "Map shortcut key",
+        "One letter, sent when the shortcut is used (the game's default is M).",
+        "text",
+        pattern=r"^[A-Za-z]?$",
+    ),
     "MapMode": Option(
         "How missions are found on the map",
         "Coordinates: the fixed list of mission points below, clicked in category order (the "
@@ -580,6 +598,9 @@ READ_ONLY_LABELS = {
     "LastTokenReset": "Last reset (tokens)",
     "LastChaosReset": "Last reset (chaos)",
     "ClientID": "Client ID",
+    "CyclesTotal": "Cycles completed",
+    "CycleMsTotal": "Total time in cycles",
+    "LastCycleMs": "Last cycle",
 }
 
 ALL_KEYS = set(SETTINGS_MAP) | set(EXTRA_SETTINGS)

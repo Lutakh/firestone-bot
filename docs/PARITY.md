@@ -77,7 +77,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | MapRedeem.ahk | map_redeem | yes | yes | | ran 340 s incl. claim_campaign + liberation (see below) |
 | subFunctions/MapStart.ahk | map_start | yes | yes | | inside map_redeem; MapStartState.ini via state.py; TimeDiff unused in AHK |
 | subFunctions/ClaimCampaign.ahk | claim_campaign | yes | yes | | |
-| subFunctions/LiberationMissions.ahk | liberation_missions | yes | yes | | all missions + dungeon ran (Liberation=1, DungeonQuest=1) |
+| subFunctions/LiberationMissions.ahk (rework: the card row is scrolled end to end and only the cards showing a green button are clicked; the AHK fixed positions missed the middle cards and walked through finished screens) | liberation_missions | yes | yes | | all missions + dungeon ran (Liberation=1, DungeonQuest=1) |
 | HeroUpgrade.ahk | hero_upgrade | yes | yes | | Next Milestone mode, 86 actions; unbounded click loops, SafetyCap optional |
 | firestone-bot.ahk MainScript | runner | yes | yes (3 cycles) | | unknown Delay value stops the bot like AHK |
 | Gui.ahk | gui/ (main_window, pages/*) | yes | yes | | same settings keys and choice lists (Gui.ahk's "Upgrade FireCracker" / "Health Only" / "Armor Only" never match the code, AHK bug, kept so behaviour is identical), regrouped in 7 customtkinter pages; switches read "ON = the bot does it" and the ini keeps the AHK polarity; auto-save instead of the Save button; extra Dashboard (environment check, daily counters, activity log), Dry run, Stop, SafetyCap, EnableHeartbeat, DungeonQuest editable |
