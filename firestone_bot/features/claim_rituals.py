@@ -11,8 +11,9 @@ from firestone_bot.vision import atlas
 
 def claim_rituals(g: Game) -> None:
     g.focus()
-    # open Oracle in town
-    g.tap(atlas.TOWN_ORACLE)
+    # open Oracle in town (its screen is required: a click by position on a town that is
+    # not open lands anywhere, 2026-09-09)
+    g.require_screen(atlas.TOWN_ORACLE, atlas.DIALOG_CLOSE_X, via_town=True)
     # open Rituals tab in Oracle if ready
     if g.settings.flag("Rituals") and g.found(atlas.RITUALS_DOT):
         g.tap(atlas.RITUALS_TAB)

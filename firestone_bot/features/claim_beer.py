@@ -39,7 +39,7 @@ def claim_beer(g: Game) -> None:
         return
     g.focus()
     # open Tavern
-    g.tap(atlas.TOWN_TAVERN, 1000, expect=atlas.TAVERN_CLOSE_X)
+    g.require_screen(atlas.TOWN_TAVERN, atlas.TAVERN_CLOSE_X, 1000, via_town=True)
     g.tap(atlas.TAVERN_BEER_TAB, 1000)
     # check for enough beer to claim tokens
     g.tap(atlas.TAVERN_TOKEN_SHOP, 1000)

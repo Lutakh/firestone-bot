@@ -117,3 +117,12 @@
   the tabs can only be addressed by rank (leftmost = bundles, rightmost = check-in) and the
   selected tab is not tan, i.e. not in the blob list. Reading the selected tab (a purple
   fill that no blob search matched yet) would make the order of the two steps free again.
+- Town entry (2026-09-09, fixed): `open_town` returned nothing, so a cycle whose T never
+  opened the town (a new war machine animation was playing, then the settings window was
+  open) ran the whole town section by position on the main screen and clicked "Patch notes"
+  while announcing the tavern and the scarab. `open_town` now returns whether the town is
+  really there, never clicks the battlefield's neutral spot while a dialog is up, and the
+  runner re-checks `town_is_open` before every town step (one recovery, then the step is
+  skipped). The town features that opened a building with a plain `tap(..., expect=...)`
+  now use `require_screen`. The same audit is worth doing on the map section, whose steps
+  also click by position (`map_redeem`, `map_start`).

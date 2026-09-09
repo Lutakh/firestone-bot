@@ -41,7 +41,7 @@ def wants_visit(g: Game) -> bool:
 
 def exotic_merchant(g: Game) -> None:
     # Open exotic merchant
-    g.tap(atlas.TOWN_EXOTIC_MERCHANT, expect=atlas.DIALOG_CLOSE_X)
+    g.require_screen(atlas.TOWN_EXOTIC_MERCHANT, atlas.DIALOG_CLOSE_X, via_town=True)
     s = g.settings
     sells = s.flag("SellScrolls") or s.flag("SellAll") or s.flag("SellNoGold")
     if sells and g.vars.get("chests_opened", 0):

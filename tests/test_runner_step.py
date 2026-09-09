@@ -10,8 +10,12 @@ from firestone_bot.inputguard import UserInterrupted
 
 
 class FakeGame:
-    def __init__(self):
+    def __init__(self, town_open=True):
         self.log = []
+        self.town_open = town_open
+
+    def found(self, probe):
+        return self.town_open
 
     def status(self, msg):
         self.log.append(msg)
@@ -52,6 +56,29 @@ def test_screen_not_reached_skips_and_recovers_in_town(monkeypatch):
     assert "Engineer: its screen (dialog_close_x) did not show, step skipped" in g.log
     assert ("diag", "step-engineer.png") in g.log
     assert calls == ["chooser", "big_close", "big_close", "main_menu", "open_town"]
+
+
+def test_town_step_is_skipped_when_the_town_is_not_open(monkeypatch):
+    """A town feature clicks its building by position: without the town, nothing is clicked."""
+    g = FakeGame(town_open=False)
+    r, calls = _runner(monkeypatch, g)
+    monkeypatch.setattr(runner_mod.open_town, "open_town", lambda game: False)
+
+    r._step("Tavern beer", lambda: g.log.append("ran"), town=True)
+    assert "ran" not in g.log
+    assert "Tavern beer: the town is not open, step skipped" in g.log
+    assert ("diag", "no-town-tavern-beer.png") in g.log
+    # the screen is cleared once (a panel left open blocks the T key) before giving up
+    assert calls == ["chooser", "big_close", "main_menu"]
+
+
+def test_town_step_runs_after_the_town_was_reopened(monkeypatch):
+    g = FakeGame(town_open=False)
+    r, _calls = _runner(monkeypatch, g)
+    monkeypatch.setattr(runner_mod.open_town, "open_town", lambda game: True)
+
+    r._step("Tavern beer", lambda: g.log.append("ran"), town=True)
+    assert g.log == ["ran"]
 
 
 def test_exception_skips_and_recovers_without_town(monkeypatch):

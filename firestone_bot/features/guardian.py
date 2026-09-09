@@ -19,7 +19,7 @@ def guardian(g: Game) -> None:
     if g.fast():
         # the guardian screen comes up slower at times: wait for its close button, then
         # a second for its content (AHK: a flat 6.5 s)
-        g.tap(atlas.TOWN_MAGIC_QUARTER, 6500, expect=atlas.DIALOG_CLOSE_X)
+        g.require_screen(atlas.TOWN_MAGIC_QUARTER, atlas.DIALOG_CLOSE_X, 6500, via_town=True)
         g.sleep(1000)
     else:
         g.tap(atlas.TOWN_MAGIC_QUARTER, 0)

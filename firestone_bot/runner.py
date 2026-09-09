@@ -222,8 +222,26 @@ class Runner:
         """Run one feature of the cycle. A feature whose screen is not reached, or that
         fails, is skipped: the bot goes back to the main screen (and reopens the town for
         a town feature) and the cycle carries on with the next step (owner, 2026-09-08).
+
+        A town feature only runs while the town screen is really on display: it clicks its
+        building by position on it, and a cycle whose T never opened the town (an animation
+        was playing) walked into the settings window and its "Patch notes" button while it
+        believed it was in the tavern (owner, 2026-09-09).
+
         Stop requests and the mouse-guard pause still unwind the whole cycle."""
         g = self.g
+        if town and not open_town.town_is_open(g) and not open_town.open_town(g):
+            # something is in the way of the T key (a reward animation, or a panel a previous
+            # step left open - the bag, 2026-09-09): clear the screen and try once more
+            g.focus()
+            main_menu.close_chooser(g)
+            big_close.big_close(g)
+            main_menu.main_menu(g)
+            g.focus()
+            if not open_town.open_town(g):
+                g.status(f"{name}: the town is not open, step skipped")
+                g.save_diagnostic(f"no-town-{name.lower().replace(' ', '-')}.png")
+                return
         try:
             fn()
             return

@@ -10,8 +10,9 @@ from firestone_bot.vision import atlas
 
 def alchemist(g: Game) -> None:
     g.focus()
-    # open Alchemist
-    g.tap(atlas.TOWN_ALCHEMIST)
+    # open Alchemist (its screen is required: a click by position on a town that is not
+    # open lands anywhere, 2026-09-09)
+    g.require_screen(atlas.TOWN_ALCHEMIST, atlas.DIALOG_CLOSE_X, via_town=True)
     # collect completed experiments (only when the slot is running)
     collect = g.settings.flag("AlchCollect")
     blood, dust, coin = atlas.ALCHEMY_SLOTS

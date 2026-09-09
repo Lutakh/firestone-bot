@@ -99,7 +99,7 @@ def scarab(g: Game) -> None:
         return  # limit reached for today: no need to open the tavern game
     g.focus()
     # open Tavern
-    g.tap(atlas.TOWN_TAVERN, 1000, expect=atlas.TAVERN_CLOSE_X)
+    g.require_screen(atlas.TOWN_TAVERN, atlas.TAVERN_CLOSE_X, 1000, via_town=True)
     g.tap(atlas.TAVERN_SCARAB_TAB, 1000)
     play_scarab(g)
     big_close(g)
