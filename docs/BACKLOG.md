@@ -101,3 +101,19 @@
   are size-normalised but only checked at 3024x1709), the level regions in the classic
   interface style (measured in the new-adventure style only).
 - Linux: overlay without capture exclusion (top strip only), X11 input shape untested.
+- 1440p sweep (2026-09-09, client 2560x1302, aspect 1.97 against the reference 1.90): the
+  layout was read as "new" on a classic account (the centred bottom bar's blue Fellowship
+  shield entered the edge-anchored style probe; the mode button's label is read now), the
+  events card bells missed at variation 3, the quests Claim rect sat past the button and the
+  research slot zones landed on the neighbouring widgets (the running slot's "Speed up" gem
+  button was clicked). All fixed and verified live. Still to check at this aspect: the map,
+  the guild, the arena, the awakening and the hero upgrade screens.
+- Blind clicks (2026-09-09): the shop check-in clicked two fixed points without any probe;
+  at 2560x1302 the tab click missed and those two clicks opened the Steam checkout of a
+  $4.99 bundle (nothing bought). The shop now finds its tabs and its Check In button as
+  colour blobs. Every other `g.click()` that follows a bare `move_to` deserves the same
+  audit, starting with the ones inside dialogs that also hold paid offers.
+- Shop tab row (2026-09-09): the row is centred and its length depends on the account, so
+  the tabs can only be addressed by rank (leftmost = bundles, rightmost = check-in) and the
+  selected tab is not tan, i.e. not in the blob list. Reading the selected tab (a purple
+  fill that no blob search matched yet) would make the order of the two steps free again.

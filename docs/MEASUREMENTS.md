@@ -287,3 +287,23 @@ their right-hand parts sat 47-125 px away from the probes. Anchored to the centr
 
 After the change: `run_feature guild` started the expedition (dot found at logical
 (414,439), gone afterwards), `run_feature claim_events` claimed one challenge reward.
+
+## 2026-09-09 — client 2560x1302 (macOS, 1440p screen, canvas scale 1.2056, rel 1.29)
+
+Aspect 1.966 against the reference client's 1.903, so an anchor mistake costs ~64 logical px
+horizontally (twice what a 16:9 client shows); vertically the canvas fills the client exactly
+(scale = h/1080), so no vertical anchor error exists at this size.
+
+- Bottom bar (classic): centred, as measured on 2026-09-06. The blue Fellowship shield reaches
+  the edge-anchored `NS_STYLE_PROBE` rect (1640-1800, 946-966) here, hence the style misread.
+- Quests dialog (centred): first row's Claim button at logical x 1321-1555, y 277-326
+  (centre-anchored), i.e. 60 px left of the AHK rect, which now sits on the orange "go to"
+  button added since.
+- Research slots (bottom-left of the library): the orange "Speed up" button at x 564-725 and,
+  after a claim, at 736-897; the green "Claim" of the finished slot at x 1209-1370, y 918-980
+  (left/bottom anchored). The button's x moves with the research name, hence the blob search.
+- Events card bell: red 0xE20000-0xF50000, i.e. outside `RED_DOT ± 3`; the card bell of the
+  first card is centred on logical (1432, 314) with the centre anchor.
+- Shop tabs: a centred row, 138 logical px pitch, tan 0xC0A088-0xC8A088 background, the
+  selected tab purple; 7 tabs on the owner's account, the last one the check-in calendar.
+  Check In button: olive green 0x50A030/0x308818 in the bar at logical (741,800)-(1495,875).
