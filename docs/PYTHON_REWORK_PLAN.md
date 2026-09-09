@@ -94,7 +94,7 @@ Same features, same behaviour, same settings, new runtime:
 | Platform | Steam, Epic (tier 1). Browser (tier 2, after tier 1 is validated) |
 | Distribution | One ZIP per OS built by GitHub Actions: `FirestoneBot.exe` + `_internal/` (PyInstaller onedir). No Python, no pip, no installer. Linux: tar.gz + optional AppImage |
 | Settings | `settings.ini` and `MapStartState.ini` read/written with the SAME sections and keys, UTF-16 or UTF-8 accepted, so existing users just copy their files |
-| GUI | Same settings and variable names as Gui.ahk, regrouped in a customtkinter window (7 pages: Dashboard, Main screen, Town, Guild & Tree, Missions & WM, Advanced, Help), auto-save, live environment check and daily counters on the Dashboard (2026-09-04; the first port had the 5 AHK tabs in tkinter/ttk) |
+| GUI | Same settings and variable names as Gui.ahk, regrouped in a customtkinter window with Camp, Automations, Journal and Workshop; Fieldbook, Retro and Futuristic skins; auto-save, live environment checks and persistent statistics (2026-09-09; see INTERFACE_REWORK_PLAN.md) |
 | Not in scope | New features, smarter logic, removing delays. Behaviour parity first |
 
 ## 3. Architecture

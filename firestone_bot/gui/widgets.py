@@ -39,12 +39,128 @@ def _state(enabled: bool) -> str:
     return "normal" if enabled else "disabled"
 
 
+def register_cleanup(widget, callback) -> None:
+    """Run a view-owned cleanup once, without replacing CTk's internal bindings."""
+    if not callable(callback):
+        return
+    done = False
+
+    def destroyed(event):
+        nonlocal done
+        if event.widget is widget and not done:
+            done = True
+            try:
+                callback()
+            except tk.TclError:
+                pass  # The interpreter may already be shutting down.
+
+    tk.Misc.bind(widget, "<Destroy>", destroyed, add="+")
+
+
+def trace_variable(widget, variable, callback) -> str:
+    """Attach a trace for this widget's lifetime; Binder variables outlive views."""
+    ident = variable.trace_add("write", callback)
+    register_cleanup(widget, lambda: variable.trace_remove("write", ident))
+    return ident
+
+
+def defer_scrollbar_updates(view, scrollbar, axis="y") -> None:
+    """Coalesce thumb draws and avoid CTk's recursive idle loop on macOS/Tk 9.
+
+    Let the main event loop paint the thumb after geometry settles. This changes
+    neither drag/wheel behaviour nor the current scroll position.
+    """
+    if MAC_TK9:
+        scrollbar._canvas.update_idletasks = lambda: None
+    state = {"pending": None, "after": None, "alive": True}
+
+    def draw():
+        state["after"] = None
+        fraction = state["pending"]
+        if state["alive"] and fraction is not None and fraction != scrollbar.get():
+            scrollbar.set(*fraction)
+
+    def changed(first, last):
+        fraction = (float(first), float(last))
+        if not state["alive"] or fraction == state["pending"]:
+            return
+        state["pending"] = fraction
+        if state["after"] is None:
+            state["after"] = view.after(16, draw)
+
+    def dispose():
+        state["alive"] = False
+        if state["after"] is not None:
+            view.after_cancel(state["after"])
+            state["after"] = None
+
+    view.configure(**{f"{axis}scrollcommand": changed})
+    register_cleanup(view, dispose)
+
+
+def stabilize_textbox(textbox) -> None:
+    defer_scrollbar_updates(textbox._textbox, textbox._y_scrollbar)
+    defer_scrollbar_updates(textbox._textbox, textbox._x_scrollbar, "x")
+
+
+class ScrollableFrame(ctk.CTkScrollableFrame):
+    """CTk frame that releases its global wheel/shift bindings with the view."""
+
+    def __init__(self, *args, **kwargs):
+        self._global_bindings = []
+        super().__init__(*args, **kwargs)
+        register_cleanup(self, self._release_global_bindings)
+
+    def bind_all(self, sequence=None, func=None, add=None):
+        ident = super().bind_all(sequence, func, add)
+        if ident:
+            self._global_bindings.append((sequence, ident))
+        return ident
+
+    def _release_global_bindings(self):
+        root = self._root()
+        for sequence, ident in self._global_bindings:
+            root._unbind(("bind", "all", sequence), ident)
+        self._global_bindings.clear()
+
+
+class Entry(ctk.CTkEntry):
+    """Release CTk 5.2's placeholder trace when its shared variable survives the view."""
+
+    def destroy(self):
+        if self._textvariable is not None and self._textvariable_callback_name:
+            try:
+                self._textvariable.trace_remove("write", self._textvariable_callback_name)
+            except tk.TclError:
+                pass
+            self._textvariable_callback_name = ""
+        super().destroy()
+
+
+class OptionMenu(ctk.CTkOptionMenu):
+    """Avoid CTk's nested idle loop on option-heavy pages in macOS/Tk 9."""
+
+    def _draw(self, no_color_updates=False):
+        if MAC_TK9:
+            self._canvas.update_idletasks = lambda: None
+        super()._draw(no_color_updates)
+
+
 def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
-    """Wheel scrolling customtkinter does not handle: <Button-4>/<Button-5> on X11, and on
-    macOS with Tk 9 the trackpad's <TouchpadScroll> (pixel deltas, no <MouseWheel> at all)
-    plus <MouseWheel> deltas that are now multiples of 120 (ctk scrolls 120 units per notch).
-    macOS with Tk 8.6: ctk's handler is kept (see MAC_TK9)."""
+    """Add X11 wheel buttons and correctly scaled macOS/Tk 9 scrolling."""
+    if getattr(scrollable, "_fieldbook_wheel_bound", False):
+        return
+    scrollable._fieldbook_wheel_bound = True
     canvas = scrollable._parent_canvas
+    defer_scrollbar_updates(canvas, scrollable._scrollbar)
+
+    def bind_global(sequence, callback):
+        ident = scrollable.bind_all(sequence, callback, add="+")
+        if not isinstance(scrollable, ScrollableFrame):
+            register_cleanup(
+                scrollable,
+                lambda: scrollable._root()._unbind(("bind", "all", sequence), ident),
+            )
 
     def mine(event) -> bool:
         return scrollable.check_if_master_is_canvas(event.widget)
@@ -55,14 +171,13 @@ def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
             if mine(event):
                 canvas.yview("scroll", -1 if event.num == 4 else 1, "units")
 
-        scrollable.bind_all("<Button-4>", scroll, add="+")
-        scrollable.bind_all("<Button-5>", scroll, add="+")
+        bind_global("<Button-4>", scroll)
+        bind_global("<Button-5>", scroll)
     elif sys.platform == "darwin" and MAC_TK9:
-        scrollable._mouse_wheel_all = lambda event: None  # ctk's 120-units-per-notch handler
         acc = [0.0]
 
-        def wheel(event):  # ctk's own handler is neutralised at import, see below
-            if mine(event) and canvas.yview() != (0.0, 1.0):
+        def wheel(event):
+            if event.delta and mine(event) and canvas.yview() != (0.0, 1.0):
                 notches = int(event.delta / 120) or (1 if event.delta > 0 else -1)
                 canvas.yview("scroll", -notches * WHEEL_UNITS_PER_NOTCH, "units")
 
@@ -76,8 +191,8 @@ def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
                 acc[0] -= units
                 canvas.yview("scroll", -units, "units")
 
-        scrollable.bind_all("<MouseWheel>", wheel, add="+")
-        scrollable.bind_all("<TouchpadScroll>", touchpad, add="+")
+        bind_global("<MouseWheel>", wheel)
+        bind_global("<TouchpadScroll>", touchpad)
 
 
 TOUCHPAD_PIXELS_PER_UNIT = 6  # trackpad pixels per canvas scroll unit (feel, not geometry)
@@ -96,46 +211,54 @@ if MAC_TK9:
     ctk.CTkScrollableFrame._mouse_wheel_all = lambda self, event: None
 
 
-CONTENT_WIDTH = 960  # page content column cap (page_frame); wrap widths derive from it
+CONTENT_WIDTH = 1280  # full-width pages after removing the former navigation sidebar
 
 
 def autowrap(frame, labels, offset: int = 0, minimum: int = 120) -> None:
-    """Give `labels` a wraplength fitted to `frame` once it has been laid out.
-
-    A permanent <Configure> handler here caused an event storm (every wraplength change
-    resized the label, which re-fired <Configure> on every customtkinter widget inside the
-    frame). Instead the frame width is read a few times after idle until the layout has
-    settled, and again once after each window resize burst.
-    """
-    state = {"tries": 0, "after": None}
-
-    def apply(width: int) -> None:
-        wrap = max(minimum, width - offset)
-        for lbl in labels:
-            if lbl.cget("wraplength") != wrap:
-                lbl.configure(wraplength=wrap)
+    """Wrap after layout and window resize bursts, with no callbacks after destroy."""
+    state = {"tries": 0, "after": None, "alive": True}
+    top = frame.winfo_toplevel()
 
     def measure() -> None:
         state["after"] = None
-        try:
-            width = frame.winfo_width()
-        except tk.TclError:
-            return  # destroyed
+        if not state["alive"]:
+            return
+        width = frame.winfo_width()
         if width <= 1 and state["tries"] < 10:
             state["tries"] += 1
             state["after"] = frame.after(100, measure)
             return
         if width > 1:
-            apply(width)
+            wrap = max(minimum, width - offset)
+            for label in labels:
+                if label.winfo_exists() and label.cget("wraplength") != wrap:
+                    label.configure(wraplength=wrap)
 
-    def on_resize(_event) -> None:
-        # coalesce the burst of <Configure> events of a resize into one measurement
-        if state["after"] is None:
+    def on_resize(event) -> None:
+        if event.widget is top and state["alive"] and state["after"] is None:
             state["after"] = frame.after(150, measure)
 
-    frame.after_idle(measure)
-    top = frame.winfo_toplevel()
-    top.bind("<Configure>", on_resize, add="+")
+    if not hasattr(top, "_wrap_callbacks"):
+        top._wrap_callbacks = []
+
+        def resized(event):
+            if event.widget is top:
+                for callback in tuple(top._wrap_callbacks):
+                    callback(event)
+
+        top.bind("<Configure>", resized, add="+")
+    top._wrap_callbacks.append(on_resize)
+
+    def dispose():
+        state["alive"] = False
+        if state["after"] is not None:
+            frame.after_cancel(state["after"])
+            state["after"] = None
+        if on_resize in top._wrap_callbacks:
+            top._wrap_callbacks.remove(on_resize)
+
+    register_cleanup(frame, dispose)
+    state["after"] = frame.after_idle(measure)
 
 
 # -- base control -------------------------------------------------------------------------------
@@ -210,7 +333,6 @@ class _Picker(Control):
         self._by_label = {lbl: v for lbl, v in zip(labels[-len(self.values) :], self.values)}
         if self.unknown is not None:
             self._by_label[labels[0]] = self.unknown
-        self.var.trace_add("write", lambda *_: self._sync())
 
     def label_of(self, value: str) -> str:
         if value == self.unknown:
@@ -240,10 +362,11 @@ class Choice(_Picker):
         width: int = MENU_WIDTH,
     ) -> None:
         super().__init__(ctx, name, values, display, unknown_note)
-        self.widget = ctk.CTkOptionMenu(
+        self.widget = OptionMenu(
             parent, values=self.labels, command=self._chosen, width=width, font=theme.font(13)
         )
         self.widget.set(self.label_of(self.var.get()))
+        trace_variable(self.widget, self.var, lambda *_: self._sync())
 
 
 class Segmented(_Picker):
@@ -261,6 +384,7 @@ class Segmented(_Picker):
             parent, values=self.labels, command=self._chosen, font=theme.font(13)
         )
         self.widget.set(self.label_of(self.var.get()))
+        trace_variable(self.widget, self.var, lambda *_: self._sync())
 
 
 class NumberField(Control):
@@ -270,7 +394,7 @@ class NumberField(Control):
         self.var = ctx.binder.var(name)
         self.frame = ctk.CTkFrame(parent, fg_color="transparent")
         ok = self.frame.register(lambda s: s == "" or s.isdigit())
-        self.widget = ctk.CTkEntry(
+        self.widget = Entry(
             self.frame,
             width=NUMBER_WIDTH,
             textvariable=self.var,
@@ -303,15 +427,18 @@ class TextField(Control):
     ) -> None:
         self.var = ctx.binder.var(name)
         self.pattern = pattern
-        self.widget = ctk.CTkEntry(parent, width=width, textvariable=self.var, font=theme.font(13))
+        self.validation_hint = (
+            "Expected one letter (A–Z)." if name == "MapHotkey" else "Expected digits only."
+        )
+        self.widget = Entry(parent, width=width, textvariable=self.var, font=theme.font(13))
         self._normal_border = self.widget.cget("border_color")
-        self.var.trace_add("write", lambda *_: self._validate())
+        trace_variable(self.widget, self.var, lambda *_: self._validate())
         self._validate()
 
     def _validate(self) -> None:
         good = catalog.matches(self.pattern, self.var.get())
         self.widget.configure(border_color=self._normal_border if good else theme.ERR)
-        self._notify(None if good else "warn", None if good else "Expected digits only.")
+        self._notify(None if good else "warn", None if good else self.validation_hint)
 
 
 class RadioGroup(Control):
@@ -334,7 +461,7 @@ class RadioGroup(Control):
             b.pack(anchor="w", pady=3)
             self.buttons.append(b)
         ctx.binder.register(*self.keys)
-        ctx.binder.on_reload(self._load)
+        register_cleanup(self.widget, ctx.binder.on_reload(self._load))
         if not self.var.get():
             self.note = ("warn", "No selling strategy selected in settings.ini.")
 
@@ -470,7 +597,7 @@ class OrderedList(Control):
             self.labels.append(lbl)
             self.buttons += [up, down]
         ctx.binder.register(*(self.keys or [key]))
-        ctx.binder.on_reload(self._load)
+        register_cleanup(self.widget, ctx.binder.on_reload(self._load))
         self._enabled = True
         self._load()
 
@@ -497,7 +624,7 @@ class OrderedList(Control):
             prefix = self.row_labels[i] if self.row_labels else f"{i + 1}."
             lbl.configure(
                 text=f"{prefix}  {self.display.get(value, value)}",
-                text_color=theme.MUTED if not self.valid else ("gray10", "gray90"),
+                text_color=theme.MUTED if not self.valid else theme.TEXT,
             )
         n = len(self.order)
         for i, b in enumerate(self.buttons):
@@ -565,8 +692,9 @@ class ReadOnlyValue:
             ctk.CTkButton(self.widget, text="Copy", width=60, height=26, command=self._copy).grid(
                 row=0, column=2, padx=(8, 0)
             )
+        autowrap(self.widget, [self.value], offset=300 if copy else 230)
         self.refresh()
-        ctx.register_tick(self.refresh)
+        register_cleanup(self.widget, ctx.register_tick(self.refresh))
 
     def refresh(self) -> None:
         text = self.getter()
@@ -718,9 +846,9 @@ class StatePill:
         self.widget = ctk.CTkLabel(
             parent,
             text="Idle",
-            corner_radius=12,
-            fg_color=theme.NEUTRAL,
-            text_color="white",
+            corner_radius=theme.RADIUS,
+            fg_color=theme.SURFACE_ALT,
+            text_color=theme.NEUTRAL,
             font=theme.font(12, "bold"),
             padx=12,
             height=26,
@@ -731,7 +859,7 @@ class StatePill:
         if (text, kind) == self._state:
             return
         self._state = (text, kind)
-        self.widget.configure(text=text, fg_color=theme.colour(kind))
+        self.widget.configure(text=text, text_color=theme.colour(kind))
 
 
 # -- rows and cards -----------------------------------------------------------------------------
@@ -776,8 +904,34 @@ class OptionRow:
         w.pack(side="left")
         self.control_widget = w
 
-        # The help line keeps its static HELP_WRAP: a per-row <Configure> handler adjusting it
-        # re-fired layout events for the whole page (see autowrap).
+        last_width = [None]
+
+        def reflow(event):
+            control_width = w.winfo_reqwidth()
+            dimensions = (event.width, control_width)
+            if last_width[0] == dimensions:
+                return
+            last_width[0] = dimensions
+            # Keep compact toggles alongside their label in the detail inspector.
+            # Larger menus move below it only when neither column has enough room.
+            stacked = event.width < max(340, control_width + 280)
+            holder.grid_configure(
+                row=1 if stacked else 0,
+                column=0 if stacked else 1,
+                sticky="w" if stacked else "e",
+                padx=(0, 0) if stacked else (16, 0),
+                pady=(6, 0) if stacked else (0, 0),
+            )
+            available = event.width - (0 if stacked else control_width + 16)
+            wrap = max(160, available - 4)
+            if self.help.cget("wraplength") != wrap:
+                self.help.configure(wraplength=wrap)
+            if self.label.cget("wraplength") != wrap:
+                self.label.configure(wraplength=wrap)
+
+        self.widget.bind("<Configure>", reflow, add="+")
+
+        # Ignore height-only events so wrapping does not cause a geometry loop.
         if isinstance(self.control, Control):
             self.control.note_cb = self.set_note
             if self.control.note:
@@ -794,7 +948,7 @@ class OptionRow:
     def set_enabled(self, enabled: bool) -> None:
         if hasattr(self.control, "set_enabled"):
             self.control.set_enabled(enabled)
-        self.label.configure(text_color=("gray10", "gray90") if enabled else theme.MUTED)
+        self.label.configure(text_color=theme.TEXT if enabled else theme.MUTED)
 
 
 class Card(ctk.CTkFrame):
@@ -810,7 +964,13 @@ class Card(ctk.CTkFrame):
         master_help: str | None = None,
         expand: bool = False,
     ) -> None:
-        super().__init__(parent, corner_radius=10)
+        super().__init__(
+            parent,
+            corner_radius=theme.RADIUS,
+            border_width=1,
+            border_color=theme.BORDER,
+            fg_color=theme.SURFACE,
+        )
         self.ctx = ctx
         self._items: list[tuple[object, bool]] = []
         self._row = 0
@@ -819,12 +979,14 @@ class Card(ctk.CTkFrame):
         header.grid_columnconfigure(0, weight=1)
         titles = ctk.CTkFrame(header, fg_color="transparent")
         titles.grid(row=0, column=0, sticky="ew")
-        ctk.CTkLabel(titles, text=title, anchor="w", font=theme.font(15, "bold")).pack(anchor="w")
+        title_label = ctk.CTkLabel(titles, text=title, anchor="w", font=theme.heading(22))
+        title_label.pack(anchor="w")
+        autowrap(header, [title_label], offset=16)
         if master and master_help is None:
             master_help = OPTIONS[master].help
         text = subtitle or master_help
         if text:
-            ctk.CTkLabel(
+            subtitle_label = ctk.CTkLabel(
                 titles,
                 text=text,
                 anchor="w",
@@ -832,17 +994,19 @@ class Card(ctk.CTkFrame):
                 wraplength=HELP_WRAP,
                 text_color=theme.MUTED,
                 font=theme.font(12),
-            ).pack(anchor="w")
+            )
+            subtitle_label.pack(anchor="w")
+            autowrap(header, [subtitle_label], offset=16)
         self.master_switch: Switch | None = None
         if master:
             mrow = ctk.CTkFrame(header, fg_color="transparent")
-            mrow.grid(row=0, column=1, sticky="ne", padx=(16, 0))
+            mrow.grid(row=1, column=0, sticky="w", pady=(8, 4))
             ctk.CTkLabel(mrow, text=OPTIONS[master].label, font=theme.font(13)).pack(
                 side="left", padx=(0, 8)
             )
             self.master_switch = Switch(mrow, ctx, master)
             self.master_switch.widget.pack(side="left")
-            self.master_switch.var.trace_add("write", lambda *_: self._apply_master())
+            trace_variable(self, self.master_switch.var, lambda *_: self._apply_master())
         self.body = ctk.CTkFrame(self, fg_color="transparent")
         self.body.pack(fill="both" if expand else "x", expand=expand, padx=16, pady=(0, 14))
         self.body.grid_columnconfigure(0, weight=1)
@@ -899,8 +1063,20 @@ class Card(ctk.CTkFrame):
         out = []
         for text, cmd in specs:
             b = ctk.CTkButton(f, text=text, command=cmd, height=30, font=theme.font(13))
-            b.pack(side="left", padx=(0, 8))
             out.append(b)
+        previous_columns = [None]
+
+        def flow(event):
+            columns = max(1, event.width // max(150, max(b.winfo_reqwidth() for b in out) + 8))
+            if columns == previous_columns[0]:
+                return
+            previous_columns[0] = columns
+            for i, button in enumerate(out):
+                button.grid(row=i // columns, column=i % columns, sticky="w", padx=(0, 8), pady=4)
+
+        f.bind("<Configure>", flow, add="+")
+        for i, button in enumerate(out):
+            button.grid(row=i, column=0, sticky="w", pady=4)
         self.add(f, always_enabled=always_enabled, pady=(6, 2))
         return out
 
@@ -941,9 +1117,9 @@ def make_control(parent, ctx: PageContext, key: str, opt: Option | None = None, 
 
 
 def page_frame(parent, scrollable: bool = True):
-    """Page container: a scrollable frame with a content column capped at 960 px."""
+    """Scrollable page that fills desktop windows, with a readable cap on very wide screens."""
     page = (
-        ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        ScrollableFrame(parent, fg_color="transparent")
         if scrollable
         else ctk.CTkFrame(parent, fg_color="transparent")
     )
@@ -975,7 +1151,7 @@ def page_frame(parent, scrollable: bool = True):
 
 
 def page_title(content, title: str, subtitle: str | None = None) -> None:
-    ctk.CTkLabel(content, text=title, anchor="w", font=theme.font(20, "bold")).pack(
+    ctk.CTkLabel(content, text=title, anchor="w", font=theme.heading(30)).pack(
         anchor="w", pady=(0, 2)
     )
     if subtitle:

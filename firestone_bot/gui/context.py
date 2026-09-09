@@ -17,7 +17,7 @@ class PageContext:
     callbacks: dict[str, Callable[..., Any]]
     show_page: Callable[[str], None]
     base_dir: str
-    register_tick: Callable[[Callable[[], None]], None]
+    register_tick: Callable[[Callable[[], None]], Callable[[], None] | None]
     root: Any = None
     window: Any = None
     extras: dict[str, Any] = field(default_factory=dict)

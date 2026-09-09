@@ -77,6 +77,22 @@ def test_inverted_var_flips_on_read_and_write(tmp_path):
     assert settings.get("Mail") == "0"
 
 
+def test_runner_changes_refresh_without_saving_or_losing_pending_edits(tmp_path):
+    settings, binder, scheduler, saves, states, _ = make(tmp_path, running=True)
+    once = binder.var("RestartGameTest")
+    beer = binder.var("Beer", inverted=True)
+    binder.var("Mail").set("0")
+    pending = dict(scheduler.pending)
+    previous_states = list(states)
+    settings.set("RestartGameTest", "0")
+    settings.set("Beer", "1")
+    binder.refresh_from_settings()
+    assert once.get() == "0" and beer.get() == "0"
+    assert settings.get("Mail") == "0" and binder.dirty
+    assert scheduler.pending == pending and states == previous_states
+    assert not saves
+
+
 def test_set_many_writes_exactly_one_sell_flag(tmp_path):
     settings, binder, sched, saves, states, _flags = make(tmp_path)
     keys = ["SellScrolls", "SellNoGold", "SellAll", "SellNone"]

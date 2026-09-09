@@ -19,7 +19,7 @@ def _hotkey(g: Game) -> str:
 
 def _use_icon(g: Game) -> bool:
     mode = (g.settings.get("MapOpen") or "auto").strip().lower()
-    if mode.startswith("key"):
+    if mode == "hotkey" or mode.startswith("key"):
         return False
     if mode.startswith("icon"):
         return True

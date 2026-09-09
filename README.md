@@ -12,8 +12,8 @@ reading, no network calls to the game).
 - Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar at the
   bottom, game language English. Both main-screen layouts are supported: the classic one and
   the "new adventure style" (heroes row at the bottom); the style is detected on the main
-  screen at each cycle (Advanced > Game launch > Interface style forces one). The Status panel on the
-  Home tab reports the detected window, client size, scale and aspect. Any window with the
+  screen at each cycle (Workshop > Game setup > Interface style forces one). The Game checks
+  panel on Camp reports the detected window, client size, scale and aspect. Any window with the
   reference aspect (1920:1009) maps exactly; 16:9 windows and fullscreen use per-widget anchors
   and are still being validated.
 - Do not move or zoom the world map.
@@ -58,7 +58,7 @@ build). What differs from Windows:
 
   Grant them to `FirestoneBot.app` when you use the bundle, or to the terminal application
   (Terminal, iTerm...) that runs the bot from source: macOS attributes the permissions to
-  the application that launched the process. The Dashboard's Environment card says which
+  the application that launched the process. The Camp's Game checks says which
   one is missing. macOS shows the prompts the first time; a newly granted Screen Recording
   permission needs the bot to be restarted.
 - **Retina**: the bot works in physical pixels (captures are 2x), the mouse is driven in
@@ -97,8 +97,8 @@ step-by-step below).
    At its first start the app offers to move itself into the Applications folder; say yes.
    Its files (`settings.ini`, `MapStartState.ini`, `gui_state.json`, the log, the kept
    previous version) live in `~/Library/Application Support/FirestoneBot`, a folder the app
-   can use without any permission (Advanced > Files > Open folder shows it). Already have a
-   `settings.ini` from an older version or from Windows? Advanced > Files > "Import settings
+   can use without any permission (Workshop > Files & app > Open folder shows it). Already have a
+   `settings.ini` from an older version or from Windows? Workshop > Files & app > "Import settings
    from another folder…" copies it there (picking a folder in Documents or Downloads makes
    macOS ask once for access to that folder; that is the only time the bot touches them).
 2. Double-click `FirestoneBot.app`. macOS refuses: *"Apple could not verify FirestoneBot.app
@@ -121,13 +121,13 @@ step-by-step below).
 4. Launch the app again. It names the permissions that are missing, triggers the system
    prompts and opens System Settings on the right pane. Enable FirestoneBot under
    **Screen Recording** and **Accessibility**, then quit and relaunch the bot (macOS applies
-   Screen Recording at the next start). The Dashboard's Environment card keeps saying which
+   Screen Recording at the next start). The Camp's Game checks keeps saying which
    one is still missing.
 5. In the game: Settings > Graphics > **Fullscreen OFF**, window zoomed (green button),
    Steam only (no Epic client on macOS).
-6. Start the bot from the Dashboard. Cmd+Esc stops it. The bot never reads Desktop,
+6. Start the bot from Camp. Cmd+Esc stops it. The bot never reads Desktop,
    Documents, Downloads, Music or Pictures on its own: if macOS asks for one of those, the
-   request comes from a folder you picked in an import dialog. Updates arrive through the Dashboard
+   request comes from a folder you picked in an import dialog. Updates arrive in the application
    banner (see Updates below) and keep the same signature, so the permissions are not asked
    again; a manually downloaded new version goes through steps 2 and 3 again.
 
@@ -152,13 +152,13 @@ small script moves the program files aside
 (renamed, never deleted first), puts the new ones in place and relaunches the bot. Only the
 program files move: the `.app` on macOS, `FirestoneBot.exe` + `_internal/` on Windows
 (`FirestoneBot` + `_internal/` on Linux), so `settings.ini`, `MapStartState.ini`,
-`gui_state.json` and the log, which sit next to the exe, are never touched. Advanced >
+`gui_state.json` and the log, which sit next to the exe, are never touched. Workshop > Files & app >
 Updates has a "Check for updates now" button. Running from source only gets the
 notification (update with `git pull`). Nothing is downloaded or installed without a click.
 
 **Going back.** The version you had before the update is kept next to the install as
 `FirestoneBot.previous` (the exact one that was running, whatever its number, with its
-version recorded in `FirestoneBot.previous.json`). Advanced > Updates then shows
+version recorded in `FirestoneBot.previous.json`). Workshop > Files & app then shows
 "Restore previous version (X)": one click, a confirmation, and the bot swaps the program
 files back and restarts; the newer version takes the `.previous` place, so the same button
 brings it back again. Each update replaces the kept copy, so exactly one older version is
@@ -168,7 +168,7 @@ kept at a time (a full build, about the size of the install).
 next to the exe the bot runs with defaults and, at start-up, looks for a settings.ini of a
 previous bot folder around the new one and in Desktop / Downloads / Documents; it offers to
 copy it (with `MapStartState.ini` and `gui_state.json`), leaving the old folder untouched
-and never overwriting a file already there. Advanced > Files > "Import settings from another
+and never overwriting a file already there. Workshop > Files & app > "Import settings from another
 folder…" does the same for any folder you pick.
 
 Releasing: bump `__version__` in `firestone_bot/__init__.py` (and `pyproject.toml`), create an
@@ -182,7 +182,7 @@ attaches everything to the GitHub release with the tag message as body (the tag 
 ## Click timing (fast / safe)
 
 The AHK bot hovered every button for 1 s before clicking and waited a fixed 1-1.5 s after
-each click, plus 1.5-2 s per MsgBox. Advanced > Cycle > **Click timing** (`Timing`):
+each click, plus 1.5-2 s per MsgBox. Workshop > Run behavior > **Click timing** (`Timing`):
 
 - **Fast** (default): 150 ms hover, and after a click the bot polls the screen (a coarse
   thumbnail of the game client, resolution independent) and goes on as soon as enough of it
@@ -235,7 +235,7 @@ click, so the log reads in the order things happen.
 ## Mouse guard (pause when you use the mouse)
 
 While the bot runs, any mouse movement, click, wheel or key press that is not the bot's own
-pauses it at once (Advanced > Mouse guard, on by default; not in dry runs). A pop-up offers
+pauses it at once (Workshop > Input & notifications, on by default; not in dry runs). A pop-up offers
 **Start a new cycle** (the bot closes what is open, gets back to the main screen by itself
 and starts from the beginning), **Continue the cycle** (the pointer goes back where the
 bot left it and the cycle resumes exactly where it stopped) or **Stop the bot** (same as the
@@ -252,14 +252,14 @@ flag altogether (test hook).
 
 Banners (Calendar, Messages...) appear in the top-right corner of the screen, exactly where
 the game's close buttons and the settings gear sit, and the bot clicked them by mistake.
-While a run is in progress the bot now dismisses every banner within a second (Advanced >
-Mouse guard > "Close notification banners", on by default). It uses the Accessibility
+While a run is in progress the bot now dismisses every banner within a second (Workshop >
+Input & notifications > "Close notification banners", on by default). It uses the Accessibility
 permission it already has to perform the banner's own Close action, so the notification
 stays in Notification Center. Nothing happens on Windows and Linux.
 
 ## World-map missions: coordinates or detection
 
-Missions & WM > Map missions > "How missions are found on the map". **Coordinates** (default)
+Automations > Map missions > "How missions are found on the map". **Coordinates** (default)
 clicks the fixed list of mission points in category order, on a map the bot first puts back
 in place (next section). **Detection** looks for the duration label drawn under every
 mission icon (bold white digits with a dark outline: "27:36", "4:57", "2:15:35") in the
@@ -294,7 +294,7 @@ the bot's own captures: Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCA
 (Windows 10 2004+; older versions show the panel to captures, so it is placed on the top
 edge of the client where no probe looks) and macOS `NSWindowSharingNone`, both verified to
 hide the panel from the capture path the bot uses (macOS, 2026-09-06). Linux has no such
-exclusion: the panel sits on the top edge and needs a compositor for transparency. Advanced >
+exclusion: the panel sits on the top edge and needs a compositor for transparency. Workshop > Input & notifications >
 Overlay switches it off (`Overlay=0`).
 
 ## Account progress (locked features)
@@ -315,18 +315,24 @@ bot then says so and runs the guild features as before (they fail harmlessly).
 
 ## GUI
 
-The window (customtkinter, "dark-blue" theme) has a sidebar with seven pages and the
-START / DRY RUN / STOP buttons, plus a status strip at the bottom.
+The native window uses a horizontal navigation bar and persistent Start bot / Dry run /
+Stop commands. **Skin**, immediately beside **Camp**, switches between **Fieldbook**
+(ivory and forest green), **Retro** (charcoal, parchment and amber), and **Futuristic**
+(blue and cyan). All three skins share the same layout, controls and live settings.
+A skin change preserves the active session, selected editor, pending saves and journal.
 
 | Page | What lives there |
 |---|---|
-| Dashboard | Control (Start, Dry run, Stop, state, cycle number and duration of the last full cycle, current activity), Environment (game window, platform, client area, scale, DPI, capture, input; re-checked every 30 s while idle, F5 to re-check), Today (tavern tokens, chaos hits, scarab plays against their daily limits, arena done), Activity log |
-| Main screen | claims (events, quests, mail, daily check-in), chests from the bag, hero upgrades |
-| Town | guardian training and chaos-rift upgrade order, tavern (tokens, beer, scarab, daily limits), oracle, engineer, exotic merchant (selling strategy), arena, alchemist, research |
-| Guild & Tree | guild visit (notifications, pickaxes, crystal, awaken, chaos rift + daily limit), personal tree upgrades |
-| Missions & WM | mission priority order (move rows with the arrows), map reset, liberation and dungeon missions, war machine upgrades, legacy talent values |
-| Advanced | end-of-cycle delay, **Safety cap**, game restart, Steam warning, **Heartbeat** (opt-in, needs a Discord ID), appearance (System / Light / Dark), read-only daily counters with a manual reset, file paths, Save now / Reload from disk |
-| Help | requirements, shortcuts, about |
+| Camp | Session state and activity, last completed cycle, daily quotas, account/guild levels, environment checks and persistent cycle statistics |
+| Automations | Searchable action library with Collect, Develop, Expeditions and Trade filters; one settings editor at a time, related actions and actual availability rules |
+| Journal | Real activity log, follow latest, copy all, clear view and open log file; the buffer survives skin changes |
+| Workshop | Run behavior, game setup/restart, input, heartbeat, legacy compatibility, files/import, appearance, daily counters, cycle statistics, updates and help |
+
+Automations contains every supported action: rewards, mail, chests/gifts, heroes, guardians,
+oracle/blessings, engineer/war machines, alchemy, research, awakening, personal tree,
+map missions, campaign, guild visits, chaos, crystal, arena, scarab, tavern and merchant.
+The map editor includes icon/shortcut opening and the configurable shortcut key.
+Settings belonging to a disabled parent remain saved. Legacy talent values are read-only.
 
 - **Auto-save**: every change is written into the live settings object immediately (the bot
   reads it at call time) and `settings.ini` is saved 750 ms later; the status strip shows
@@ -335,35 +341,34 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
   Ctrl+S / Save now. On exit the bot is stopped first, then the pending changes are written.
 - **Positive switches**: every switch reads "ON = the bot does it". For the AHK "skip" keys
   (`Beer`, `Scarab`, `NoGuild`, `NoEng`, `Pickaxes`, `Alch`, `Dust`, `DragonBlood`, `Research`,
-  `SkipOracle`, `NoHero`) the help line names the ini polarity, e.g. `settings.ini: Beer=0 when
-  on`. The file keeps the AHK keys and values, so it stays compatible with the AutoHotkey bot.
+  `SkipOracle`, `NoHero`) the interface keeps their stored polarity internally. The file keeps the AHK keys and values, so it stays compatible with the AutoHotkey bot.
 - **Unknown values** found in `settings.ini` (a legacy `GuardianTrain=Vermilion`, an
   unexpected chest rarity, an invalid priority order) are shown as `(unknown) value` with a
   warning and are never rewritten until you pick something else.
 - **Game launch**: START (and every cycle start) launches the game through Steam or Epic when
-  it is not running (Advanced > Game launch, auto-detected by default) and restores it when it
-  is minimised; the Dashboard check does the same instead of reporting an error.
-- **Daily limits** (Town / Guild pages): tavern tokens, chaos hits, scarab plays and arcane
-  crystal hits per game day (defaults 12 / 10 / 10 / 5, 0 = no limit); each is done in one
+  it is not running (Workshop > Game setup, auto-detected by default) and restores it when it
+  is minimised; the Camp check does the same instead of reporting an error.
+- **Daily limits** (Automations editors): tavern tokens, chaos hits, scarab plays and arcane
+  crystal hits per game day (defaults 0 / 10 / 10 / 5, 0 = no limit); each is done in one
   visit and then skipped until the daily shop's free box is claimable again.
 - **Per-action switches**: every action the bot performs has its own switch (section
   `[Actions]` of `settings.ini`, all ON by default): guardian visit/evolve/training/chaos
   upgrades, beer tokens, artifact, Pharaoh's token, rituals, engineer tools, alchemy collection,
   guild expedition, map missions, campaign, mail deletion, Oracle's gifts, mystery boxes,
   battle pass rewards.
-- **Dry run** (sidebar or Dashboard) runs one full cycle with mouse and keyboard disabled and
+- **Dry run** (session bar) runs one full cycle with mouse and keyboard disabled and
   logs every probe and click, to check the setup without touching the game.
-- **Safety cap** (Advanced): 0 by default (identical to the AHK bot). The original has loops
+- **Safety cap** (Workshop > Run behavior): 3 by default; 0 disables the cap. The original has loops
   that wait forever for a screen change (arena battle, liberation mission, hero upgrades,
   main-menu finder); a cap of N stops such a loop after N iterations.
-- **Heartbeat** (Advanced): off by default. Sends progress messages to the maintainer's log
+- **Heartbeat** (Workshop): off by default. Sends progress messages to the maintainer's log
   server only when the toggle is on AND a Discord ID is set.
-- `gui_state.json` (next to `settings.ini`) stores window geometry, last page and appearance
+- `gui_state.json` (next to `settings.ini`) stores window geometry, page/editor selection, skin and appearance
   (all restored on the next start); it is safe to delete.
-- The Activity log shows the bot's log stream (`firestone-bot.log` at INFO level); status
+- Journal shows the bot's log stream (`firestone-bot.log` at INFO level); status
   lines posted without a log entry are added to it too.
 - Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,
-  Ctrl+1..7 switch pages, Ctrl+Q exits.
+  Ctrl+1..4 switch pages, Ctrl+5 opens Skin, Ctrl+Q exits.
 
 ## Tools
 
@@ -376,7 +381,7 @@ START / DRY RUN / STOP buttons, plus a status strip at the bottom.
 | `python -m firestone_bot.tools.run_feature check_mail [--dry-run --fast]` | run one feature module |
 | `python -m firestone_bot.tools.dry_run [--live --cycles N]` | one full cycle, input disabled (or live) |
 | `python -m firestone_bot.tools.window_tool --client 1280x720` | resize the game window for tests (pixels; on macOS through the Accessibility API) |
-| `FIRESTONE_GUI_PAGE=town python -m firestone_bot` | open the GUI on a given page (`dashboard`, `main`, `town`, `guild`, `missions`, `advanced`, `help`); `FIRESTONE_GUI_APPEARANCE=light|dark|system` overrides the theme (screenshots) |
+| `FIRESTONE_GUI_PAGE=automations python -m firestone_bot` | open the GUI on a given page (`camp`, `automations`, `journal`, `workshop`; old page names remain aliases); `FIRESTONE_GUI_APPEARANCE=light|dark|system` overrides the theme (screenshots) |
 
 ## Development
 

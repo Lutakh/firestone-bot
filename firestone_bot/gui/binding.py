@@ -44,6 +44,7 @@ class Binder:
             var_factory = tk.StringVar
         self._var_factory = var_factory
         self._vars: dict[str, tuple[object, bool]] = {}
+        self._write_traces: dict[str, str] = {}
         self._registered: set[str] = set()
         self._reload_hooks: list[Callable[[], None]] = []
         self._loading = False
@@ -58,7 +59,9 @@ class Binder:
             return self._vars[name][0]
         raw = self.settings.get(name)
         v = self._var_factory(value=_flip(raw) if inverted else raw)
-        v.trace_add("write", lambda *_: self._on_write(name, v, inverted))
+        self._write_traces[name] = v.trace_add(
+            "write", lambda *_: self._on_write(name, v, inverted)
+        )
         self._vars[name] = (v, inverted)
         return v
 
@@ -66,11 +69,49 @@ class Binder:
         """Declare keys written through `set_many` by composite widgets (coverage)."""
         self._registered.update(names)
 
-    def on_reload(self, fn: Callable[[], None]) -> None:
+    def on_reload(self, fn: Callable[[], None]) -> Callable[[], None]:
         self._reload_hooks.append(fn)
+
+        def unsubscribe() -> None:
+            if fn in self._reload_hooks:
+                self._reload_hooks.remove(fn)
+
+        return unsubscribe
+
+    def release_view(self) -> None:
+        """Release destroyed view observers while keeping live settings and pending saves.
+
+        Skin changes rebuild widgets. Binder variables outlive those widgets, so their
+        observers must not retain old Tcl commands or invoke a destroyed editor.
+        """
+        for name, (variable, _) in self._vars.items():
+            if not hasattr(variable, "trace_info"):
+                continue
+            for modes, callback in variable.trace_info():
+                if callback != self._write_traces[name]:
+                    variable.trace_remove(modes, callback)
+        self._reload_hooks.clear()
 
     def keys(self) -> set[str]:
         return set(self._vars) | self._registered
+
+    def refresh_from_settings(self) -> None:
+        """Mirror runner-owned changes on Tk's thread without creating a new save.
+
+        For example, the runner clears RestartGameTest after using it. UI edits already
+        update Settings immediately, so this preserves pending and deferred user changes.
+        """
+        if self._loading:
+            return
+        self._loading = True
+        try:
+            for name, (variable, inverted) in self._vars.items():
+                raw = self.settings.get(name)
+                value = _flip(raw) if inverted else raw
+                if variable.get() != value:
+                    variable.set(value)
+        finally:
+            self._loading = False
 
     def _on_write(self, name: str, v, inverted: bool) -> None:
         if self._loading:
@@ -153,7 +194,7 @@ class Binder:
             for name, (v, inverted) in self._vars.items():
                 raw = self.settings.get(name)
                 v.set(_flip(raw) if inverted else raw)
-            for fn in self._reload_hooks:
+            for fn in tuple(self._reload_hooks):
                 fn()
         finally:
             self._loading = False

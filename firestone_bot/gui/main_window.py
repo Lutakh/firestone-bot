@@ -1,4 +1,4 @@
-"""customtkinter main window: sidebar, page area, status strip.
+"""Native Fieldbook shell, skin selection, session commands and runtime state.
 
 Threading contract: only the main thread touches Tk. Worker threads (bot, self-test, hotkey
 listener, logging) put messages on `ui_queue`; `_tick` drains it every 150 ms.
@@ -28,15 +28,15 @@ from firestone_bot.gui.binding import Binder
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.logging_bridge import QueueLogHandler
 from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
-from firestone_bot.gui.widgets import StatePill, StatusDot, apply_window_icon
+from firestone_bot.gui.widgets import OptionMenu, StatePill, StatusDot, apply_window_icon, autowrap
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
 log = logging.getLogger("firestone_bot.gui")
 
-DEFAULT_GEOMETRY = "1180x760"
-MIN_SIZE = (980, 640)
-SIDEBAR_WIDTH = 200
+DEFAULT_GEOMETRY = "1220x860"
+MIN_SIZE = (980, 680)
+MAX_LOG_LINES = 2000
 SELFTEST_PERIOD = 30.0
 SELFTEST_TIMEOUT = 10.0
 APPEARANCES = ["System", "Light", "Dark"]
@@ -89,9 +89,10 @@ class MainWindow:
         self.ui_queue: queue.Queue[tuple[str, object]] = queue.Queue()
         self._closed = False
 
-        appearance = str(self.gui_state.get("appearance") or "system")
+        appearance = str(self.gui_state.get("appearance") or "light")
         ctk.set_appearance_mode(appearance)
-        ctk.set_default_color_theme("dark-blue")
+        saved_skin = str(self.gui_state.get("skin") or "Fieldbook")
+        theme.set_skin(saved_skin if saved_skin in theme.SKIN_NAMES else "Fieldbook")
         self.root = ctk.CTk()
         self.root.report_callback_exception = lambda exc, val, tb: log.error(
             "Tk callback failed", exc_info=(exc, val, tb)
@@ -121,6 +122,13 @@ class MainWindow:
         self._selftest_outstanding = 0  # workers started and not yet returned
         self._last_selftest = 0.0
         self._recent_logs: deque[str] = deque(maxlen=50)
+        self.log_lines: deque[str] = deque(maxlen=MAX_LOG_LINES)
+        self.log_follow = True
+        self.log_scroll = 0.0
+        self._save_state = ("saved", "Settings loaded")
+        self.update_text = ""
+        self.update_button: str | None = None
+        self.update_kind = "info"
         self._last_env: dict[str, str] | None = None
         self._last_poll = 0.0
         self._last_second = 0.0
@@ -160,7 +168,7 @@ class MainWindow:
             },
             show_page=self.show_page,
             base_dir=self.base_dir,
-            register_tick=self._tick_fns.append,
+            register_tick=self._register_tick,
             root=self.root,
             window=self,
             extras={
@@ -170,24 +178,10 @@ class MainWindow:
             },
         )
 
-        self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
         self._set_window_icon()
-        self._build_top_banner()
-        self._build_sidebar()
-        self.content = ctk.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
-        self.content.grid(row=1, column=1, sticky="nsew")
-        self.content.grid_columnconfigure(0, weight=1)
-        self.content.grid_rowconfigure(0, weight=1)
-        self._build_status_strip()
-
-        self.pages: dict[str, ctk.CTkBaseClass] = {}
-        self.current_page: str | None = None
-        self.show_page("dashboard")  # eager: the window pushes state into it
-        self.dash = self.ctx.extras["dashboard"]
-        last = str(self.gui_state.get("page") or "")
-        if last in PAGE_ORDER and last != "dashboard":
-            self.show_page(last)
+        self._build_shell(str(self.gui_state.get("page") or "camp"))
         self._bind_keys()
         self._update_bot_widgets()
         self.root.after(150, self._tick)
@@ -203,96 +197,174 @@ class MainWindow:
                 return geo
         return DEFAULT_GEOMETRY
 
-    def _build_sidebar(self) -> None:
-        side = ctk.CTkFrame(self.root, corner_radius=0, width=SIDEBAR_WIDTH)
-        side.grid(row=1, column=0, sticky="nsew")
-        side.grid_propagate(False)
-        side.grid_columnconfigure(0, weight=1)
-        side.grid_rowconfigure(1, weight=1)
-        head = ctk.CTkFrame(side, fg_color="transparent")
-        head.grid(row=0, column=0, sticky="ew", padx=16, pady=(18, 10))
-        ctk.CTkLabel(head, text="Firestone Bot", anchor="w", font=theme.font(18, "bold")).pack(
-            anchor="w"
-        )
-        ctk.CTkLabel(
-            head, text=f"v{__version__}", anchor="w", text_color=theme.MUTED, font=theme.font(11)
-        ).pack(anchor="w")
+    def _register_tick(self, callback: Callable[[], None]) -> Callable[[], None]:
+        self._tick_fns.append(callback)
 
-        nav = ctk.CTkFrame(side, fg_color="transparent")
-        nav.grid(row=1, column=0, sticky="new", padx=10)
+        def unsubscribe() -> None:
+            if callback in self._tick_fns:
+                self._tick_fns.remove(callback)
+
+        return unsubscribe
+
+    def _build_shell(self, page: str) -> None:
+        self.root.configure(fg_color=theme.PAPER)
+        self.shell = ctk.CTkFrame(self.root, fg_color=theme.PAPER, corner_radius=0)
+        self.shell.grid(row=0, column=0, sticky="nsew")
+        self.shell.grid_columnconfigure(0, weight=1)
+        self.shell.grid_rowconfigure(2, weight=1)
+        self._build_header()
+        self._build_top_banner()
+        self.content = ctk.CTkFrame(self.shell, fg_color=theme.PAPER, corner_radius=0)
+        self.content.grid(row=2, column=0, sticky="nsew")
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(0, weight=1)
+        self._build_commands()
+        self._build_status_strip()
+        self.pages: dict[str, ctk.CTkBaseClass] = {}
+        self.current_page: str | None = None
+        self.show_page("camp")
+        self.dash = self.ctx.extras["dashboard"]
+        if page != "camp":
+            self.show_page(page)
+        self.dash.set_activity(self.activity_text)
+        if self._last_env:
+            self.dash.env_result(self._last_env, self._env_footer())
+        if self._selftest_inflight:
+            self.dash.env_checking()
+        self.show_update(self.update_text, self.update_button, self.update_kind)
+        self._on_save_state(*self._save_state)
+        self._update_bot_widgets()
+
+    def _build_header(self) -> None:
+        header = ctk.CTkFrame(self.shell, fg_color=theme.HEADER, corner_radius=0)
+        header.grid(row=0, column=0, sticky="ew")
+        header.grid_columnconfigure(0, weight=1)
+        brand = ctk.CTkFrame(header, fg_color="transparent")
+        brand.grid(row=0, column=0, sticky="w", padx=(26, 12), pady=20)
+        ctk.CTkLabel(
+            brand, text="Firestone", text_color=theme.ON_HEADER, font=theme.heading(27)
+        ).pack(side="left")
+        ctk.CTkLabel(
+            brand, text="Fieldbook", text_color=theme.HEADER_MUTED, font=theme.heading(17)
+        ).pack(side="left", padx=(8, 0))
+        nav = ctk.CTkFrame(header, fg_color="transparent")
+        nav.grid(row=0, column=1, sticky="e", padx=(0, 24), pady=18)
         self.nav_buttons: dict[str, ctk.CTkButton] = {}
-        for name in PAGE_ORDER:
-            b = ctk.CTkButton(
+        for index, name in enumerate(PAGE_ORDER):
+            button = ctk.CTkButton(
                 nav,
                 text=PAGE_TITLES[name],
                 command=lambda n=name: self.show_page(n),
                 fg_color="transparent",
-                text_color=("gray10", "gray90"),
-                hover_color=("gray80", "gray28"),
-                anchor="w",
-                height=34,
+                text_color=theme.ON_HEADER,
+                hover_color=theme.ACCENT_HOVER,
+                height=36,
+                width=78,
+                corner_radius=4,
                 font=theme.font(13),
             )
-            b.pack(fill="x", pady=2)
-            self.nav_buttons[name] = b
-
-        bottom = ctk.CTkFrame(side, fg_color="transparent")
-        bottom.grid(row=2, column=0, sticky="sew", padx=16, pady=(8, 14))
-        self.start_btn = ctk.CTkButton(
-            bottom,
-            text="START",
-            command=self._start,
-            fg_color=theme.OK,
-            hover_color=("#177a42", "#2fb86c"),
-            height=40,
-            font=theme.font(14, "bold"),
-        )
-        self.start_btn.pack(fill="x", pady=(0, 6))
-        self.dry_btn = ctk.CTkButton(
-            bottom,
-            text="DRY RUN",
-            command=self._dry_run,
-            fg_color="transparent",
-            border_width=1,
-            text_color=("gray10", "gray90"),
-            height=34,
-            font=theme.font(13, "bold"),
-        )
-        self.dry_btn.pack(fill="x", pady=(0, 6))
-        self.stop_btn = ctk.CTkButton(
-            bottom,
-            text="STOP",
-            command=self._stop,
-            fg_color=theme.ERR,
-            hover_color=("#96261c", "#e05252"),
-            height=34,
-            font=theme.font(13, "bold"),
-        )
-        self.stop_btn.pack(fill="x", pady=(0, 10))
-        self.pill = StatePill(bottom)
-        self.pill.widget.pack(pady=(0, 10))
-        ctk.CTkSegmentedButton(
-            bottom, values=APPEARANCES, variable=self.appearance_var, font=theme.font(11), height=26
-        ).pack(fill="x", pady=(0, 8))
-        ctk.CTkButton(
-            bottom,
-            text="Exit",
-            command=self.request_exit,
-            fg_color="transparent",
-            text_color=theme.MUTED,
-            hover_color=("gray80", "gray28"),
-            height=28,
+            button.grid(row=0, column=index + (1 if index else 0), padx=3)
+            self.nav_buttons[name] = button
+        self.skin_menu = OptionMenu(
+            nav,
+            values=list(theme.SKIN_NAMES),
+            command=self._select_skin,
+            width=150,
+            height=36,
             font=theme.font(12),
-        ).pack(fill="x")
+            fg_color=theme.HEADER,
+            button_color=theme.HEADER,
+            button_hover_color=theme.ACCENT_HOVER,
+            text_color=theme.ON_HEADER,
+        )
+        self.skin_menu.set(f"Skin: {theme.current_skin()}")
+        self.skin_menu.grid(row=0, column=1, padx=(0, 10))
+
+    def _build_commands(self) -> None:
+        dock = ctk.CTkFrame(self.shell, fg_color=theme.SURFACE_ALT, corner_radius=0)
+        dock.grid(row=3, column=0, sticky="ew")
+        dock.grid_columnconfigure(0, weight=1)
+        state = ctk.CTkFrame(dock, fg_color="transparent")
+        state.grid(row=0, column=0, sticky="w", padx=26, pady=12)
+        self.pill = StatePill(state)
+        self.pill.widget.pack(anchor="w")
+        ctk.CTkLabel(
+            state,
+            text="Dry run checks one cycle without sending inputs.",
+            text_color=theme.MUTED,
+            font=theme.font(11),
+        ).pack(anchor="w", pady=(2, 0))
+        commands = ctk.CTkFrame(dock, fg_color="transparent")
+        commands.grid(row=0, column=1, sticky="e", padx=26, pady=12)
+        self.dry_btn = ctk.CTkButton(
+            commands,
+            text="Dry run",
+            command=self._dry_run,
+            width=100,
+            height=38,
+            fg_color=theme.SURFACE,
+            text_color=theme.TEXT,
+            border_width=1,
+            border_color=theme.BORDER,
+            hover_color=theme.SURFACE_ALT,
+        )
+        self.stop_btn = ctk.CTkButton(
+            commands,
+            text="Stop",
+            command=self._stop,
+            width=90,
+            height=38,
+            fg_color=theme.SURFACE,
+            text_color=theme.ERR,
+            border_width=1,
+            border_color=theme.BORDER,
+            hover_color=theme.SURFACE_ALT,
+        )
+        self.start_btn = ctk.CTkButton(
+            commands,
+            text="Start bot",
+            command=self._start,
+            width=120,
+            height=38,
+            fg_color=theme.ACCENT,
+            text_color=theme.ON_ACCENT,
+            hover_color=theme.ACCENT_HOVER,
+        )
+        for index, button in enumerate((self.dry_btn, self.stop_btn, self.start_btn)):
+            button.grid(row=0, column=index, padx=(8, 0))
+
+    def _select_skin(self, name: str) -> None:
+        # Finish the option-menu callback before destroying its menu widget.
+        self.root.after_idle(lambda: self.set_skin(name))
+
+    def set_skin(self, name: str) -> None:
+        """Rebuild the presentation without touching the runner or live settings."""
+        if name not in theme.SKIN_NAMES or name == theme.current_skin() or self._closed:
+            return
+        page = self.current_page or "camp"
+        journal = self.ctx.extras.get("journal")
+        if journal:
+            journal.capture_state()
+        self.shell.destroy()
+        self._tick_fns.clear()
+        self.binder.release_view()
+        for key in ("dashboard", "camp", "automations", "journal", "workshop"):
+            self.ctx.extras.pop(key, None)
+        theme.set_skin(name)
+        self.gui_state["skin"] = name
+        self._build_shell(page)
+        self._write_state()
 
     def _set_window_icon(self) -> None:
         """The bot icon (assets/icon.ico + icon-256.png, same image as the exe / .app)."""
         apply_window_icon(self.root)
 
     def _build_top_banner(self) -> None:
-        """Full-width coloured banner above the sidebar and pages, used for updates."""
-        self.top_banner = ctk.CTkFrame(self.root, corner_radius=0, fg_color=theme.BANNER_BG["info"])
-        self.top_banner.grid(row=0, column=0, columnspan=2, sticky="ew")
+        """Full-width coloured banner below navigation, used for updates."""
+        self.top_banner = ctk.CTkFrame(
+            self.shell, corner_radius=0, fg_color=theme.BANNER_BG["info"]
+        )
+        self.top_banner.grid(row=1, column=0, sticky="ew")
         self.top_banner.grid_columnconfigure(1, weight=1)
         self.top_banner_dot = StatusDot(self.top_banner, "info", size=10)
         self.top_banner_dot.widget.grid(row=0, column=0, padx=(16, 0), pady=10)
@@ -329,21 +401,20 @@ class MainWindow:
         self.top_banner.grid_remove()
 
     def _build_status_strip(self) -> None:
-        strip = ctk.CTkFrame(self.root, corner_radius=0, height=28)
-        strip.grid(row=2, column=0, columnspan=2, sticky="ew")
-        strip.grid_propagate(False)
+        strip = ctk.CTkFrame(self.shell, corner_radius=0, fg_color=theme.PAPER)
+        strip.grid(row=4, column=0, sticky="ew")
         strip.grid_columnconfigure(1, weight=1)
         self.strip_dot = StatusDot(strip, "grey")
-        self.strip_dot.widget.grid(row=0, column=0, padx=(12, 0), pady=2)
-        self.strip_text = ctk.CTkLabel(strip, text="Idle", anchor="w", font=theme.font(11))
-        self.strip_text.grid(row=0, column=1, sticky="ew", padx=(4, 12))
+        self.strip_dot.widget.grid(row=0, column=0, padx=(24, 0), pady=7)
+        self.strip_text = ctk.CTkLabel(
+            strip, text="Idle", anchor="w", text_color=theme.MUTED, font=theme.font(11)
+        )
+        self.strip_text.grid(row=0, column=1, sticky="ew", padx=(6, 12), pady=7)
         self.save_label = ctk.CTkLabel(
             strip, text="", anchor="e", text_color=theme.MUTED, font=theme.font(11)
         )
-        self.save_label.grid(row=0, column=2, sticky="e", padx=12)
-        ctk.CTkLabel(
-            strip, text="Win+Esc exits", anchor="e", text_color=theme.MUTED, font=theme.font(11)
-        ).grid(row=0, column=3, sticky="e", padx=(0, 12))
+        self.save_label.grid(row=0, column=2, sticky="e", padx=(0, 24), pady=7)
+        autowrap(strip, [self.strip_text], offset=310)
 
     def _bind_keys(self) -> None:
         for i, name in enumerate(PAGE_ORDER, start=1):
@@ -351,9 +422,20 @@ class MainWindow:
         self.root.bind_all("<Control-s>", lambda _e: self.save_now())
         self.root.bind_all("<F5>", lambda _e: self.refresh_status())
         self.root.bind_all("<Control-q>", lambda _e: self.request_exit())
+        self.root.bind_all("<Control-Key-5>", lambda _e: self.skin_menu._open_dropdown_menu())
 
     # -- pages --------------------------------------------------------------------------------
     def show_page(self, name: str) -> None:
+        legacy = name
+        name = {
+            "dashboard": "camp",
+            "main": "automations",
+            "town": "automations",
+            "guild": "automations",
+            "missions": "automations",
+            "advanced": "workshop",
+            "help": "workshop",
+        }.get(name, name)
         if name not in PAGE_ORDER:
             log.warning("unknown page %r", name)
             return
@@ -379,10 +461,26 @@ class MainWindow:
         for n, b in self.nav_buttons.items():
             active = n == name
             b.configure(
-                fg_color=("#3a7ebf", "#1f538d") if active else "transparent",
-                text_color="white" if active else ("gray10", "gray90"),
+                fg_color=theme.SURFACE_ALT if active else "transparent",
+                text_color=theme.TEXT if active else theme.ON_HEADER,
                 font=theme.font(13, "bold" if active else "normal"),
             )
+
+        if legacy == "help":
+            self.ctx.extras["workshop"].open_section("help")
+        self.gui_state["page"] = name
+
+    def open_automation(self, group_id: str) -> None:
+        self.show_page("automations")
+        view = self.ctx.extras.get("automations")
+        if view:
+            view.open_group(group_id)
+
+    def open_workshop(self, section: str) -> None:
+        self.show_page("workshop")
+        view = self.ctx.extras.get("workshop")
+        if view:
+            view.open_section(section)
 
     # -- appearance ---------------------------------------------------------------------------
     def _apply_appearance(self) -> None:
@@ -457,6 +555,7 @@ class MainWindow:
     def show_update(self, text: str, button: str | None = None, kind: str = "info") -> None:
         """Top banner (Tk thread): `text` shows it (empty hides it), `button` labels the action
         (None: no button), `kind` picks the colour (info / ok / warn / err)."""
+        self.update_text, self.update_button, self.update_kind = text, button, kind
         b = self.top_banner
         if not text:
             if b.winfo_manager():
@@ -481,6 +580,14 @@ class MainWindow:
             self.ui_queue.put(("exit", None))
 
     _exit = request_exit
+
+    def _append_log(self, line: str) -> None:
+        entry = f"{time.strftime('%H:%M:%S')}  {line}"
+        was_full = len(self.log_lines) == MAX_LOG_LINES
+        self.log_lines.append(entry)
+        journal = self.ctx.extras.get("journal")
+        if journal:
+            journal.append_entry(entry, was_full)
 
     # -- bot state ------------------------------------------------------------------------------
     def set_bot_state(self, text: str) -> None:
@@ -527,7 +634,7 @@ class MainWindow:
         if text not in self._recent_logs:
             # Game.status() also logs, so the line normally arrives via the logging bridge;
             # a bare post_status() is mirrored here so the Activity log stays complete.
-            self.dash.append_log(text)
+            self._append_log(text)
         if not self.is_running() and self.bot_state in ("running", "dry", "stopping"):
             terminal = TERMINAL_STATES.get(text)
             if terminal is None and text.startswith("Delay setting"):
@@ -556,6 +663,7 @@ class MainWindow:
     # -- save indicator -----------------------------------------------------------------------
     def _on_save_state(self, kind: str, text: str) -> None:
         prefix = {"saved": "● ", "deferred": "● ", "error": "! ", "unsaved": "○ "}.get(kind, "")
+        self._save_state = (kind, text)
         self.save_label.configure(text=prefix + text, text_color=theme.colour(SAVE_KINDS[kind]))
 
     def _save_error_dialog(self, error: str) -> None:
@@ -643,7 +751,7 @@ class MainWindow:
                 elif kind == "log":
                     line = str(payload)
                     self._recent_logs.append(line)
-                    self.dash.append_log(line)
+                    self._append_log(line)
                 elif kind == "selftest":
                     self._apply_selftest(payload)
                 elif kind == "call":  # any callable, run on the Tk thread (update flow)
@@ -658,6 +766,7 @@ class MainWindow:
         now = time.monotonic()
         if now - self._last_poll >= 0.5:
             self._last_poll = now
+            self.binder.refresh_from_settings()
             running = self.is_running()
             stuck = not running and self.bot_state in ("running", "dry", "stopping")
             if running != self._was_running or stuck:
@@ -666,7 +775,7 @@ class MainWindow:
                 self._on_running_changed(running)
         if now - self._last_second >= 1.0:
             self._last_second = now
-            for fn in self._tick_fns:
+            for fn in tuple(self._tick_fns):
                 try:
                     fn()
                 except Exception:
@@ -712,7 +821,8 @@ class MainWindow:
         try:
             self.gui_state.update(
                 geometry=self.root.geometry(),
-                page=self.current_page or "dashboard",
+                page=self.current_page or "camp",
+                skin=theme.current_skin(),
                 appearance=self.appearance_var.get().lower(),
             )
             with open(self.state_path, "w", encoding="utf-8") as f:

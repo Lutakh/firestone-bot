@@ -9,7 +9,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
             "- Use the Steam or Epic version (the browser version is not supported yet).\n"
             "- Reference setup: 1920x1080 monitor, 100 % DPI, game windowed and maximized, taskbar "
             "at the bottom. Other window sizes with the same aspect are supported; see the "
-            "Dashboard's Environment card.\n"
+            "Camp's Environment card.\n"
             "- Game Settings (top right): NOT fullscreen. Game language: English."
         ),
     ),
@@ -25,7 +25,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
             "- System Settings > Privacy & Security: grant Screen Recording and Accessibility "
             "to FirestoneBot.app (or to the terminal app that runs the bot from source). "
             "Without Screen Recording every probe misses; without Accessibility no click "
-            "reaches the game. The Dashboard's Environment card names the missing one.\n"
+            "reaches the game. Camp's Environment card names the missing one.\n"
             "- Retina displays are handled (captures in pixels, mouse in points).\n"
             "- Exit hotkey: Cmd + Esc."
         ),
@@ -41,7 +41,7 @@ HOME_SECTIONS: list[tuple[str, str]] = [
         "Bot usage",
         (
             "- Exit hotkey: Windows key + Esc (Cmd + Esc on macOS).\n"
-            "- Check all pages and activate ONLY what you need.\n"
+            "- Review Automations and activate only what you need.\n"
             "- DO NOT move or zoom the map. Leave it as it is on login. If moved, restart the game."
         ),
     ),
@@ -54,18 +54,21 @@ HOME_SECTIONS: list[tuple[str, str]] = [
 HOME_TEXT = "\n\n".join(f"{title.upper()}:\n{body}" for title, body in HOME_SECTIONS)
 
 WHERE_THINGS_ARE = (
-    "Everyday switches: Main screen, Town, Guild & Tree, Missions & WM. "
-    "Rare options: Advanced. Live status: Dashboard. "
+    "Camp shows live session status, environment checks and daily quotas. "
+    "Automations contains the searchable action library: Collect, Develop, Expeditions and Trade. "
+    "Journal shows the activity log. Workshop contains game setup, cycle behavior, files, "
+    "appearance, updates and this help. Choose the interface skin next to Camp.\n"
     "Locked features (engineer, arena, scarab, alchemist, oracle, guild buildings) are skipped "
     "until the account or guild level unlocks them; the levels are read on screen each cycle.\n"
     "Settings are saved automatically to settings.ini next to the executable (macOS: in "
-    "~/Library/Application Support/FirestoneBot, see Advanced > Files)."
+    "~/Library/Application Support/FirestoneBot, see Workshop > Files & app)."
 )
 
 SHORTCUTS: list[tuple[str, str]] = [
     ("Win+Esc / Cmd+Esc", "Exit the bot (global hotkey, works while the game has the focus)"),
     ("F5", "Re-check the environment (game window, capture)"),
     ("Ctrl+S", "Save settings now"),
-    ("Ctrl+1 … Ctrl+7", "Switch page (Dashboard … Help)"),
+    ("Ctrl+5", "Choose the interface skin"),
+    ("Ctrl+1 … Ctrl+4", "Open Camp, Automations, Journal or Workshop"),
     ("Ctrl+Q", "Exit"),
 ]
