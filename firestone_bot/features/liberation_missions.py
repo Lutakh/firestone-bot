@@ -97,8 +97,7 @@ def liberation_missions(g: Game) -> None:
     """From the campaign screen: open Daily missions when its bell shows, then Liberation
     and (when enabled) Dungeon."""
     g.focus()
-    p = atlas.LIB_DOT
-    if not bells.has_bell(g, (p.x1, p.y1, p.x2, p.y2)):
+    if not bells.bell_in(g, atlas.LIB_DOT):
         g.status("Daily missions: no bell, nothing to do")
         return
     g.tap(atlas.LIB_OPEN, 1200)
