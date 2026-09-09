@@ -107,9 +107,11 @@ MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 # on a 16:9 client they sit 64 px left of where a left anchor puts them (the reference
 # client is 1920x1009, a wider canvas), so the bell probe missed and neither was claimed
 # on the owner's Mac (2026-09-08).
-# The gift's own red reaches logical x 595 (same extent on the Windows reference and the
-# Mac, 2026-09-08) and passed for the bell at the old x1 of 595: the rect starts at 601.
-EVENTS_BELL = Probe(601, 916, 640, 956, RED_DOT, RED_DOT_VAR, "events_bell", ANCHOR_BOTTOM_CENTER)
+# The gift's own red reaches logical x 595-608 (it moves a little) and y 933 upwards, and a
+# single matching pixel passed for the bell (2026-09-08/09): the rect sits above the gift's
+# body, where the bell hangs (BP bell: 39 right and 31 above its icon's centre), and the
+# classic layout counts red pixels in it (`bells.has_bell`) instead of probing one.
+EVENTS_BELL = Probe(600, 888, 640, 926, RED_DOT, RED_DOT_VAR, "events_bell", ANCHOR_BOTTOM_CENTER)
 EVENTS_ICON = Point(583, 961, ANCHOR_BOTTOM_CENTER)
 # Events list: active cards first, 175 px pitch; bell at the top-right corner of a card.
 # The list is a centred dialog: at 16:9 its right-hand edge (bells, X) must be anchored to the
@@ -214,11 +216,17 @@ SHOP_CHECKIN_OK = Point(1339, 828)  # :31
 
 # --- CheckMail.ahk --------------------------------------------------------------------------
 MAIL_ICON = Point(56, 777)  # :8
-MAIL_CLAIM_ALL = Probe(1260, 780, 1334, 835, GREEN_BUTTON, 3, "mail_claim_all")  # :13
-MAIL_CLAIM_BUTTON = Point(1215, 808)  # :15
-MAIL_REWARD_OK = Point(1172, 688)  # :20
-MAIL_DELETE_READY = Probe(1533, 904, 1601, 969, 0xE9554E, 3, "mail_delete_ready")  # :26
-MAIL_DELETE_BUTTON = Point(1569, 939)  # :28
+# The mailbox is a centred dialog: its buttons take the centre anchor (the delete button,
+# in the right third, was 64 px off on the Mac's 16:9 client and clicked beside, 2026-09-09).
+MAIL_CLAIM_ALL = Probe(
+    1260, 780, 1334, 835, GREEN_BUTTON, 3, "mail_claim_all", ANCHOR_CENTER
+)  # :13
+MAIL_CLAIM_BUTTON = Point(1215, 808, ANCHOR_CENTER)  # :15
+MAIL_REWARD_OK = Point(1172, 688, ANCHOR_CENTER)  # :20
+MAIL_DELETE_READY = Probe(
+    1533, 904, 1601, 969, 0xE9554E, 3, "mail_delete_ready", ANCHOR_CENTER
+)  # :26
+MAIL_DELETE_BUTTON = Point(1569, 939, ANCHOR_CENTER)  # :28
 
 # --- OpenChests.ahk / OpenChestType.ahk / OraclesGift.ahk / MysteryBox.ahk -----------------
 BAG_ICON = Point(1581, 939)  # OpenChests.ahk:30

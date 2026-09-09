@@ -153,7 +153,10 @@ gift at (581, 938), the atlas values exactly (`BP_BELL` 470-500 x 894-924, `EVEN
 (583, 961)); with the left anchor of the thirds rule they were 64 px off and the bell probes
 missed. The reference canvas is 2056 units wide (1920 / 0.934) where a 16:9 client's is
 1920: centred groups move by half the difference. The gift's own red reaches x 595 on both
-clients, so the events bell probe starts at 601.
+clients (608 on 2026-09-09, the icon moves), so the events bell rect sits above the gift
+(y 888-926) and is read as a red-pixel count.
+The mailbox is centred too: its delete button (1569, 939) with the thirds rule's right anchor
+was at px 2434 on the Mac client where the button is at 2535 (centre anchor).
 
 Not done: 125 % DPI (needs a change of the Windows display scaling, left to the owner), a
 third window size, the wheel-notch comparison at two sizes, and a full cycle at 1280x720.

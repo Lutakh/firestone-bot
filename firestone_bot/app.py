@@ -344,7 +344,7 @@ class App:
         wait until it is gone (belt and braces over the click-through window flags, which the
         owner saw fail on the research claim button under the panel, 2026-09-06)."""
         ov = self._overlay
-        if ov is None or not ov.covers(sx, sy):
+        if ov is None or ov.click_through or not ov.covers(sx, sy):
             return
         done = threading.Event()
 

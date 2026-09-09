@@ -47,6 +47,11 @@ class GameOverlay:
         self.lines: deque[str] = deque(maxlen=LINES)
         self.labels: list[tk.Label] = []
         self.capture_safe = False  # True when the OS leaves the window out of captures
+        # True when the OS routes clicks through the panel for sure (macOS
+        # setIgnoresMouseEvents_): the app then never hides it for a click, since hiding and
+        # showing a Toplevel brought the bot's own window over the game and the click
+        # landed on it (owner, 2026-09-09).
+        self.click_through = False
         self.visible = False
         self._rect: Rect | None = None
         self.placed_px: tuple[int, int, int, int] | None = None  # x, y, w, h, physical px
@@ -87,6 +92,7 @@ class GameOverlay:
         top.deiconify()  # the native window exists (and is listed) once mapped
         top.update()
         self.capture_safe = _platform_setup(top)
+        self.click_through = sys.platform == "darwin" and self.capture_safe
         top.withdraw()
         log.info("overlay ready (capture-safe: %s)", self.capture_safe)
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, bells
 
 MAX_EVENT_VISITS = 6  # rescans of the list; each visit handles one card with a bell
 
@@ -36,7 +36,7 @@ def _first_card_with_bell(g: Game) -> int | None:
 
 def claim_events(g: Game) -> None:
     g.focus()
-    if not g.found(g.ms.events_bell):
+    if not bells.bell_in(g, g.ms.events_bell):
         g.status("Events: no bell on the button, nothing to claim")
         return
     g.status("Events: bell found, opening the events list")

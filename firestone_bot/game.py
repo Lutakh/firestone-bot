@@ -489,11 +489,11 @@ class Game:
     def found(self, p: Probe, variation: int | None = None) -> bool:
         return self.search(p, variation) is not None
 
-    def region_image(self, rect: tuple[int, int, int, int]) -> np.ndarray:
+    def region_image(self, rect: tuple[int, int, int, int], anchor=None) -> np.ndarray:
         """BGR pixels of a logical rect (x1, y1, x2, y2), e.g. a counter's digits."""
         vp = self._viewport()
-        sx1, sy1 = vp.to_screen(rect[0], rect[1])
-        sx2, sy2 = vp.to_screen(rect[2], rect[3])
+        sx1, sy1 = vp.to_screen(rect[0], rect[1], anchor)
+        sx2, sy2 = vp.to_screen(rect[2], rect[3], anchor)
         return capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3].copy()
 
     def read_number(self, rect: tuple[int, int, int, int], last_word: bool = False) -> int | None:

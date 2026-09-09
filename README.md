@@ -216,7 +216,9 @@ of the first icon under the avatar, whose meaning depends on the account. Resear
 tree of the current library: the two slot panels at the bottom read as running (orange
 "Speed up"), finished (green button, claimed) or empty; an empty slot gets the rightmost
 node whose popup offers the green "Research" button, page 2 first; the gem buttons
-("Complete instantly", "Speed up") are never clicked.
+("Complete instantly", "Speed up") are never clicked. Buttons inside centred dialogs
+(mailbox, chest dialog, event pages...) carry the centre anchor explicitly: the thirds rule
+puts a button in the outer thirds on a screen edge, 64 px off on a 16:9 client.
 
 ## Lost screens: a step is skipped, never the cycle
 

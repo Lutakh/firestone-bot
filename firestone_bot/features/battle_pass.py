@@ -14,7 +14,7 @@ from __future__ import annotations
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
 from firestone_bot.platform import capture
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, bells
 from firestone_bot.vision.probes import match_mask
 
 MAX_CLAIMS = 30
@@ -72,7 +72,7 @@ def claim_rewards(g: Game) -> int:
 
 def battle_pass(g: Game) -> None:
     g.focus()
-    if not g.found(g.ms.bp_bell):
+    if not bells.bell_in(g, g.ms.bp_bell):
         g.status("Battle pass: no bell on the button, nothing to claim")
         return
     g.status("Battle pass: bell found, opening the battle pass")

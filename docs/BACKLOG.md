@@ -73,6 +73,21 @@
   groups may hide the same error on non-reference aspects; only the 1920x1009 reference and
   16:9 clients have been checked. The events bell with a bell actually present is unverified
   on the Mac (probe moved off the gift's own red).
+- Dialog content anchors (2026-09-09): centred dialogs' buttons that sit in the left or
+  right third of the reference take an edge anchor from the thirds rule and land 64 px off
+  on a 16:9 client (the mailbox delete button clicked beside on the Mac; fixed with
+  `ANCHOR_CENTER` on the mail entries). Every atlas point inside a centred dialog with
+  x < 640 or x > 1280 and no explicit anchor has the same latent error: audit them (the
+  events list, event page, battle pass, character page, chest dialog, alchemist, guardian,
+  tavern, arena, engineer, research popup were given centre anchors as they were hit).
+- Events bell (2026-09-09): the gift's own red moves between x 595 and 608 and a one-pixel
+  probe kept passing for the bell; the rect now sits above the gift and the classic layout
+  counts red pixels (`bells.bell_in`, threshold scaled with the client). Still unverified
+  with a bell actually present.
+- Overlay on macOS (2026-09-09): hiding the click-through panel before a click under it
+  brought the bot's own window over the game and the click landed on it (events button,
+  mail icon); the panel is no longer hidden on macOS (`GameOverlay.click_through`). Windows
+  keeps the hide, where the owner saw the click-through flags fail (2026-09-06).
 - Restart noise: a run killed mid-cycle leaves its dialog open; the next start hits the
   main-menu cap once before recovering (choosers and the bag panel are now closed there,
   the town window is not, it gets closed by the first step recovery).
