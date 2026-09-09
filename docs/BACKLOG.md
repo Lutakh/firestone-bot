@@ -126,3 +126,6 @@
   skipped). The town features that opened a building with a plain `tap(..., expect=...)`
   now use `require_screen`. The same audit is worth doing on the map section, whose steps
   also click by position (`map_redeem`, `map_start`).
+
+- Shop: read the tab icons rather than rebuilding the row from the pitch, so a future layout
+  with uneven tabs cannot shift the indices again (2026-09-09).

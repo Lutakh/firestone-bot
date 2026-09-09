@@ -6,6 +6,10 @@ box is the FIRST card of the horizontally scrolling "Daily deals" row while it i
 the green "Claim" button. The AHK click at (591,857) would land on a paid deal once the box
 has been claimed, so the click is now guarded by the probe.
 
+Every tab is reached through `tab_slots`, never through the blob list itself: the selected
+tab is not tan and so is missing from it, which made the bot open the paid "Gems" tab each
+time it meant to go back to the daily deals (owner, 2026-09-09).
+
 The runner calls this every cycle regardless of the Shop setting so the daily reset is always
 detected; the check-in part still depends on the Shop setting.
 """
@@ -42,8 +46,8 @@ def _claim_button_shown(g: Game) -> bool:
 
 
 def shop_tabs(g: Game) -> list[blobs.Blob]:
-    """The unselected shop tabs, left to right (the selected tab is not tan, so it is
-    missing from the list: a tab is only ever looked up while another one is selected)."""
+    """The UNSELECTED shop tabs, left to right. The selected tab is not tan, so it is missing
+    from this list: never index it as if it were the tab row (see `tab_slots`)."""
     return sorted(
         blobs.find_blobs(
             g,
@@ -58,17 +62,62 @@ def shop_tabs(g: Game) -> list[blobs.Blob]:
     )
 
 
-def _tap_tab(g: Game, tab: blobs.Blob) -> None:
-    g.tap(Point(tab.cx, tab.cy, atlas.ANCHOR_CENTER), 1200)
+def tab_slots(g: Game) -> list[Point]:
+    """The whole tab row, left to right, including the selected tab.
+
+    `shop_tabs` only sees the tan (unselected) tabs, so `shop_tabs()[0]` is the SECOND tab
+    whenever the first one is selected - which is how the shop usually reopens. That is how
+    the bot clicked the paid "Gems" tab while it meant to go back to the daily deals (owner,
+    2026-09-09). The tabs are evenly spaced and the row is centred in the strip, so the
+    selected tab is put back: either in the double gap it leaves between two tan tabs, or, if
+    it sits at one end, at the end that keeps the row centred.
+    """
+    found = shop_tabs(g)
+    if not found:
+        return []
+    xs = [b.cx for b in found]
+    cy = sorted(b.cy for b in found)[len(found) // 2]
+    if len(xs) >= 2:
+        gaps = sorted(xs[i + 1] - xs[i] for i in range(len(xs) - 1))
+        pitch = gaps[0]
+        hole = next((i for i in range(len(xs) - 1) if xs[i + 1] - xs[i] > pitch * 1.5), None)
+        if hole is not None:
+            xs.insert(hole + 1, (xs[hole] + xs[hole + 1]) // 2)
+        else:
+            centre = (atlas.SHOP_TAB_STRIP[0] + atlas.SHOP_TAB_STRIP[2]) / 2
+            left, right = xs[0] - pitch, xs[-1] + pitch
+            if abs((left + xs[-1]) / 2 - centre) <= abs((xs[0] + right) / 2 - centre):
+                xs.insert(0, left)
+            else:
+                xs.append(right)
+    return [Point(x, cy, atlas.ANCHOR_CENTER) for x in xs]
+
+
+def _select_slot(g: Game, slots: list[Point], index: int) -> bool:
+    """Make sure the tab at `index` of the row is the selected one, and say so. A tab that
+    stays tan after the click was not selected: better to skip the step than to act on a page
+    that is not the one meant (paid offers live one tab away)."""
+    want = slots[index]
+    if not any(abs(b.cx - want.x) < 20 for b in shop_tabs(g)):
+        return True  # not tan any more: it is the selected tab already
+    g.tap(want, 1200)
     g.wait_still()
+    if any(abs(b.cx - want.x) < 20 for b in shop_tabs(g)):
+        g.status("Daily shop: the tab did not open, step skipped")
+        g.save_diagnostic("shop-tab-miss.png")
+        return False
+    return True
 
 
 def claim_free_mystery_box(g: Game) -> bool:
     """Scroll the daily deals back to the start and claim the free box. True when it was
     claimable (= the game day has just reset)."""
-    tabs = shop_tabs(g)
-    if tabs:  # the shop may reopen on the last tab visited
-        _tap_tab(g, tabs[0])
+    slots = tab_slots(g)
+    if not slots:
+        g.status("Daily shop: no tab row found, free box skipped")
+        return False
+    if not _select_slot(g, slots, 0):  # the shop may reopen on the last tab visited
+        return False
     g.move_to(atlas.SHOP_DEALS_HOVER)
     g.sleep(500)
     g.wheel(30)
@@ -103,14 +152,16 @@ def claim_free_mystery_box(g: Game) -> bool:
 
 
 def check_in(g: Game) -> None:
-    """Daily check-in: the calendar tab is the rightmost one; its green "Check In" button is
-    clicked only where it is actually found. The AHK clicked two fixed points blind, which at
-    another aspect landed on a paid bundle and opened the Steam checkout (2026-09-09)."""
-    tabs = shop_tabs(g)
-    if not tabs:
-        g.status("Daily shop: no tab found, check-in skipped")
+    """Daily check-in: the calendar tab is the last one of the row; its green "Check In"
+    button is clicked only where it is actually found. The AHK clicked two fixed points blind,
+    which at another aspect landed on a paid bundle and opened the Steam checkout
+    (2026-09-09)."""
+    slots = tab_slots(g)
+    if not slots:
+        g.status("Daily shop: no tab row found, check-in skipped")
         return
-    _tap_tab(g, tabs[-1])
+    if not _select_slot(g, slots, -1):
+        return
     button = blobs.find_blobs(
         g,
         atlas.SHOP_CHECKIN_BAR,
