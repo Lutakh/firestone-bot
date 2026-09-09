@@ -108,7 +108,7 @@ def on_new_main_screen(g) -> bool:
     # the tavern's blue "x1" multiplier sits higher on the screen (its label would pass)
     if abs(find_mode_button(g).y - atlas.NS_MODE_BUTTON.y) > 30:
         return False
-    return read_upgrade_mode(g) in atlas.HU_MODE_ORDER
+    return read_upgrade_mode(g, "new") in atlas.HU_MODE_ORDER
 
 
 def new_style_seen(g) -> bool:

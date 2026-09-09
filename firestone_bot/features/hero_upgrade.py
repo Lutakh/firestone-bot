@@ -113,13 +113,17 @@ def mode_text_rect(g: Game) -> tuple[int, int, int, int]:
     return c.x - hw, c.y - hh, c.x + hw, c.y + hh
 
 
-def read_upgrade_mode(g: Game) -> str:
+def read_upgrade_mode(g: Game, style: str | None = None) -> str:
     """Current state of the mode button ('x1', 'x10', 'x100', 'next', 'max' or 'unknown').
 
     Classic style: dark text on the beige button of the U menu. New style: white text on the
     blue button of the main screen. Both compare the column profile of the label's last line
-    with references recorded live (logical units, see _mode_signature)."""
-    if g.style == "new":
+    with references recorded live (logical units, see _mode_signature).
+
+    `style` overrides the style of the run: the interface detection asks for the new-style
+    reading before the style is known (a fresh run starts on "classic", so the check meant to
+    confirm the new style read the classic rect and always failed, 2026-09-09)."""
+    if (style or g.style) == "new":
         rect = mode_text_rect(g)
         sig = _mode_signature(g, rect, light_text=True)
         refs = atlas.NS_MODE_SIGNATURES
