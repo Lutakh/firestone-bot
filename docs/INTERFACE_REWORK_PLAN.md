@@ -12,11 +12,17 @@ that branch; do not merge the earlier retro branch wholesale.
 The user explicitly approved implementation on 2026-09-08 after reviewing the mockup.
 No further design approval is needed for this scope.
 
+The current follow-up keeps Camp as the launcher's default page, regardless of the last
+saved page. Make only Camp more compact and remove its Files & application shortcut from
+Account & guild. Other pages retain their layout. Skin changes still preserve the current
+page, and the explicit `FIRESTONE_GUI_PAGE` development override remains available.
+
 ## Repository and baseline
 
 - Working checkout: `firestone-camp` (sibling of the earlier `firestone-bot` checkout).
 - Active branch: `python-rework`.
 - Starting commit: `11718e5`; synchronized to `7574193` (version 0.3.15) during integration.
+  The current Camp follow-up starts from `de72cb0` (version 0.3.16).
 - The branch advanced 18 commits since the mockup. Current source takes precedence over
   the old 117-option mockup mapping. The current interface maps all 119 editable options,
   plus persisted statistics and mailbox/day markers introduced upstream.
@@ -25,8 +31,9 @@ No further design approval is needed for this scope.
 
 ## Architecture
 
-- **Camp:** actual session state, latest activity, completed cycle and duration, real daily
-  quotas and environment checks. No estimated completion times or fabricated activity.
+- **Camp:** compact default startup page with actual session state, latest activity,
+  completed cycle and duration, real daily quotas and environment checks. No estimated
+  completion times or fabricated activity. Files remain accessible through Workshop.
 - **Automations:** searchable action library, category filters and one action editor.
   Preserve inverted flags, unknown legacy values, atomic orders/radios and dependencies.
 - **Journal:** actual log buffer with follow, copy, clear view and open-log actions.
@@ -93,5 +100,29 @@ has not been inspected on this host.
 Delivery target: `python-rework`, with the implementation commit titled
 `Implement Fieldbook navigation with switchable interface skins`. Use
 `git log --oneline -- docs/INTERFACE_REWORK_PLAN.md` to locate the exact delivery commit.
-The isolated preview is closed. Implementation work is finished; do not restart or
+The isolated preview is closed. The original implementation is finished; do not restart or
 duplicate it. Any publication retry must push without force and verify the remote commit.
+
+## Current Camp follow-up
+
+- [x] Open Camp on every launcher startup while retaining saved editor selections.
+- [x] Add a startup regression for a saved Workshop page; retain the existing test that
+  skin changes keep the active Journal page open.
+- [x] Compact Camp and remove Files & application from Account & guild.
+- [x] Run GUI regression tests and inspect Camp with isolated callbacks.
+- [x] Review the validated follow-up for delivery on `python-rework`, without a release tag.
+
+The follow-up is complete and validated on 2026-09-10. Camp uses a compact session strip,
+side-by-side game checks and daily limits, and a final row for account/guild levels and
+persistent cycle statistics. All runtime information and other shortcuts remain available.
+Spacing changes are local to Camp; the shared command dock and other pages are unchanged.
+
+Validation: 206 tests passed, and Ruff lint/formatting and whitespace checks passed.
+Layout regressions cover all three skins at 1220x860 and 980x680, real macOS environment
+labels, quotas and level locks, a missing game, crash controls and an update banner.
+Native inspection confirmed the compact layout using isolated callbacks, and the preview
+is closed. A cleanup regression also verifies that destroying Camp releases its refresh
+callback. The explicit development page override in `app.py` is unchanged.
+
+Delivery commit title: `Make Camp the compact startup overview`. Publish only the branch;
+do not create a release tag. Do not repeat the completed implementation on a later resume.

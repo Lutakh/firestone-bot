@@ -181,7 +181,7 @@ class MainWindow:
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
         self._set_window_icon()
-        self._build_shell(str(self.gui_state.get("page") or "camp"))
+        self._build_shell("camp")
         self._bind_keys()
         self._update_bot_widgets()
         self.root.after(150, self._tick)

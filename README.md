@@ -320,10 +320,12 @@ Stop commands. **Skin**, at the end of the header after **Workshop**, switches b
 (ivory and forest green), **Retro** (charcoal, parchment and amber), and **Futuristic**
 (blue and cyan). All three skins share the same layout, controls and live settings.
 A skin change preserves the active session, selected editor, pending saves and journal.
+The launcher always opens Camp. The saved skin, display mode and editor selections are
+retained, and switching skins keeps the current page open.
 
 | Page | What lives there |
 |---|---|
-| Camp | Session state and activity, last completed cycle, daily quotas, account/guild levels, environment checks and persistent cycle statistics |
+| Camp | Compact overview of session state and activity, last completed cycle, daily quotas, account/guild levels, environment checks and persistent cycle statistics |
 | Automations | Searchable action library with Collect, Develop, Expeditions and Trade filters; one settings editor at a time, related actions and actual availability rules |
 | Journal | Real activity log, follow latest, copy all, clear view and open log file; the buffer survives skin changes |
 | Workshop | Run behavior, game setup/restart, input, heartbeat, legacy compatibility, files/import, appearance, daily counters, cycle statistics, updates and help |
@@ -363,8 +365,9 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   main-menu finder); a cap of N stops such a loop after N iterations.
 - **Heartbeat** (Workshop): off by default. Sends progress messages to the maintainer's log
   server only when the toggle is on AND a Discord ID is set.
-- `gui_state.json` (next to `settings.ini`) stores window geometry, page/editor selection, skin and appearance
-  (all restored on the next start); it is safe to delete.
+- `gui_state.json` (next to `settings.ini`) stores window geometry, navigation/editor selection,
+  skin and appearance. Geometry, editor selections, skin and appearance are restored on
+  the next start; the opening page is always Camp. The file is safe to delete.
 - Journal shows the bot's log stream (`firestone-bot.log` at INFO level); status
   lines posted without a log entry are added to it too.
 - Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,

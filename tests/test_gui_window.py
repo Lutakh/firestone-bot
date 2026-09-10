@@ -22,6 +22,9 @@ from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP, Settings
 def window(tmp_path_factory):
     """One root per module: a second Tk root in the same process is flaky on Windows."""
     tmp_path = tmp_path_factory.mktemp("gui")
+    (tmp_path / "gui_state.json").write_text(
+        json.dumps({"page": "workshop", "workshop_section": "game"}), encoding="utf-8"
+    )
     settings = Settings(path=str(tmp_path / "settings.ini"), loaded=True)
     calls = []
     flags = {"running": False}
@@ -50,6 +53,12 @@ def window(tmp_path_factory):
     yield win
     if not win._closed:
         win.root.destroy()
+
+
+def test_startup_opens_camp_instead_of_the_saved_page(window):
+    assert window.current_page == "camp"
+    assert window.gui_state["page"] == "camp"
+    assert window.gui_state["workshop_section"] == "game"
 
 
 def test_pages_build_and_every_key_is_bound(window):
