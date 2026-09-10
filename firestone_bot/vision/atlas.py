@@ -108,8 +108,17 @@ SETTINGS_BUTTON_ROW = (150, 870, 1780, 985)  # centre-anchored
 SETTINGS_BUTTON_MIN_W, SETTINGS_BUTTON_MIN_H = 120, 30
 SETTINGS_BUTTONS_MIN = 4  # of 5: one may be hovered
 SETTINGS_CLOSE = Point(1725, 116, ANCHOR_CENTER)
-MM_RATE_POPUP = Probe(1057, 288, 1321, 335, 0x8E4423, 2, "mm_rate_popup")  # MainMenu.ahk:18
-MM_RATE_POPUP_CLOSE = Point(1397, 307)  # MainMenu.ahk:20
+# "Rate the game" pop-up (MainMenu.ahk:18-20): the AHK saw its brown title bar and clicked
+# (1397, 307), the X at the bar's right end. That brown is every chooser's title bar (the
+# tavern one fired it on the scarab screens, 2026-09-10) and the pop-up could not be captured,
+# so the bar only arms a search for an actual dialog X (orange ring around a cream cross,
+# 67 x 66 around 36 x 36 on the tavern chooser at 3024x1675) next to it; nothing is clicked
+# without one. Both centre-anchored: it is a centred dialog.
+MM_RATE_POPUP = Probe(1057, 288, 1321, 335, 0x8E4423, 2, "mm_rate_popup", ANCHOR_CENTER)
+MM_RATE_POPUP_X_AREA = (1300, 220, 1500, 400)  # around the AHK's (1397, 307)
+DIALOG_X_RING_MIN = 40  # logical px, the orange ring of a dialog X
+DIALOG_X_CROSS_MIN = 12  # logical px, its cream cross
+DIALOG_X_CROSS = 0xFFF9CE
 MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
 
 # --- ClaimEvents.ahk (main-screen part re-measured 2026-09-04) -------------------------------

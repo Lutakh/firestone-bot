@@ -300,6 +300,15 @@ class Game:
         cropped = img[: bh * gh, : bw * gw]
         return cropped.reshape(gh, bh, gw, bw, 3).mean(axis=(1, 3), dtype=np.float32)
 
+    def changed_since(self, before: np.ndarray | None) -> bool:
+        """Whether the game screen now differs from the `before` thumbnail, by the same
+        measure as wait_change (False when either thumbnail is missing)."""
+        now = self._thumbnail()
+        if before is None or now is None or now.shape != before.shape:
+            return False
+        diff = np.abs(now - before).mean(axis=2)
+        return bool((diff > self.CHANGE_LEVELS).mean() >= self.CHANGE_FRACTION)
+
     def wait_change(self, max_ms: float, before: np.ndarray | None = None) -> bool:
         """Wait until the game screen differs from `before` (or from now), at most `max_ms`.
 

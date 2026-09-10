@@ -44,14 +44,66 @@ def close_settings(g: Game) -> None:
         big_close(g)
 
 
+MAX_CLOSES = 10  # hard stop when SafetyCap is set, whatever the progress
+
+
+def find_dialog_x(g: Game, area: tuple[int, int, int, int]) -> blobs.Blob | None:
+    """A dialog's close X inside a centre-anchored area: an orange ring holding a cream
+    cross. Only a button seen this way is ever clicked (no fixed close point)."""
+    rings = blobs.find_blobs(
+        g,
+        area,
+        atlas.DIALOG_RING,
+        30,
+        anchor=ANCHOR_CENTER,
+        min_w=atlas.DIALOG_X_RING_MIN,
+        min_h=atlas.DIALOG_X_RING_MIN,
+    )
+    crosses = blobs.find_blobs(
+        g,
+        area,
+        atlas.DIALOG_X_CROSS,
+        30,
+        anchor=ANCHOR_CENTER,
+        min_w=atlas.DIALOG_X_CROSS_MIN,
+        min_h=atlas.DIALOG_X_CROSS_MIN,
+    )
+    for r in rings:
+        if any(r.x1 <= c.cx <= r.x2 and r.y1 <= c.cy <= r.y2 for c in crosses):
+            return r
+    return None
+
+
+def _close_rate_popup(g: Game) -> None:
+    """The AHK clicked a fixed point whenever a chooser-brown title bar showed; now only the
+    X actually found next to it is clicked. The pop-up itself was never captured: a bar
+    without an X is logged with a diagnostic so the next one can be measured."""
+    x = find_dialog_x(g, atlas.MM_RATE_POPUP_X_AREA)
+    if x is None:
+        g.status("MainMenu: a brown title bar but no close X next to it, nothing clicked")
+        # one capture per cycle: the bar also shows on ordinary screens, and the diagnostics
+        # folder keeps only the 40 newest files
+        if not g.vars.get("rate_popup_diag"):
+            g.vars["rate_popup_diag"] = True
+            g.save_diagnostic("rate-popup-no-x.png")
+        return
+    g.status("MainMenu: closing a pop-up through its X")
+    g.tap(Point(x.cx, x.cy, ANCHOR_CENTER), 800)
+
+
 def main_menu(g: Game) -> bool:
     """Reach the main screen. Returns True when it was recognised (the settings window
-    opened by the gear, or the new-style mode button), False at the safety cap."""
+    opened by the gear, or the new-style mode button), False at the safety cap.
+
+    SafetyCap counts the closes that changed nothing on screen: from deep inside (the scarab
+    market: market, scarab screen, tavern, town) every close removes a layer and is progress,
+    and a cap of 3 blind closes gave up one layer short (2026-09-10). MAX_CLOSES still bounds
+    the loop."""
     g.focus()
     g.sleep(1000)
     g.focus()
     cap = int(g.settings.get("SafetyCap") or 0)
-    n = 0
+    closes = stalls = 0
     from firestone_bot.vision import layouts
 
     while True:  # SettingsFinder:
@@ -69,13 +121,16 @@ def main_menu(g: Game) -> bool:
                 close_settings(g)
             return True
         if g.found(atlas.MM_RATE_POPUP):
-            g.tap(atlas.MM_RATE_POPUP_CLOSE)
+            _close_rate_popup(g)
+        before = g._thumbnail()
         big_close(g)
-        n += 1
-        if n == 1 and close_chooser(g):
+        closes += 1
+        if not g.changed_since(before):
+            stalls += 1
+        if closes == 1 and close_chooser(g):
             continue
-        if cap and n >= cap:
-            g.status(f"MainMenu: safety cap of {cap} iterations reached")
+        if cap and (stalls >= cap or closes >= max(cap, MAX_CLOSES)):
+            g.status(f"MainMenu: safety cap reached ({closes} closes, {stalls} without effect)")
             return False
 
 
