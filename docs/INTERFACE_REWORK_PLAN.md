@@ -124,5 +124,7 @@ Native inspection confirmed the compact layout using isolated callbacks, and the
 is closed. A cleanup regression also verifies that destroying Camp releases its refresh
 callback. The explicit development page override in `app.py` is unchanged.
 
-Delivery commit title: `Make Camp the compact startup overview`. Publish only the branch;
-do not create a release tag. Do not repeat the completed implementation on a later resume.
+Delivery commit title: `Make Camp the compact startup overview`, published as `a5af192`.
+The user subsequently authorized a release tag on 2026-09-10. Release `v0.3.17` includes
+the compact Camp and macOS overlay click-through fix since `v0.3.16`; both package version
+fields must match the tag. Do not repeat the completed implementation on a later resume.
