@@ -13,6 +13,8 @@ and reopens the rift between hits instead of waiting.
 
 from __future__ import annotations
 
+import time
+
 from firestone_bot import daily
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos_books import buy_books
@@ -27,6 +29,17 @@ def _hit_button_token(g: Game) -> str:
     if g.found(atlas.CHAOS_HIT_ICON_PAID):
         return "paid"
     return "none"
+
+
+def _wait_hit_ready(g: Game, timeout_ms: int = atlas.CHAOS_HIT_WAIT_MS) -> bool:
+    """Wait for the green Hit button: right after a hit it is grey for a few seconds."""
+    end = time.monotonic() + timeout_ms / 1000
+    while True:
+        if g.found(atlas.CHAOS_HIT_READY):
+            return True
+        if time.monotonic() >= end:
+            return False
+        g.sleep(500)
 
 
 def _open_rift(g: Game) -> None:
@@ -52,8 +65,27 @@ def hit_chaos(g: Game) -> None:
         if left == 0:
             g.status(f"Chaos rift: daily limit reached ({g.settings.MaxChaos}), leaving")
             break
-        if not g.found(atlas.CHAOS_HIT_READY):
-            g.status("Chaos rift: Hit button not ready, leaving")
+        if not _wait_hit_ready(g):
+            if _hit_button_token(g) != "free":
+                g.status("Chaos rift: Hit button not ready, leaving")
+                break
+            # A free token is loaded in the button but it never turns green: reopen the rift
+            # (which is what resolves a battle) and give it one more wait before blaming the
+            # game, so the animation of a hit just made is never taken for the bug.
+            g.status("Chaos rift: Hit button still grey, reopening the rift")
+            big_close(g)
+            _open_rift(g)
+            if _wait_hit_ready(g):
+                continue
+            if _hit_button_token(g) == "free":
+                g.status(
+                    "Chaos rift: a free token is loaded but the Hit button stays grey; this is "
+                    "the game bug that needs a restart"
+                )
+                g.save_diagnostic("chaos-hit-stuck.png")
+                g.vars["restart_requested"] = (
+                    "the chaos rift Hit button stayed grey with a free token loaded"
+                )
             break
         token = _hit_button_token(g)
         if token != "free":

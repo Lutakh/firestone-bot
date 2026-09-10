@@ -27,6 +27,19 @@ def find_game_process() -> psutil.Process | None:
     return None
 
 
+def game_uptime_s(proc: psutil.Process | None = None) -> float | None:
+    """Seconds since the game process started, None when it is not running or the start time
+    cannot be read. The restart schedule follows the game, not the bot: a bot started an hour
+    ago in front of a game running since yesterday must restart it (owner, 2026-09-10)."""
+    proc = proc or find_game_process()
+    if proc is None:
+        return None
+    try:
+        return max(0.0, time.time() - proc.create_time())
+    except (psutil.Error, OSError):
+        return None
+
+
 def exe_path(proc: psutil.Process | None = None) -> str:
     proc = proc or find_game_process()
     if proc is None:

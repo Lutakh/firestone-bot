@@ -707,6 +707,11 @@ CHAOS_AUTO = Point(1740, 980)  # :13 (Auto/Manual toggle; NOT used by the rework
 CHAOS_HIT = Point(960, 886)
 CHAOS_HIT_READY = Probe(850, 865, 1070, 905, GREEN_BUTTON, 3, "chaos_hit_ready")
 CHAOS_HIT_ICON_PAID = Probe(905, 911, 955, 951, 0xA54510, 12, "chaos_hit_icon_paid")
+# The Hit button is grey for a few seconds after a hit (the battle animation) and green
+# again once the rift is reopened. Staying grey with a free token loaded is a known game
+# bug that only a restart clears (owner, 2026-09-10): the button is waited for twice,
+# with a reopening in between, before that conclusion.
+CHAOS_HIT_WAIT_MS = 20000
 CHAOS_HIT_ICON_FREE = Probe(905, 911, 955, 951, 0x3182C6, 16, "chaos_hit_icon_free")
 # Rift shop (books), measured 2026-09-04: Shop button right column with its bell, Supplies
 # entry in the shop's left menu with its bell, green price button of the "Tome of power" card.

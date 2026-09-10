@@ -45,7 +45,7 @@ from firestone_bot.features import (
 from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.game import BotStopped, Game, ScreenNotReached
 from firestone_bot.inputguard import UserInterrupted
-from firestone_bot.platform import capture
+from firestone_bot.platform import capture, process
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas, layouts
 
@@ -194,6 +194,7 @@ class Runner:
         g, s = self.g, self.settings
         self._last_arena = 0
         self._last_restart = _ms()
+        self._last_request = 0
         self._restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
         while True:  # loop:
             try:
@@ -262,15 +263,46 @@ class Runner:
         if town:
             open_town.open_town(g)
 
+    REQUEST_COOLDOWN_MS = 15 * 60 * 1000  # a restart a feature asked for, at most this often
+
+    def _restart_request(self, g) -> str:
+        """The reason a feature gave for restarting the game, once per cooldown: a restart
+        that does not fix the problem must not turn into a restart loop."""
+        reason = g.vars.pop("restart_requested", "")
+        if not reason:
+            return ""
+        if self._last_request and _ms() - self._last_request < self.REQUEST_COOLDOWN_MS:
+            g.status(f"Game restart asked for again ({reason}); ignored, one just happened")
+            return ""
+        return reason
+
+    def _due(self, g) -> bool:
+        """Whether the game has been running for longer than RestartGameTime. The age of the
+        game process is used when it can be read, so a game left running before the bot
+        started is restarted on time (owner, 2026-09-10); otherwise the time since the last
+        restart the bot did, like the AHK bot."""
+        if self._restart_ms <= 0:
+            return False
+        uptime = process.game_uptime_s()
+        if uptime is None:
+            return _ms() - self._last_restart >= self._restart_ms
+        if uptime * 1000 < self._restart_ms:
+            return False
+        g.status(f"Game restart: the game has been running for {fmt_duration(uptime * 1000)}")
+        return True
+
     def _cycle(self) -> bool:
         """One pass of the AHK main loop. False = the bot stops."""
         g, s = self.g, self.settings
         cycle_start = _ms()
         g.vars["chests_opened"] = 0  # counted by open_chest_type, read by the exotic merchant
-        if s.flag("RestartGame") and (
-            s.flag("RestartGameTest") or _ms() - self._last_restart >= self._restart_ms
-        ):
-            g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
+        requested = self._restart_request(g)
+        if requested or (s.flag("RestartGame") and (s.flag("RestartGameTest") or self._due(g))):
+            if requested:
+                g.status(f"Game restart: {requested}")
+                self._last_request = _ms()
+            else:
+                g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
             g.heartbeat("Initiating 24h Game Restart", important=True)
             restart_game_routine.restart_game_routine(g)
             self._last_restart = _ms()
