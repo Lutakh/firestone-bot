@@ -65,16 +65,21 @@ def _guild_level_check(g: Game, final: bool = False) -> bool:
     guild features run as they always did."""
     if g.progress is None or not g.progress.need_guild_check():
         return True
+    gating = g.progress.gating_guild_check()
+    known = g.progress.guild_level
     level = None
-    for _ in range(GUILD_LEVEL_READ_TRIES):
+    for _ in range(GUILD_LEVEL_READ_TRIES if gating else 1):
         level = g.read_number(atlas.GUILD_LEVEL_REGION, last_word=True)
         if level is not None:
             break
         g.sleep(1000)
     g.progress.set_guild_level(level)
     if level is not None:
-        g.status(f"Guild level {level}")
+        if level != known:
+            g.status(f"Guild level {level}")
         return True
+    if not gating:
+        return True  # only a refresh for the dashboard: the guild visit goes on
     if final:
         g.status("Guild level: banner not readable (not in a guild?), guild features run as usual")
         _save_diagnostic(g, "guild-banner-miss.png")

@@ -153,10 +153,13 @@ class Runner:
             g.progress = Progress.load(os.path.join(folder, "progress.json"))
         if not g.progress.need_account_check():
             return
+        gating = g.progress.gating_account_check()
         # A closing dialog (the settings window of the main-menu check), a toast or the end
-        # of the last cycle's animation can still cover the avatar: read again for 2 s.
+        # of the last cycle's animation can still cover the avatar: read again for 2 s. Once
+        # everything is unlocked the read only feeds the dashboard: one try, and a miss is
+        # left for the next refresh.
         level = None
-        for attempt in range(5):
+        for attempt in range(5 if gating else 1):
             if attempt:
                 g.sleep(500)
             level = g.read_number(atlas.ACCOUNT_LEVEL_REGION)
@@ -165,8 +168,11 @@ class Runner:
         known = g.progress.account_level
         g.progress.set_account_level(level)
         if level is not None:
-            g.status(f"Account level {level}")
+            if level != known:
+                g.status(f"Account level {level}")
             return
+        if not gating:
+            return  # nothing depends on it any more, the next refresh will read it
         self._save_level_diagnostic()
         if known is None:
             g.status("Account level: not readable on the avatar, no feature is skipped")

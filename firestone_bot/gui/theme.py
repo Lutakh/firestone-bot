@@ -10,6 +10,9 @@ import sys
 import tkinter as tk
 
 SKIN_NAMES = ("Fieldbook", "Retro", "Futuristic")
+# what a window with nothing saved in gui_state.json opens with (owner, 2026-09-10);
+# a skin the user picked is stored there and wins
+DEFAULT_SKIN = "Futuristic"
 FONT_FAMILY = "Helvetica" if sys.platform == "darwin" else "Segoe UI"
 MONO_FAMILY = "Menlo" if sys.platform == "darwin" else "Consolas"
 
@@ -104,7 +107,7 @@ NEUTRAL: tuple[str, str] = _PALETTES["Fieldbook"]["NEUTRAL"]
 DISPLAY_FAMILY: str = _PALETTES["Fieldbook"]["DISPLAY_FAMILY"]
 RADIUS: int = _PALETTES["Fieldbook"]["RADIUS"]
 
-_skin = "Fieldbook"
+_skin = DEFAULT_SKIN
 _fonts: dict[tuple[str, int, str], object] = {}
 _font_root = None
 

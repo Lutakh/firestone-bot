@@ -27,6 +27,10 @@ log = logging.getLogger("firestone_bot.progress")
 
 ALL_UNLOCKED_LEVEL = 200
 GUILD_ALL_LEVEL = 5
+# Once everything is unlocked the levels gate nothing, but the dashboard still shows them:
+# they are read again this often so the numbers do not date from another day (owner,
+# 2026-09-10). A refresh that fails is not worth a diagnostic capture (see gating_*).
+REFRESH_S = 600.0
 
 # feature -> account level (from the game's unlock popups, 2026-09-06)
 ACCOUNT_LEVELS = {
@@ -88,11 +92,22 @@ class Progress:
             log.exception("cannot write %s", path)
 
     # -- updates ----------------------------------------------------------------------------
-    def need_account_check(self) -> bool:
+    def gating_account_check(self) -> bool:
+        """Whether the account level still decides what the bot may do."""
         return self.account_level is None or self.account_level < ALL_UNLOCKED_LEVEL
 
-    def need_guild_check(self) -> bool:
+    def gating_guild_check(self) -> bool:
         return self.guild_level is None or self.guild_level < GUILD_ALL_LEVEL
+
+    def need_account_check(self, now: float | None = None) -> bool:
+        if self.gating_account_check():
+            return True
+        return (now or time.time()) - self.account_read_at >= REFRESH_S
+
+    def need_guild_check(self, now: float | None = None) -> bool:
+        if self.gating_guild_check():
+            return True
+        return (now or time.time()) - self.guild_read_at >= REFRESH_S
 
     def set_account_level(self, level: int | None) -> None:
         self.account_read_at = time.time()

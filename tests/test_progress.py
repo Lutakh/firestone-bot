@@ -64,3 +64,25 @@ def test_locked_short_forms():
     p.account_level = 60
     assert p.locked_short("guild_crystal") == "guild level 5"
     assert p.locked_short("arena") is None
+
+
+def test_levels_are_read_again_for_the_dashboard_once_everything_is_unlocked():
+    import time as _time
+
+    from firestone_bot.progress import REFRESH_S, Progress
+
+    p = Progress(account_level=684, guild_level=150)
+    p.account_read_at = p.guild_read_at = _time.time()
+    assert p.gating_account_check() is False and p.gating_guild_check() is False
+    assert p.need_account_check() is False and p.need_guild_check() is False
+    old = _time.time() - REFRESH_S - 1
+    p.account_read_at = p.guild_read_at = old
+    assert p.need_account_check() is True and p.need_guild_check() is True
+
+
+def test_a_level_below_the_unlock_threshold_is_always_read():
+    from firestone_bot.progress import Progress
+
+    p = Progress(account_level=120, guild_level=2)
+    p.account_read_at = p.guild_read_at = 10**12  # far in the future: no refresh due
+    assert p.need_account_check() is True and p.need_guild_check() is True

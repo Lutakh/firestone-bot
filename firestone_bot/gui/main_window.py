@@ -105,8 +105,8 @@ class MainWindow:
 
         appearance = str(self.gui_state.get("appearance") or "light")
         ctk.set_appearance_mode(appearance)
-        saved_skin = str(self.gui_state.get("skin") or "Fieldbook")
-        theme.set_skin(saved_skin if saved_skin in theme.SKIN_NAMES else "Fieldbook")
+        saved_skin = str(self.gui_state.get("skin") or theme.DEFAULT_SKIN)
+        theme.set_skin(saved_skin if saved_skin in theme.SKIN_NAMES else theme.DEFAULT_SKIN)
         self.root = ctk.CTk()
         self.root.report_callback_exception = lambda exc, val, tb: log.error(
             "Tk callback failed", exc_info=(exc, val, tb)
