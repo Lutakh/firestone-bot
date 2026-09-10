@@ -108,6 +108,25 @@ class GameOverlay:
             self.top.lift()
         except tk.TclError:
             pass
+        self._reassert_click_through()
+
+    def _reassert_click_through(self) -> None:
+        """macOS: Tk clears NSWindow.ignoresMouseEvents each time it maps the window, so the
+        flag set once in `_build` was already gone when the panel was first shown: the app
+        trusted `click_through`, did not hide the panel, and the click on the Events button
+        under it activated the bot and raised its window instead (owner, 2026-09-10). The
+        flag is set again after every show, and `click_through` reports what the window
+        really says, so the app falls back to hiding the panel if it does not stick."""
+        if sys.platform != "darwin" or not self.capture_safe or self.top is None:
+            return
+        try:
+            self.top.update_idletasks()
+            self.click_through = _macos_click_through(self.top)
+        except Exception:
+            log.exception("overlay: could not re-assert click-through")
+            self.click_through = False
+        if not self.click_through:
+            log.info("overlay: click-through did not stick, the panel will be hidden for clicks")
 
     def hide(self) -> None:
         self.visible = False
@@ -189,6 +208,7 @@ class GameOverlay:
             self._hidden_until = None
             if self.visible and self.top is not None:
                 self.top.deiconify()
+                self._reassert_click_through()
 
         self._hidden_until = self.top.after(ms, back)
 
@@ -248,6 +268,28 @@ def _setup_macos(top: tk.Toplevel) -> bool:
     )
     win.setSharingType_(AppKit.NSWindowSharingNone)  # left out of CGWindowListCreateImage
     return True
+
+
+def _macos_nswindow(top: tk.Toplevel):
+    import AppKit
+
+    for w in AppKit.NSApplication.sharedApplication().windows():
+        if str(w.title()) == OVERLAY_TITLE:
+            return w
+    return None
+
+
+def _macos_click_through(top: tk.Toplevel) -> bool:
+    """Set the click-through (and capture exclusion) flags again and report whether the window
+    really ignores the mouse now."""
+    import AppKit
+
+    win = _macos_nswindow(top)
+    if win is None:
+        return False
+    win.setIgnoresMouseEvents_(True)
+    win.setSharingType_(AppKit.NSWindowSharingNone)
+    return bool(win.ignoresMouseEvents())
 
 
 def _setup_linux(top: tk.Toplevel) -> bool:
