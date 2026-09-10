@@ -107,6 +107,15 @@ def test_camp_values_fit_without_scrolling(camp_window, skin, geometry):
             ),
             encoding="utf-8",
         )
+        window.game_runtime = {
+            "game_uptime_s": None if missing else 98765,
+            "game_running": not missing,
+            "restart_elapsed_s": 999,
+            "restart_source": "bot" if missing else "game",
+            "restart_interval_s": 86400,
+            "restart_enabled": True,
+            "observed_at": time.monotonic(),
+        }
         view.refresh_today()
         environment = {**ENVIRONMENT}
         if missing:

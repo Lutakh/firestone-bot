@@ -326,7 +326,7 @@ retained, and switching skins keeps the current page open.
 | Page | What lives there |
 |---|---|
 | Camp | Compact overview of session state and activity, last completed cycle, daily quotas, account/guild levels, environment checks and persistent cycle statistics |
-| Automations | Searchable action library with Collect, Develop, Expeditions and Trade filters; one settings editor at a time, related actions and actual availability rules |
+| Automations | Action library with Collect, Develop, Expeditions and Trade filters; one settings editor at a time, related actions and actual availability rules |
 | Journal | Real activity log, follow latest, copy all, clear view and open log file; the buffer survives skin changes |
 | Workshop | Run behavior, game setup/restart, input, heartbeat, legacy compatibility, files/import, appearance, daily counters, cycle statistics, updates and help |
 
@@ -336,6 +336,18 @@ map missions, campaign, guild visits, chaos, crystal, arena, scarab, tavern and 
 The map editor includes icon/shortcut opening and the configurable shortcut key.
 Settings belonging to a disabled parent remain saved. Legacy talent values are read-only.
 
+- **Search launcher**: the shared field above Camp Session finds settings, actions, live
+  counters and help across every page. Search by name, INI key or related words: `update`
+  brings up **Check for updates now** in Workshop. Selecting a result opens the page,
+  scrolls to its control and briefly highlights it; commands still require a click.
+  Ctrl+K focuses search, Up/Down select a result, Enter opens it and Esc closes results.
+- **Game uptime** (Camp > Game checks): the age of the running game process, refreshed
+  every five seconds while idle or running, with a ticking display between observations.
+  The restart status uses that same age and the running bot's cached restart interval.
+  If process age is unreadable, the actual bot fallback timer is identified separately;
+  a stopped bot never reuses a previous run's timer. Missing or stale readings are labeled.
+  Restart thresholds are checked at the next cycle, so reaching one does not interrupt
+  an action in progress.
 - **Auto-save**: every change is written into the live settings object immediately (the bot
   reads it at call time) and `settings.ini` is saved 750 ms later; the status strip shows
   `Saved HH:MM:SS`. While the bot runs the save is deferred (`Change active, saved when the
@@ -371,7 +383,7 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
 - Journal shows the bot's log stream (`firestone-bot.log` at INFO level); status
   lines posted without a log entry are added to it too.
 - Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,
-  Ctrl+1..4 switch pages, Ctrl+5 opens Skin, Ctrl+Q exits.
+  Ctrl+1..4 switch pages, Ctrl+5 opens Skin, Ctrl+K focuses search, Ctrl+Q exits.
 
 ## Tools
 

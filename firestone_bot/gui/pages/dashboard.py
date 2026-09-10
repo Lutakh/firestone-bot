@@ -7,6 +7,7 @@ push state into it from `_tick`.
 from __future__ import annotations
 
 import os
+import time
 
 import customtkinter as ctk
 
@@ -14,6 +15,7 @@ from firestone_bot import daily
 from firestone_bot.gui import theme
 from firestone_bot.gui.catalog import format_ahk_stamp
 from firestone_bot.gui.context import PageContext
+from firestone_bot.gui.runtime_text import runtime_text
 from firestone_bot.gui.widgets import (
     Banner,
     Meter,
@@ -72,12 +74,12 @@ class _CampPanel(ctk.CTkFrame):
         )
         self.grid_columnconfigure(0, weight=1)
         self.header = ctk.CTkFrame(self, fg_color="transparent")
-        self.header.grid(row=0, column=0, sticky="ew", padx=12, pady=(6, 2))
+        self.header.grid(row=0, column=0, sticky="ew", padx=12, pady=(4, 2))
         ctk.CTkLabel(
-            self.header, text=title, height=24, font=theme.heading(19), text_color=theme.TEXT
+            self.header, text=title, height=22, font=theme.heading(19), text_color=theme.TEXT
         ).grid(row=0, column=0, sticky="w")
         self.body = ctk.CTkFrame(self, fg_color="transparent")
-        self.body.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
+        self.body.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 4))
 
 
 def _note(parent, text: str) -> ctk.CTkLabel:
@@ -92,14 +94,23 @@ def _note(parent, text: str) -> ctk.CTkLabel:
     )
 
 
-def _metric(parent, column: int, title: str, width: int = 142) -> ctk.CTkLabel:
+def _metric(parent, column: int, title: str, width: int = 142, *, inline=False) -> ctk.CTkLabel:
     block = ctk.CTkFrame(parent, fg_color="transparent", width=width)
     block.grid(row=0, column=column, sticky="ew", padx=(6, 0))
-    ctk.CTkLabel(block, text=title, height=18, font=theme.font(12), text_color=theme.MUTED).pack(
-        anchor="w"
+    label = ctk.CTkLabel(block, text=title, height=18, font=theme.font(12), text_color=theme.MUTED)
+    value = ctk.CTkLabel(
+        block,
+        text="—",
+        height=22 if inline else 26,
+        font=theme.heading(18 if inline else 22),
+        text_color=theme.TEXT,
     )
-    value = ctk.CTkLabel(block, text="—", height=26, font=theme.heading(22), text_color=theme.TEXT)
-    value.pack(anchor="w")
+    if inline:
+        label.pack(side="left")
+        value.pack(side="left", padx=(6, 0))
+    else:
+        label.pack(anchor="w")
+        value.pack(anchor="w")
     return value
 
 
@@ -129,12 +140,12 @@ class DashboardView:
         self.frame = ctk.CTkFrame(parent, fg_color="transparent")
         self.frame.grid_columnconfigure(0, weight=1)
         content = ctk.CTkFrame(self.frame, fg_color="transparent")
-        content.grid(row=0, column=0, sticky="new", padx=18, pady=8)
+        content.grid(row=0, column=0, sticky="new", padx=18, pady=4)
         content.grid_columnconfigure(0, weight=1)
         self.sections = {}
 
         session = self.sections["session"] = _CampPanel(content, "Camp · Session")
-        session.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        session.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         self.pill = StatePill(session.header)
         self.pill.widget.grid(row=0, column=1, padx=(10, 0))
         session.header.grid_columnconfigure(2, weight=1)
@@ -193,12 +204,20 @@ class DashboardView:
         self.window_banner.set_visible(False)
 
         details = ctk.CTkFrame(content, fg_color="transparent")
-        details.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        details.grid(row=1, column=0, sticky="ew", pady=(0, 6))
         details.grid_columnconfigure(0, weight=3, uniform="camp_details")
         details.grid_columnconfigure(1, weight=2, uniform="camp_details")
         environment = self.sections["environment"] = _CampPanel(details, "Game checks")
         environment.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         environment.header.grid_columnconfigure(1, weight=1)
+        self.runtime_value = ctk.CTkLabel(
+            environment.header,
+            text="Game uptime: not checked",
+            height=22,
+            text_color=theme.TEXT,
+            font=theme.font(12),
+        )
+        self.runtime_value.grid(row=0, column=1, padx=6)
         self.recheck_btn = ctk.CTkButton(
             environment.header,
             text="Re-check (F5)",
@@ -207,7 +226,7 @@ class DashboardView:
             height=26,
             font=theme.font(12),
         )
-        self.recheck_btn.grid(row=0, column=1, sticky="e")
+        self.recheck_btn.grid(row=0, column=2, sticky="e")
         grid = environment.body
         grid.grid_columnconfigure(2, weight=1)
         self.env_dots: dict[str, StatusDot] = {}
@@ -232,8 +251,13 @@ class DashboardView:
             value.grid(row=i, column=2, sticky="ew")
             self.env_dots[key], self.env_values[key] = dot, value
         autowrap(grid, list(self.env_values.values()), offset=108)
+        self.restart_value = _note(grid, "Restart timing: not checked")
+        self.restart_value.grid(row=len(ENV_ROWS), column=0, columnspan=3, sticky="ew", pady=(2, 0))
+        autowrap(grid, [self.restart_value], offset=4)
         self.env_footer = _note(grid, "Not checked yet")
-        self.env_footer.grid(row=len(ENV_ROWS), column=0, columnspan=3, sticky="ew", pady=(6, 0))
+        self.env_footer.grid(
+            row=len(ENV_ROWS) + 1, column=0, columnspan=3, sticky="ew", pady=(2, 0)
+        )
         autowrap(grid, [self.env_footer], offset=4)
 
         today = self.sections["today"] = _CampPanel(details, "Daily limits")
@@ -279,30 +303,22 @@ class DashboardView:
         account = self.sections["account"] = _CampPanel(totals, "Account & guild")
         account.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.level_values = {}
-        for i, (key, label) in enumerate(
-            (("account_level", "Account level"), ("guild_level", "Guild level"))
-        ):
+        for i, (key, label) in enumerate((("account_level", "Account"), ("guild_level", "Guild"))):
             account.body.grid_columnconfigure(i, weight=1, uniform="levels")
-            self.level_values[key] = _metric(account.body, i, label, width=80)
-        explanation = _note(account.body, "Read during visits; — means not read yet.")
-        explanation.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-        autowrap(account.body, [explanation], offset=4)
+            self.level_values[key] = _metric(account.body, i, label, width=80, inline=True)
         statistics = self.sections["statistics"] = _CampPanel(totals, "All-time cycle statistics")
         statistics.grid(row=0, column=1, sticky="nsew")
         self.stat_values = {}
         for index, (key, label) in enumerate(
             (
-                ("cycles", "Completed cycles"),
-                ("last", "Last cycle"),
-                ("average", "Average cycle"),
-                ("total", "Total cycle time"),
+                ("cycles", "Cycles"),
+                ("last", "Last"),
+                ("average", "Average"),
+                ("total", "Total time"),
             )
         ):
             statistics.body.grid_columnconfigure(index, weight=1, uniform="statistics")
-            self.stat_values[key] = _metric(statistics.body, index, label, width=100)
-        _note(statistics.body, "Recorded by the bot; saved between launches.").grid(
-            row=1, column=0, columnspan=4, sticky="w", pady=(4, 0)
-        )
+            self.stat_values[key] = _metric(statistics.body, index, label, width=100, inline=True)
         self.refresh_today()
         unsubscribe = ctx.register_tick(self.refresh_today)
         if unsubscribe:
@@ -363,6 +379,7 @@ class DashboardView:
 
     # -- today --------------------------------------------------------------------------------
     def refresh_today(self) -> None:
+        self.refresh_runtime()
         s = self.ctx.settings
         progress = _load_progress(os.path.join(self.ctx.base_dir, "progress.json"))
         self.meter_tokens.set(daily._int(s, "TokenCountDaily"), daily._int(s, "MaxTokens"))
@@ -399,6 +416,16 @@ class DashboardView:
         text = f"Last daily reset: {reset}"
         if self.reset_label.cget("text") != text:
             self.reset_label.configure(text=text)
+
+    def refresh_runtime(self) -> None:
+        snapshot = getattr(self.ctx.window, "game_runtime", {})
+        uptime, restart = runtime_text(snapshot, time.monotonic())
+        for label, text in (
+            (self.runtime_value, f"Game uptime: {uptime}"),
+            (self.restart_value, restart),
+        ):
+            if label.cget("text") != text:
+                label.configure(text=text)
 
     @property
     def _lines(self):

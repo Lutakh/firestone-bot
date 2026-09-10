@@ -38,14 +38,15 @@ class JournalView:
         toolbar = ctk.CTkFrame(self.frame, fg_color="transparent")
         toolbar.grid(row=2, column=0, sticky="ew", padx=28, pady=(0, 12))
         toolbar.grid_columnconfigure(4, weight=1)
-        for index, (label, command) in enumerate(
+        self.actions = {}
+        for index, (key, label, command) in enumerate(
             (
-                ("Copy all", self.copy_log),
-                ("Open log file", lambda: ctx.call("open_log")),
-                ("Clear view", self.clear_log),
+                ("copy", "Copy all", self.copy_log),
+                ("open_log", "Open log file", lambda: ctx.call("open_log")),
+                ("clear", "Clear view", self.clear_log),
             )
         ):
-            ctk.CTkButton(
+            button = ctk.CTkButton(
                 toolbar,
                 text=label,
                 command=command,
@@ -56,7 +57,9 @@ class JournalView:
                 border_width=1,
                 border_color=theme.BORDER,
                 hover_color=theme.SURFACE_ALT,
-            ).grid(row=0, column=index, padx=(0, 8))
+            )
+            button.grid(row=0, column=index, padx=(0, 8))
+            self.actions[key] = button
         self.follow_btn = ctk.CTkButton(
             toolbar,
             text="Follow latest",
@@ -65,6 +68,7 @@ class JournalView:
             width=116,
         )
         self.follow_btn.grid(row=0, column=3)
+        self.actions["follow"] = self.follow_btn
         self.count_label = ctk.CTkLabel(
             toolbar,
             text="",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import shutil
 import subprocess
@@ -45,6 +46,7 @@ class App:
             is_running=lambda: self.runner is not None and self.runner.running,
             base_dir=self.base,
         )
+        self.window.on_game_runtime = self.game_runtime_snapshot
         self._hotkey_listener = None
         self._guard = None  # inputguard.InputGuard, created in _late_init
         self._overlay = None
@@ -61,6 +63,56 @@ class App:
             self.window.show_page(page)
         if look := os.environ.get("FIRESTONE_GUI_APPEARANCE"):
             self.window.set_appearance(look)
+
+    def game_runtime_snapshot(self) -> dict:
+        """Read process age and the restart clock without focusing or changing the game.
+
+        The running bot caches its restart interval at the start of a run. Its fallback
+        clock is meaningful only during that run; an idle application must not present
+        time since an old bot restart as the game's age.
+        """
+        import psutil
+
+        from firestone_bot.platform import process
+
+        uptime = None
+        game_running = None
+        try:
+            game_process = process.find_game_process()
+            game_running = game_process is not None
+            if game_process is not None:
+                uptime = process.game_uptime_s(game_process)
+        except (psutil.Error, OSError):
+            log.debug("game runtime could not be read", exc_info=True)
+        observed_at = time.monotonic()
+        runner = self.runner
+        if runner is not None and runner.running:
+            timing = runner.restart_timing_snapshot(uptime, observed_at)
+        else:
+            try:
+                interval = float(self.settings.get("RestartGameTime") or 0) * 3600
+            except (ValueError, TypeError):
+                interval = None
+            timing = {
+                "restart_elapsed_s": uptime,
+                "restart_interval_s": interval,
+                "restart_source": "game" if uptime is not None else "unavailable",
+            }
+        # Invalid legacy values remain untouched and are displayed as unavailable.
+        for key in ("restart_elapsed_s", "restart_interval_s"):
+            value = timing[key]
+            if value is not None and not math.isfinite(value):
+                timing[key] = None
+        if timing["restart_elapsed_s"] is None:
+            timing["restart_source"] = "unavailable"
+        return {
+            "game_uptime_s": uptime,
+            "game_running": game_running,
+            "restart_enabled": self.settings.flag("RestartGame"),
+            "restart_test": self.settings.flag("RestartGameTest"),
+            "observed_at": observed_at,
+            **timing,
+        }
 
     # -- startup --------------------------------------------------------------------------
     @staticmethod

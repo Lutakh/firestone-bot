@@ -1,9 +1,8 @@
-"""Searchable automation library with one live settings editor at a time."""
+"""Automation library with one live settings editor and global-search destinations."""
 
 from __future__ import annotations
 
 import os
-import tkinter as tk
 from collections.abc import Callable
 
 import customtkinter as ctk
@@ -35,11 +34,11 @@ from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.widgets import (
     Card,
     CheckGrid,
-    Entry,
     OrderedList,
     RadioGroup,
     ScrollableFrame,
     bind_platform_wheel,
+    reveal_widget,
 )
 from firestone_bot.progress import Progress
 from firestone_bot.settings import SETTINGS_MAP
@@ -314,7 +313,8 @@ class AutomationsPage(ctk.CTkFrame):
         self.selected = selected if selected in {g.id for g in AUTOMATIONS} else "alchemy"
         category = self.state.get("automation_category", "Develop")
         self.category = category if category in CATEGORIES else "All"
-        self.query = tk.StringVar(master=self, value=str(self.state.get("automation_query", "")))
+        # Older versions saved a local query; it must not become an invisible filter.
+        self.state.pop("automation_query", None)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
         heading = ctk.CTkFrame(self, fg_color="transparent")
@@ -334,22 +334,6 @@ class AutomationsPage(ctk.CTkFrame):
             text_color=theme.MUTED,
             anchor="w",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
-        searchbar = ctk.CTkFrame(heading, fg_color="transparent")
-        searchbar.grid(row=2, column=0, sticky="ew", pady=(14, 0))
-        searchbar.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(searchbar, text="Search", text_color=theme.MUTED, font=theme.font(13)).grid(
-            row=0, column=0, padx=(0, 12)
-        )
-        search = Entry(
-            searchbar,
-            textvariable=self.query,
-            placeholder_text="Search automations or settings…",
-            width=265,
-            height=36,
-            font=theme.font(13),
-        )
-        search.grid(row=0, column=1, sticky="ew")
-        self.search_entry = search
         filters = ctk.CTkFrame(self, fg_color="transparent")
         filters.grid(row=1, column=0, sticky="ew", padx=28, pady=(0, 12))
         self.filter_buttons = {}
@@ -401,7 +385,7 @@ class AutomationsPage(ctk.CTkFrame):
             self.group_buttons[group.id] = button
         self.empty_label = ctk.CTkLabel(
             self.library,
-            text="No matching automations.\nTry another search or category.",
+            text="No automations in this category.",
             text_color=theme.MUTED,
             font=theme.font(12),
             justify="left",
@@ -422,7 +406,6 @@ class AutomationsPage(ctk.CTkFrame):
             for key in group.keys:
                 var = ctx.binder.var(key, key in INVERTED_KEYS)
                 self._traces.append((var, var.trace_add("write", self._queue_refresh)))
-        self._traces.append((self.query, self.query.trace_add("write", self._search_changed)))
         cleanup = ctx.register_tick(self.refresh)
         if callable(cleanup):
             self._unsubscribers.append(cleanup)
@@ -431,10 +414,6 @@ class AutomationsPage(ctk.CTkFrame):
             self._unsubscribers.append(cleanup)
         ctx.extras["automations"] = self
         self.refresh()
-        self._filter()
-
-    def _search_changed(self, *_):
-        self.state["automation_query"] = self.query.get()
         self._filter()
 
     def set_category(self, category: str) -> None:
@@ -449,7 +428,7 @@ class AutomationsPage(ctk.CTkFrame):
         visible = []
         for group in AUTOMATIONS:
             button = self.group_buttons[group.id]
-            if matches_group(group, self.query.get(), self.category):
+            if matches_group(group, "", self.category):
                 button.grid()
                 visible.append(group.id)
             else:
@@ -478,11 +457,10 @@ class AutomationsPage(ctk.CTkFrame):
     def open_group(self, group_id: str, reveal: bool = True) -> None:
         if group_id not in self.group_buttons:
             return
-        if reveal and not matches_group(GROUPS_BY_ID[group_id], self.query.get(), self.category):
+        if reveal and not matches_group(GROUPS_BY_ID[group_id], "", self.category):
             self.selected = group_id
             self.category = "All"
             self.state["automation_category"] = self.category
-            self.query.set("")
             self._filter()
         previous = self.selected
         self.selected = group_id
@@ -507,6 +485,49 @@ class AutomationsPage(ctk.CTkFrame):
             if self._reveal_after is not None:
                 self.after_cancel(self._reveal_after)
             self._reveal_after = self.after(25, self._reveal_selected)
+
+    def reveal_target(self, key: str) -> bool:
+        """Reveal an option or button without changing a value or running its command."""
+        group = next((group for group in AUTOMATIONS if key in group.keys), None)
+        if group is None:
+            if key in self.group_buttons:
+                self.open_group(key)
+                reveal_widget(self.inspector, self.editors[key])
+                return True
+            if key == "reset_category_order":
+                self.open_group("map")
+                reveal_widget(self.inspector, self.editors["map"].reset_order_button)
+                return True
+            composite_name, separator, action = key.rpartition(":")
+            if separator and action in ("all", "none"):
+                group_id = "heroes" if composite_name == "heroes" else "tree"
+                self.open_group(group_id)
+                composite = self.editors[group_id].composites.get(composite_name)
+                if composite and isinstance(composite[0], CheckGrid):
+                    link = next(
+                        link.widget
+                        for link in composite[0].links
+                        if link.widget.cget("text").casefold() == action
+                    )
+                    reveal_widget(self.inspector, link)
+                    return True
+            return False
+        self.open_group(group.id)
+        editor = self.editors[group.id]
+        if key in editor.rows:
+            target = editor.rows[key].widget
+        else:
+            composite, keys = next(
+                (control, keys) for control, keys in editor.composites.values() if key in keys
+            )
+            if isinstance(composite, CheckGrid):
+                target = composite.checks[keys.index(key)].widget
+            elif isinstance(composite, OrderedList):
+                target = composite.labels[keys.index(key)] if composite.keys else composite.widget
+            else:
+                target = composite.control.buttons[keys.index(key)]
+        reveal_widget(self.inspector, target)
+        return True
 
     def _reveal_selected(self) -> None:
         """Keep a linked editor's selected entry visible in the action library."""

@@ -146,6 +146,68 @@ class OptionMenu(ctk.CTkOptionMenu):
         super()._draw(no_color_updates)
 
 
+def reveal_widget(scrollable, target) -> None:
+    """Reveal and briefly mark a search destination without activating its control.
+
+    Pass None for a fixed page or toolbar. A new request cancels the previous
+    reveal on that target, and callbacks are released with its native widget.
+    """
+    state = getattr(target, "_search_reveal", None)
+    if state is None:
+        state = {"after": None, "restore": None, "original": None, "alive": True}
+        target._search_reveal = state
+
+        def dispose():
+            state["alive"] = False
+            for key in ("after", "restore"):
+                if state[key] is not None:
+                    target.after_cancel(state[key])
+                    state[key] = None
+
+        register_cleanup(target, dispose)
+    for key in ("after", "restore"):
+        if state[key] is not None:
+            target.after_cancel(state[key])
+            state[key] = None
+
+    def restore():
+        state["restore"] = None
+        if state["alive"] and state["original"]:
+            target.configure(**state["original"])
+            state["original"] = None
+
+    def reveal():
+        state["after"] = None
+        if not state["alive"] or not target.winfo_ismapped():
+            restore()
+            return
+        if scrollable is not None:
+            canvas = scrollable._parent_canvas
+            region = canvas.cget("scrollregion")
+            if region:
+                _left, top, _right, bottom = (float(v) for v in canvas.tk.splitlist(region))
+                y = target.winfo_rooty() - canvas.winfo_rooty() + canvas.canvasy(0)
+                height = max(1, bottom - top)
+                canvas.yview_moveto(max(0, (y - top - 12) / height))
+        target.focus_set()
+        try:
+            if state["original"] is None:
+                state["original"] = {
+                    "border_color": target.cget("border_color"),
+                    "border_width": target.cget("border_width"),
+                }
+            target.configure(border_color=theme.ACCENT, border_width=2)
+        except (ValueError, tk.TclError):
+            # Labels have no border options; keep their original foreground for contrast.
+            if state["original"] is None:
+                state["original"] = {"fg_color": target.cget("fg_color")}
+            target.configure(fg_color=theme.SURFACE_ALT)
+        state["restore"] = target.after(1600, restore)
+
+    # Wait for the page's wrapping and scrolling geometry to settle after navigation.
+    state["after"] = target.after(180, reveal)
+
+
 def bind_platform_wheel(scrollable: ctk.CTkScrollableFrame) -> None:
     """Add X11 wheel buttons and correctly scaled macOS/Tk 9 scrolling."""
     if getattr(scrollable, "_fieldbook_wheel_bound", False):

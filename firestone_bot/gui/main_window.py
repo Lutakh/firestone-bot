@@ -26,9 +26,18 @@ from firestone_bot import __version__
 from firestone_bot.gui import theme
 from firestone_bot.gui.binding import Binder
 from firestone_bot.gui.context import PageContext
+from firestone_bot.gui.global_search import LauncherSearch
 from firestone_bot.gui.logging_bridge import QueueLogHandler
 from firestone_bot.gui.pages import PAGE_ORDER, PAGE_TITLES, build
-from firestone_bot.gui.widgets import OptionMenu, StatePill, StatusDot, apply_window_icon, autowrap
+from firestone_bot.gui.search_catalog import SearchResult
+from firestone_bot.gui.widgets import (
+    OptionMenu,
+    StatePill,
+    StatusDot,
+    apply_window_icon,
+    autowrap,
+    reveal_widget,
+)
 from firestone_bot.platform import capture
 from firestone_bot.settings import Settings
 
@@ -39,6 +48,7 @@ MIN_SIZE = (980, 680)
 MAX_LOG_LINES = 2000
 SELFTEST_PERIOD = 30.0
 SELFTEST_TIMEOUT = 10.0
+GAME_RUNTIME_PERIOD = 5.0
 APPEARANCES = ["System", "Light", "Dark"]
 
 # bot state -> (pill text, colour kind)
@@ -82,6 +92,10 @@ class MainWindow:
         self.on_start, self.on_stop, self.on_dry_run = on_start, on_stop, on_dry_run
         self.on_self_test, self.on_exit = on_self_test, on_exit
         self.on_env_restored = None  # set by the app: raise the window after a restore
+        self.on_game_runtime: Callable[[], dict] | None = None
+        self.game_runtime: dict = {}
+        self._runtime_inflight = False
+        self._last_runtime_poll = 0.0
         self.is_running = is_running
         self.base_dir = base_dir or os.getcwd()
         self.state_path = os.path.join(self.base_dir, "gui_state.json")
@@ -211,11 +225,13 @@ class MainWindow:
         self.shell = ctk.CTkFrame(self.root, fg_color=theme.PAPER, corner_radius=0)
         self.shell.grid(row=0, column=0, sticky="nsew")
         self.shell.grid_columnconfigure(0, weight=1)
-        self.shell.grid_rowconfigure(2, weight=1)
+        self.shell.grid_rowconfigure(3, weight=1)
         self._build_header()
         self._build_top_banner()
+        self.search = LauncherSearch(self.shell, on_select=self.open_search_result)
+        self.search.grid(row=2, column=0, sticky="ew", padx=18, pady=(4, 0))
         self.content = ctk.CTkFrame(self.shell, fg_color=theme.PAPER, corner_radius=0)
-        self.content.grid(row=2, column=0, sticky="nsew")
+        self.content.grid(row=3, column=0, sticky="nsew")
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
         self._build_commands()
@@ -285,7 +301,7 @@ class MainWindow:
 
     def _build_commands(self) -> None:
         dock = ctk.CTkFrame(self.shell, fg_color=theme.SURFACE_ALT, corner_radius=0)
-        dock.grid(row=3, column=0, sticky="ew")
+        dock.grid(row=4, column=0, sticky="ew")
         dock.grid_columnconfigure(0, weight=1)
         state = ctk.CTkFrame(dock, fg_color="transparent")
         state.grid(row=0, column=0, sticky="w", padx=26, pady=12)
@@ -405,7 +421,7 @@ class MainWindow:
 
     def _build_status_strip(self) -> None:
         strip = ctk.CTkFrame(self.shell, corner_radius=0, fg_color=theme.PAPER)
-        strip.grid(row=4, column=0, sticky="ew")
+        strip.grid(row=5, column=0, sticky="ew")
         strip.grid_columnconfigure(1, weight=1)
         self.strip_dot = StatusDot(strip, "grey")
         self.strip_dot.widget.grid(row=0, column=0, padx=(24, 0), pady=7)
@@ -426,9 +442,11 @@ class MainWindow:
         self.root.bind_all("<F5>", lambda _e: self.refresh_status())
         self.root.bind_all("<Control-q>", lambda _e: self.request_exit())
         self.root.bind_all("<Control-Key-5>", lambda _e: self.skin_menu._open_dropdown_menu())
+        self.root.bind_all("<Control-k>", lambda _e: self.search.focus_search())
 
     # -- pages --------------------------------------------------------------------------------
     def show_page(self, name: str) -> None:
+        self.search.close_results()
         legacy = name
         name = {
             "dashboard": "camp",
@@ -484,6 +502,40 @@ class MainWindow:
         view = self.ctx.extras.get("workshop")
         if view:
             view.open_section(section)
+
+    def open_search_result(self, result: SearchResult) -> None:
+        """Navigate to the actual control; searching must never run its action."""
+        self.search.close_results()
+        if result.page == "automations":
+            self.open_automation(result.section)
+            if result.key:
+                self.ctx.extras["automations"].reveal_target(result.key)
+        elif result.page == "workshop":
+            self.open_workshop(result.section)
+            if result.key:
+                self.ctx.extras["workshop"].reveal_target(result.key)
+        elif result.page == "journal":
+            self.show_page("journal")
+            journal = self.ctx.extras["journal"]
+            target = journal.actions.get(result.key, journal.textbox)
+            reveal_widget(None, target)
+        else:
+            self.show_page("camp")
+            commands = {
+                "start": self.start_btn,
+                "stop": self.stop_btn,
+                "dry_run": self.dry_btn,
+                "skin": self.skin_menu,
+            }
+            if result.key in commands:
+                target = commands[result.key]
+            elif result.key in self.dash.level_values:
+                target = self.dash.level_values[result.key]
+            elif result.key == "game_uptime":
+                target = self.dash.runtime_value
+            else:
+                target = self.dash.sections.get(result.section, self.dash.frame)
+            reveal_widget(None, target)
 
     # -- appearance ---------------------------------------------------------------------------
     def _apply_appearance(self) -> None:
@@ -727,6 +779,24 @@ class MainWindow:
         if manual and "restored" in result.get("window", "") and self.on_env_restored:
             self.on_env_restored()
 
+    def _refresh_game_runtime(self) -> None:
+        """Process inspection runs off the Tk thread, independently of environment checks."""
+        callback = self.on_game_runtime
+        if callback is None or self._runtime_inflight or self._closed:
+            return
+        self._runtime_inflight = True
+        self._last_runtime_poll = time.monotonic()
+
+        def worker():
+            try:
+                snapshot = callback()
+            except Exception:
+                log.debug("game runtime refresh failed", exc_info=True)
+                snapshot = {}
+            self.ui_queue.put(("game_runtime", snapshot))
+
+        threading.Thread(target=worker, name="game-runtime", daemon=True).start()
+
     # -- main-thread loop -----------------------------------------------------------------------
     def _tick(self) -> None:
         if self._closed:
@@ -757,6 +827,10 @@ class MainWindow:
                     self._append_log(line)
                 elif kind == "selftest":
                     self._apply_selftest(payload)
+                elif kind == "game_runtime":
+                    self._runtime_inflight = False
+                    self.game_runtime = payload if isinstance(payload, dict) else {}
+                    self.dash.refresh_runtime()
                 elif kind == "call":  # any callable, run on the Tk thread (update flow)
                     payload()
                 elif kind == "exit":
@@ -778,6 +852,8 @@ class MainWindow:
                 self._on_running_changed(running)
         if now - self._last_second >= 1.0:
             self._last_second = now
+            if now - self._last_runtime_poll >= GAME_RUNTIME_PERIOD:
+                self._refresh_game_runtime()
             for fn in tuple(self._tick_fns):
                 try:
                     fn()

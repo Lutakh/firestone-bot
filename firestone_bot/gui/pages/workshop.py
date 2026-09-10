@@ -14,6 +14,7 @@ from firestone_bot.gui.automation_catalog import WORKSHOP_GROUPS
 from firestone_bot.gui.catalog import OPTIONS, READ_ONLY_LABELS, format_ahk_stamp
 from firestone_bot.gui.context import PageContext
 from firestone_bot.gui.help_text import HOME_SECTIONS, SHORTCUTS, WHERE_THINGS_ARE
+from firestone_bot.gui.search_catalog import SEARCH_TARGETS
 from firestone_bot.gui.widgets import (
     Card,
     ReadOnlyValue,
@@ -21,6 +22,7 @@ from firestone_bot.gui.widgets import (
     page_frame,
     place_card,
     register_cleanup,
+    reveal_widget,
 )
 from firestone_bot.stats import KEYS as STAT_KEYS
 from firestone_bot.stats import average_cycle_ms, cycles_total, fmt_ms
@@ -38,6 +40,7 @@ class Workshop:
         self.buttons: dict[str, object] = {}
         self.controls: dict[str, object] = {}
         self.actions: dict[str, object] = {}
+        self.targets: dict[str, object] = {}
         self._traces: list[tuple[object, str]] = []
         self._unsubscribes = []
         self._columns = 0
@@ -138,6 +141,38 @@ class Workshop:
         if self.ctx.window is not None:
             self.ctx.window.gui_state["workshop_section"] = section
 
+    def reveal_target(self, key: str) -> bool:
+        """Open the correct panel and reveal a search result; never invoke it."""
+        result = next(
+            (
+                target
+                for target in SEARCH_TARGETS
+                if target.page == "workshop" and target.key == key
+            ),
+            None,
+        )
+        if result is None:
+            return False
+        self.open_section(result.section)
+        target = self.targets.get(key) or self.actions.get(key)
+        if target is None and key in self.controls:
+            target = self.controls[key].widget
+        if target is None and key == "rollback":
+            # The command only exists when the updater retained a previous installation.
+            target = self.targets.get("updates")
+        if target is None:
+            target = self.targets.get(result.section)
+        if target is None:
+            return False
+        reveal_widget(self.panels[self.section], target)
+        return True
+
+    def _value(self, card, key, label, getter, **kwargs):
+        value = ReadOnlyValue(card.body, self.ctx, label, getter, **kwargs)
+        card.add(value)
+        self.targets[key] = value.widget
+        return value
+
     def _tick(self, callback) -> None:
         def refresh():
             if self.widget.winfo_exists():
@@ -168,18 +203,17 @@ class Workshop:
         else:
             group = next(group for group in WORKSHOP_GROUPS if group.id == section)
             card = place_card(Card(content, self.ctx, group.title, subtitle=group.summary))
+            self.targets[section] = card
             for key in group.keys:
                 if group.legacy:
                     # These old AHK options are retained in the INI but have no Python behavior.
                     self.ctx.binder.register(key)
-                    card.add(
-                        ReadOnlyValue(
-                            card.body,
-                            self.ctx,
-                            OPTIONS[key].label,
-                            lambda name=key: self.ctx.settings.get(name) or "(empty)",
-                            mono=True,
-                        )
+                    self._value(
+                        card,
+                        key,
+                        OPTIONS[key].label,
+                        lambda name=key: self.ctx.settings.get(name) or "(empty)",
+                        mono=True,
                     )
                 else:
                     self.controls[key] = card.option(key)
@@ -193,6 +227,12 @@ class Workshop:
                     "action; changes are saved automatically when the bot is stopped."
                 )
             elif section == "game":
+                self._value(
+                    card,
+                    "LastPlatform",
+                    "Store seen last",
+                    lambda: self.ctx.settings.get("LastPlatform") or "Not detected yet",
+                )
                 card.note("Run an environment check in Camp after changing the game setup.")
                 self._action(card, "environment", "Check environment", "refresh_status")
             elif section == "compatibility":
@@ -213,14 +253,12 @@ class Workshop:
         # The runner clears the one-time test after a successful test restart.
 
     def _heartbeat(self, card: Card) -> None:
-        card.add(
-            ReadOnlyValue(
-                card.body,
-                self.ctx,
-                "Client ID",
-                lambda: self.ctx.settings.get("ClientID") or "(generated on the first heartbeat)",
-                copy=True,
-            )
+        self._value(
+            card,
+            "ClientID",
+            "Client ID",
+            lambda: self.ctx.settings.get("ClientID") or "(generated on the first heartbeat)",
+            copy=True,
         )
         banner = card.banner("warn", "Heartbeats are not sent without a Discord ID.", visible=False)
 
@@ -275,6 +313,7 @@ class Workshop:
                 ),
             )
         )
+        self.targets["files"] = files
         if not self.ctx.extras.get("settings_existed", True):
             files.banner(
                 "info",
@@ -282,14 +321,12 @@ class Workshop:
                 "You can import settings and map state from an older installation.",
             )
         for name in ("settings.ini", "MapStartState.ini", "firestone-bot.log"):
-            files.add(
-                ReadOnlyValue(
-                    files.body,
-                    self.ctx,
-                    name,
-                    lambda filename=name: os.path.join(self.ctx.base_dir, filename),
-                    mono=True,
-                )
+            self._value(
+                files,
+                name,
+                name,
+                lambda filename=name: os.path.join(self.ctx.base_dir, filename),
+                mono=True,
             )
         self._action(files, "save", "Save settings now", "save_now")
         self._action(files, "reload", "Reload settings from disk", "reload", stopped=True)
@@ -299,28 +336,25 @@ class Workshop:
         self._action(files, "folder", "Open settings folder", "open_folder")
         self._action(files, "log", "Open log file", "open_log")
         files.note("Reload and import are available while the bot is stopped.")
-        files.add(
-            ReadOnlyValue(
-                files.body,
-                self.ctx,
-                "Settings encoding",
-                lambda: self.ctx.settings.encoding,
-            )
+        self._value(
+            files, "settings_encoding", "Settings encoding", lambda: self.ctx.settings.encoding
         )
 
         look = place_card(Card(content, self.ctx, "Appearance"))
-        look.note("Choose a skin next to Camp. Each skin also supports the display mode below.")
+        look.note(
+            "Choose a skin after Workshop in the header. Each skin supports the display mode below."
+        )
+        self.targets["appearance"] = look
         appearance = self.ctx.extras.get("appearance_var")
         if appearance is not None:
-            look.add(
-                ctk.CTkSegmentedButton(
-                    look.body,
-                    values=["System", "Light", "Dark"],
-                    variable=appearance,
-                    font=theme.font(13),
-                ),
-                always_enabled=True,
+            control = ctk.CTkSegmentedButton(
+                look.body,
+                values=["System", "Light", "Dark"],
+                variable=appearance,
+                font=theme.font(13),
             )
+            look.add(control, always_enabled=True)
+            self.targets["appearance"] = control
         look.note("Appearance is saved in gui_state.json and does not affect screen reading.")
         self._statistics(content)
         self._counters(content)
@@ -329,13 +363,13 @@ class Workshop:
     def _statistics(self, content) -> None:
         card = place_card(Card(content, self.ctx, "Cycle statistics"))
         settings = self.ctx.settings
-        for label, getter in (
-            ("Completed cycles", lambda: str(cycles_total(settings))),
-            ("Last cycle", lambda: fmt_ms(settings.get("LastCycleMs"))),
-            ("Average cycle", lambda: fmt_ms(average_cycle_ms(settings))),
-            ("Total time in cycles", lambda: fmt_ms(settings.get("CycleMsTotal"))),
+        for key, label, getter in (
+            ("CyclesTotal", "Completed cycles", lambda: str(cycles_total(settings))),
+            ("LastCycleMs", "Last cycle", lambda: fmt_ms(settings.get("LastCycleMs"))),
+            ("average_cycle", "Average cycle", lambda: fmt_ms(average_cycle_ms(settings))),
+            ("CycleMsTotal", "Total time in cycles", lambda: fmt_ms(settings.get("CycleMsTotal"))),
         ):
-            card.add(ReadOnlyValue(card.body, self.ctx, label, getter))
+            self._value(card, key, label, getter)
         card.note("Time spent inside completed cycles, retained between launches.")
         (button,) = card.buttons(("Reset cycle statistics…", self.reset_statistics))
         self.actions["reset_statistics"] = button
@@ -371,46 +405,21 @@ class Workshop:
         )
         settings = self.ctx.settings
         for key in ("TokenCountDaily", "ChaosCountDaily", "ScarabCountDaily", "CrystalCountDaily"):
-            card.add(
-                ReadOnlyValue(
-                    card.body,
-                    self.ctx,
-                    READ_ONLY_LABELS[key],
-                    lambda name=key: settings.get(name) or "0",
-                )
+            self._value(
+                card, key, READ_ONLY_LABELS[key], lambda name=key: settings.get(name) or "0"
             )
-        card.add(
-            ReadOnlyValue(
-                card.body,
-                self.ctx,
-                "Arena completed today",
-                lambda: "Yes" if daily.arena_done(settings) else "No",
-            )
-        )
-        card.add(
-            ReadOnlyValue(
-                card.body,
-                self.ctx,
-                "Chaos books purchased today",
-                lambda: "Yes" if daily.books_done(settings) else "No",
-            )
-        )
-        card.add(
-            ReadOnlyValue(
-                card.body,
-                self.ctx,
-                "Mailbox swept today",
-                lambda: "Yes" if daily.mail_swept(settings) else "No",
-            )
-        )
+        for key, label, getter in (
+            ("ArenaDoneDaily", "Arena completed today", daily.arena_done),
+            ("ChaosBooksDaily", "Chaos books purchased today", daily.books_done),
+            ("MailSweepDaily", "Mailbox swept today", daily.mail_swept),
+        ):
+            self._value(card, key, label, lambda getter=getter: "Yes" if getter(settings) else "No")
         for key in ("LastTokenReset", "LastChaosReset"):
-            card.add(
-                ReadOnlyValue(
-                    card.body,
-                    self.ctx,
-                    READ_ONLY_LABELS[key],
-                    lambda name=key: format_ahk_stamp(settings.get(name)),
-                )
+            self._value(
+                card,
+                key,
+                READ_ONLY_LABELS[key],
+                lambda name=key: format_ahk_stamp(settings.get(name)),
             )
         self.reset_button = ctk.CTkButton(
             card.body,
@@ -454,6 +463,7 @@ class Workshop:
 
     def _updates(self, content) -> None:
         card = place_card(Card(content, self.ctx, "Application updates"))
+        self.targets["updates"] = card
         card.note(f"Firestone Bot {__version__}")
         self.update_label = card.note(
             "The bot checks the project's GitHub releases at startup and once a day."
@@ -495,6 +505,7 @@ class Workshop:
 
     def _help(self, content) -> None:
         requirements = place_card(Card(content, self.ctx, "Requirements"))
+        self.targets["help"] = self.targets["requirements"] = requirements
         for title, body in HOME_SECTIONS:
             title_label = ctk.CTkLabel(
                 requirements.body,
@@ -504,13 +515,17 @@ class Workshop:
                 font=theme.font(14, "bold"),
             )
             requirements.add(title_label, always_enabled=True, pady=(12, 2))
+            self.targets[f"help:{title}"] = title_label
             requirements.note(body)
         navigation = place_card(Card(content, self.ctx, "Find your way"))
+        self.targets["navigation"] = navigation
         navigation.note(WHERE_THINGS_ARE)
         shortcuts = place_card(Card(content, self.ctx, "Keyboard shortcuts"))
+        self.targets["shortcuts"] = shortcuts
         for combo, action in SHORTCUTS:
             shortcuts.note(f"{combo}  —  {action}")
         about = place_card(Card(content, self.ctx, "About"))
+        self.targets["about"] = about
         about.note(
             f"Firestone Bot {__version__} · Python {platform.python_version()} · "
             f"customtkinter {ctk.__version__}"

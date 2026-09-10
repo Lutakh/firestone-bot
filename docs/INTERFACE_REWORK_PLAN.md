@@ -128,3 +128,41 @@ Delivery commit title: `Make Camp the compact startup overview`, published as `a
 The user subsequently authorized a release tag on 2026-09-10. Release `v0.3.17` includes
 the compact Camp and macOS overlay click-through fix since `v0.3.16`; both package version
 fields must match the tag. Do not repeat the completed implementation on a later resume.
+
+## Global launcher search and restart-time display
+
+Current user request: show the game's running time in Camp's Game checks using the same
+age and fallback clock as the runner's restart decision. Replace the local Automations
+search with a global launcher search above Camp Session. Search must find every setting,
+page and action (including application updates) and reveal its control without invoking it.
+The working branch is synchronized through `c25244e` (0.3.19).
+
+- [x] Read-only runtime snapshot from App/Runner, matching active restart clocks.
+- [x] Live game uptime and restart status in Game checks, with unavailable states.
+- [x] Complete searchable catalog and exact option/action destinations.
+- [x] Global search bar, overlay results, keyboard navigation and cleanup.
+- [x] Remove local Automations search and its persisted hidden filter.
+- [x] Verify search results, guards, layouts, skins and runtime polling; inspect native UI.
+- [x] Update documentation, commit and push the validated changes on python-rework.
+
+Completed on 2026-09-10. App reads process age on a background worker every five seconds,
+including during a run. Runner exposes its cached interval and actual fallback timer without
+changing restart decisions. Camp shows the game age separately from fallback timing and
+labels missing/stale readings. Local Camp spacing and inline totals retain every value at
+980x680, including warnings and the update banner, in all three skins.
+
+The global search indexes all 119 options, saved runtime keys, pages, help and actions. It
+reveals exact controls (including composite selections and update buttons) without invoking
+them. Results overlay the page, support keyboard selection and all matching results, and
+release callbacks/bindings when skins change. The old hidden Automations filter is removed.
+
+Validation: the full suite passed 297 tests. After final destination refinements, all 31
+focused catalog/native-search tests passed, including seven additional composite/read-only
+navigation cases. Ruff lint, formatting and whitespace checks pass. Native macOS inspection
+covered compact Camp in all skins, update lookup and navigation, exact INI-key lookup, and
+Retro results. The isolated preview is closed; no game actions were executed. Other desktop
+platforms were not visually inspected here.
+
+Delivery commit title: `Add launcher-wide search and game restart timing`, on python-rework.
+No new release tag is part of this follow-up. Do not repeat the completed implementation
+when resuming; inspect Git status and the matching commit if publication needs verification.

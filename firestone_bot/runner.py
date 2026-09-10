@@ -291,6 +291,26 @@ class Runner:
         g.status(f"Game restart: the game has been running for {fmt_duration(uptime * 1000)}")
         return True
 
+    def restart_timing_snapshot(self, game_uptime_s: float | None, observed_at: float) -> dict:
+        """Expose the clocks used by `_due` without probing or changing the runner.
+
+        Callers supply the observed process age and monotonic observation time. Before
+        `main_script` initializes the clocks, missing values stay unavailable rather
+        than being replaced with a new interval or an invented elapsed time.
+        """
+        interval_ms = getattr(self, "_restart_ms", None)
+        last_restart_ms = getattr(self, "_last_restart", None)
+        elapsed = game_uptime_s
+        source = "game" if elapsed is not None else "unavailable"
+        if elapsed is None and last_restart_ms is not None:
+            elapsed = max(0, int(observed_at * 1000) - last_restart_ms) / 1000
+            source = "bot"
+        return {
+            "restart_elapsed_s": elapsed,
+            "restart_interval_s": interval_ms / 1000 if interval_ms is not None else None,
+            "restart_source": source,
+        }
+
     def _cycle(self) -> bool:
         """One pass of the AHK main loop. False = the bot stops."""
         g, s = self.g, self.settings

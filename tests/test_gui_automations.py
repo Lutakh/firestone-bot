@@ -200,7 +200,7 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
         base_dir=str(tmp_path),
         register_tick=register_tick,
         root=root,
-        window=SimpleNamespace(gui_state={}),
+        window=SimpleNamespace(gui_state={"automation_query": "no matching setting"}),
     )
     page = None
     try:
@@ -240,13 +240,15 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
         root.update()
         assert all(button.cget("state") == "disabled" for button in ordered.buttons)
         assert page.editors["map"].reset_order_button.cget("state") == "disabled"
-        page.query.set("no matching setting")
+        assert "automation_query" not in ctx.window.gui_state
+        assert not hasattr(page, "query")
+        page.set_category("Expeditions")
         root.update()
         assert not errors, [(kind.__name__, str(error)) for kind, error, _ in errors]
-        assert page.empty_label.winfo_ismapped()
+        assert not page.group_buttons["alchemy"].winfo_ismapped()
         page.open_group("alchemy")
         root.update()
-        assert page.selected == "alchemy" and page.query.get() == ""
+        assert page.selected == "alchemy" and page.category == "All"
         trace_counts = {key: len(var.trace_info()) for key, (var, _) in binder._vars.items()}
         for _ in range(3):
             page.open_group("merchant")
@@ -271,11 +273,9 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
         assert len(page.editors) == len(AUTOMATIONS)
         assert binder.keys() == {key for group in AUTOMATIONS for key in group.keys}
         assert not errors
-        search_query = page.query
         page.destroy()
         page = None
         binder.release_view()
-        assert not search_query.trace_info()
         assert not ticks and not binder._reload_hooks
         assert all(len(var.trace_info()) == 1 for var, _ in binder._vars.values())
         binder.var("MapMode").set("coordinates")

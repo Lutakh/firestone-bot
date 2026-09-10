@@ -55,9 +55,9 @@ HOME_TEXT = "\n\n".join(f"{title.upper()}:\n{body}" for title, body in HOME_SECT
 
 WHERE_THINGS_ARE = (
     "Camp shows live session status, environment checks and daily quotas. "
-    "Automations contains the searchable action library: Collect, Develop, Expeditions and Trade. "
+    "Search above Camp Session to find settings, actions and information throughout the launcher. Automations groups actions into Collect, Develop, Expeditions and Trade. "
     "Journal shows the activity log. Workshop contains game setup, cycle behavior, files, "
-    "appearance, updates and this help. Choose the interface skin next to Camp.\n"
+    "appearance, updates and this help. Choose the interface skin after Workshop in the header.\n"
     "Locked features (engineer, arena, scarab, alchemist, oracle, guild buildings) are skipped "
     "until the account or guild level unlocks them; the levels are read on screen each cycle.\n"
     "Settings are saved automatically to settings.ini next to the executable (macOS: in "
