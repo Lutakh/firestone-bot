@@ -164,5 +164,6 @@ Retro results. The isolated preview is closed; no game actions were executed. Ot
 platforms were not visually inspected here.
 
 Delivery commit title: `Add launcher-wide search and game restart timing`, on python-rework.
-No new release tag is part of this follow-up. Do not repeat the completed implementation
+The user subsequently authorized release tag `v0.3.20` on 2026-09-10; both package
+version fields have been updated to match the tag. Do not repeat the completed implementation
 when resuming; inspect Git status and the matching commit if publication needs verification.
