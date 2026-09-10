@@ -176,23 +176,25 @@ CHARACTER_ICON = Point(90, 112)  # :9
 # page is opened and the Quests tab's bell decides.
 QUESTS_BADGE = Probe(94, 253, 116, 271, RED_DOT, 30, "quests_badge")
 NS_QUESTS_BADGE = Probe(94, 192, 116, 209, RED_DOT, 30, "ns_quests_badge")
-QUESTS_TAB = Point(1455, 74)  # :14
-# The red bell on the Quests tab of the character page (tab spans client x 1345-1580,
-# y 5-65; same dialog in both styles, seen on the Mac classic client 2026-09-08): the
-# avatar badge on the main screen counts other things too and the tabs were opened for
-# nothing every cycle (owner, 2026-09-08).
-QUESTS_TAB_BELL = (1345, 36, 1590, 100)
+QUESTS_TAB = Point(1480, 40, ANCHOR_CENTER)  # on the tab label (the AHK :14 point was under it)
+# The red bell on the Quests tab of the character page: the dialog is centred, and the old
+# rect (1345, 36, 1590, 100), edge-anchored by the thirds rule, cut the bell off: 0 red pixels
+# at 3024x1675 with the bell in plain view (measured at logical 1559..1595 x 37..67 with a
+# centre anchor, 2026-09-10), so quests were never claimed. Wide enough to take the whole bell
+# at any aspect, still clear of the close X and the settings gear on the right.
+QUESTS_TAB_BELL = (1345, 0, 1720, 110)
+QUESTS_TAB_BELL_ANCHOR = ANCHOR_CENTER
 NS_QUESTS_TAB_BELL = QUESTS_TAB_BELL
 QUESTS_DAILY_TAB = Point(765, 155)  # :19
 QUESTS_WEEKLY_TAB = Point(1165, 154)  # :35
-# The quests dialog is centred, and the AHK rect sat past the right edge of the Claim button
-# of the first row (the orange "go to" button has since pushed it left): re-measured on the
-# live layout at 2560x1302, the button spans logical (centre-anchored) x 1321-1555, y 277-326.
-QUESTS_CLAIM_READY = Probe(
-    1360, 285, 1520, 320, GREEN_BUTTON, 3, "quests_claim_ready", ANCHOR_CENTER
-)  # :23
-QUESTS_CLAIM = Point(1438, 301, ANCHOR_CENTER)  # :25
-QUESTS_REWARD_OK = Point(1619, 990)  # :29
+# Claim buttons are found by colour in the Claim column (x 1321..1555 logical, centred), which
+# leaves out the green progress bars on the left. A claim shows no pop-up: the reward flies to
+# the bag and the list re-sorts, the claimable quests first (2026-09-10), so the AHK's reward
+# "OK" click at a fixed point is gone.
+QUESTS_CLAIM_COLUMN = (1250, 150, 1650, 1060)  # centre-anchored
+QUESTS_CLAIM_MIN_W, QUESTS_CLAIM_MIN_H = 150, 30  # a Claim button is ~235 x 60 logical
+QUESTS_CLAIM_VAR = 40
+QUESTS_PARK = Point(960, 1060, ANCHOR_CENTER)  # the footer, off every button
 
 # --- Shop.ahk -------------------------------------------------------------------------------
 SHOP_RED_DOT = Probe(1876, 523, 1905, 564, RED_DOT, RED_DOT_VAR, "shop_red_dot")  # :10
