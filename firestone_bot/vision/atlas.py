@@ -404,13 +404,24 @@ CRAFT_ARTIFACT_READY = Probe(110, 975, 350, 1015, GREEN_BUTTON, 3, "craft_artifa
 CRAFT_ARTIFACT = Point(227, 996)
 
 # --- ScarabToken.ahk / Scarab.ahk -------------------------------------------------------------
+# Bell on the "Scarab's game" card of the tavern chooser (a centred dialog): the AHK rect had
+# no anchor, the thirds rule placed it left of the bell and the token was never claimed
+# (2026-09-10). Bell measured through the Viewport at 3024x1675: centre (1290, 345), ~40 px
+# across; read with bells.bell_in (red pixel count).
 SCARAB_GAME_DOT = Probe(
-    1275, 320, 1310, 360, RED_DOT, RED_DOT_VAR, "scarab_game_dot"
+    1262, 318, 1320, 375, RED_DOT, RED_DOT_VAR, "scarab_game_dot", ANCHOR_CENTER
 )  # ScarabToken.ahk:16
 TAVERN_SCARAB_TAB = Point(1108, 500)  # :19
 SCARAB_TOKEN_DOT = Probe(1860, 667, 1900, 705, RED_DOT, RED_DOT_VAR, "scarab_token_dot")  # :24
 SCARAB_TOKEN_TAB = Point(1809, 722)  # :26
-SCARAB_TOKEN_CLAIM = Point(685, 763)  # :31
+SCARAB_TOKEN_CLAIM = Point(685, 763)  # :31, no longer clicked: see SCARAB_FREE_CARD
+# The scarab Market opens on its Monthly pass page: the free daily Pharaoh's token card (green
+# "Free" button) sits right next to a paid pass ($4.99, orange). The claim clicks only a green
+# button found inside the free card. Measured through the Viewport at 3024x1675: card
+# (461..903, 245..823), Free button 249 x 59 at (683, 765), the paid button at x 1260..1511.
+SCARAB_FREE_CARD = (461, 245, 903, 823)  # centre-anchored
+SCARAB_FREE_MIN_W, SCARAB_FREE_MIN_H = 150, 30
+SCARAB_FREE_VAR = 40
 # Rework (2026-09-04): token icon inside the green Play button, client (905..955, 900..950).
 # Paid coin has a purple ring (0x9C1C9C..0xB53CF7), the free coin is silver (0xBFC5C5).
 # hovered Play button is the lighter green 0x16BC15

@@ -320,3 +320,19 @@ horizontally (twice what a 16:9 client shows); vertically the canvas fills the c
   the cart first.
 - The list scrolls with inertia: 40 wheel notches stopped short of the bottom. It is wheeled
   until two captures of the list are identical.
+
+## 2026-09-10 — quests, settings window, scarab token (client 3024x1675, macOS)
+
+All measured through the bot's Viewport (`to_logical`), centre-anchored. A hand-made centring
+formula on a saved capture gave points up to ~60 px off: always go through the Viewport.
+
+- Quests tab bell (character page): logical 1559..1595 x 37..67; the old edge-anchored rect
+  counted 0 red pixels. Claim buttons 235 x 60 at x 1438, rows 177 apart; no pop-up after a
+  claim, the list re-sorts with the claimable quests first.
+- Settings window (same in both styles): five blue buttons 260 x 66 at y 926, x 345..1574,
+  307 apart (a gradient 0x0987FF..0x3687FF, found with a blue-dominant mask); its X at
+  (1725, 116). Cross-checked on a 2560x1298 capture: X (1726, 115), buttons y 927.
+  "Patch notes" is at ~(704, 959) at 2560x1298, where TOWN_TAVERN (719, 957) lands.
+- Tavern chooser: bell of the "Scarab's game" card centred at (1290, 345), ~40 px across.
+- Scarab market (Monthly pass page): free Pharaoh's token card (461..903, 245..823), green
+  Free button 249 x 59 at (683, 765); the paid pass button ($4.99, orange) at x 1260..1511.

@@ -129,3 +129,9 @@
 
 - Shop: read the tab icons rather than rebuilding the row from the pitch, so a future layout
   with uneven tabs cannot shift the indices again (2026-09-09).
+
+- main_menu: MM_RATE_POPUP is a one-pixel edge-anchored probe and its close is a fixed
+  point (1397, 307): it matched on the scarab screens on 2026-09-10 and clicked there.
+  Find the rate pop-up by something specific (or drop it if the game no longer shows it).
+- main_menu: with SafetyCap=3 it cannot get home from the scarab market (market, scarab,
+  tavern and town each need a close); the next step still opened the town with T.
