@@ -97,17 +97,17 @@ ORANGE_2 = 0xFCAC47
 BIG_CLOSE = Point(1851, 84)  # BigClose.ahk:5 (dialog X; the settings gear on the main screen)
 MM_SETTINGS_OPEN = Probe(1542, 655, 1654, 687, 0x285483, 3, "mm_settings_open")  # MainMenu.ahk:13
 # The settings window (opened by the gear, i.e. BIG_CLOSE on the classic main screen) is a
-# centred dialog. Its row of five bright-blue buttons at the bottom (Discord, Patch notes,
-# Support, Chat rules, Save and Exit) is found by colour: the one-pixel MM_SETTINGS_OPEN probe
-# is edge-anchored and was missed, main_menu then clicked on and the town step behind it hit
-# "Patch notes" (2026-09-10). Measured at 2560x1298: buttons at y 959, x 363..1652, 0x0987FF;
-# the window's own X at (1780, 90), where BIG_CLOSE only hits the gear again.
-SETTINGS_BUTTON_ROW = (150, 910, 1800, 1010)  # centre-anchored
-SETTINGS_BUTTON_BLUE = 0x0987FF
-SETTINGS_BUTTON_VAR = 30
+# centred dialog, the same in both interface styles. Its row of five blue buttons at the
+# bottom (Discord, Patch notes, Support, Chat rules, Save and Exit) is found with a
+# blue-dominant mask (the buttons are a gradient, 0x0987FF..0x3687FF): the one-pixel
+# MM_SETTINGS_OPEN probe is edge-anchored and was missed, main_menu then clicked on and the
+# town step behind it hit "Patch notes" (2026-09-10). Measured live through the Viewport at
+# 3024x1675: buttons 260 x 66 at y 926, x 345..1574 (307 apart, centred on 960); the X at
+# (1725, 116), the NS_OPTIONS_CLOSE point once centre-anchored. BIG_CLOSE only hits the gear.
+SETTINGS_BUTTON_ROW = (150, 870, 1780, 985)  # centre-anchored
 SETTINGS_BUTTON_MIN_W, SETTINGS_BUTTON_MIN_H = 120, 30
 SETTINGS_BUTTONS_MIN = 4  # of 5: one may be hovered
-SETTINGS_CLOSE = Point(1780, 90, ANCHOR_CENTER)
+SETTINGS_CLOSE = Point(1725, 116, ANCHOR_CENTER)
 MM_RATE_POPUP = Probe(1057, 288, 1321, 335, 0x8E4423, 2, "mm_rate_popup")  # MainMenu.ahk:18
 MM_RATE_POPUP_CLOSE = Point(1397, 307)  # MainMenu.ahk:20
 MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7

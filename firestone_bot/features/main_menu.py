@@ -16,14 +16,19 @@ from firestone_bot.vision import atlas, blobs
 from firestone_bot.vision.atlas import ANCHOR_CENTER, Point
 
 
+def _settings_blue(px):
+    """The settings buttons' blue (a gradient 0x0987FF..0x3687FF), BGR capture pixels."""
+    b, g, r = (px[..., i].astype(int) for i in range(3))
+    return (b > 200) & (r < 110) & (g > 90) & (g < 180)
+
+
 def settings_open(g: Game) -> bool:
-    """Whether the settings window is on screen: its row of bright-blue buttons, or the old
+    """Whether the settings window is on screen: its row of blue buttons, or the old
     one-pixel probe (kept: it is right at 1920x1080 and 2560x1302)."""
     row = blobs.find_blobs(
         g,
         atlas.SETTINGS_BUTTON_ROW,
-        atlas.SETTINGS_BUTTON_BLUE,
-        atlas.SETTINGS_BUTTON_VAR,
+        mask_fn=_settings_blue,
         anchor=ANCHOR_CENTER,
         min_w=atlas.SETTINGS_BUTTON_MIN_W,
         min_h=atlas.SETTINGS_BUTTON_MIN_H,
