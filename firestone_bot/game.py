@@ -447,7 +447,12 @@ class Game:
         if via_town:
             from firestone_bot.features.open_town import open_town
 
-            open_town(self)
+            if not open_town(self):
+                # the town did not come back (a settings window left open, 2026-09-10): the
+                # building is clicked by position, and the tavern's point is the settings'
+                # "Patch notes" button, so nothing is clicked
+                self.status("The town is not open, the building is not clicked")
+                return False
         self.tap(p, settle_ms, expect=expect)
         return self.found(expect)
 

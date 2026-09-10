@@ -12,8 +12,31 @@ from __future__ import annotations
 
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, blobs
 from firestone_bot.vision.atlas import ANCHOR_CENTER, Point
+
+
+def settings_open(g: Game) -> bool:
+    """Whether the settings window is on screen: its row of bright-blue buttons, or the old
+    one-pixel probe (kept: it is right at 1920x1080 and 2560x1302)."""
+    row = blobs.find_blobs(
+        g,
+        atlas.SETTINGS_BUTTON_ROW,
+        atlas.SETTINGS_BUTTON_BLUE,
+        atlas.SETTINGS_BUTTON_VAR,
+        anchor=ANCHOR_CENTER,
+        min_w=atlas.SETTINGS_BUTTON_MIN_W,
+        min_h=atlas.SETTINGS_BUTTON_MIN_H,
+    )
+    return len(row) >= atlas.SETTINGS_BUTTONS_MIN or g.found(atlas.MM_SETTINGS_OPEN)
+
+
+def close_settings(g: Game) -> None:
+    """Classic style: close the settings window with its own X, then the gear as before if
+    it is still there (the gear toggles it)."""
+    g.tap(atlas.SETTINGS_CLOSE, 800)
+    if settings_open(g):
+        big_close(g)
 
 
 def main_menu(g: Game) -> bool:
@@ -29,7 +52,7 @@ def main_menu(g: Game) -> bool:
     while True:  # SettingsFinder:
         if g.style == "new" and layouts.on_new_main_screen(g):
             return True
-        if g.found(atlas.MM_SETTINGS_OPEN):
+        if settings_open(g):
             # The settings window only opens from the main screen: close it and we are home.
             # New adventure style: it has its own X (BigClose would only hit the gear again);
             # the style may still be wrong at the first cycle, so the other X is tried too.
@@ -38,7 +61,7 @@ def main_menu(g: Game) -> bool:
                 if g.found(atlas.MM_SETTINGS_OPEN):
                     big_close(g)
             else:
-                big_close(g)
+                close_settings(g)
             return True
         if g.found(atlas.MM_RATE_POPUP):
             g.tap(atlas.MM_RATE_POPUP_CLOSE)

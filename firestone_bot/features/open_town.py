@@ -11,6 +11,7 @@ skips the step instead of clicking blind.
 
 from __future__ import annotations
 
+from firestone_bot.features.main_menu import settings_open
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 
@@ -34,7 +35,7 @@ def open_town(g: Game) -> bool:
         # the key may have gone to another window (first cycle after the bot window was
         # raised): a click on the battlefield gives the game the keyboard, then T again
         g.save_diagnostic("town-miss.png")
-        if g.found(atlas.MM_SETTINGS_OPEN) or g.found(atlas.DIALOG_CLOSE_X):
+        if settings_open(g) or g.found(atlas.DIALOG_CLOSE_X):
             # a dialog swallowed the T: the neutral spot of the battlefield is inside it
             # here (the settings window, with its "Switch server" button, 2026-09-09), so
             # nothing is clicked and the caller is told to clear the screen first
