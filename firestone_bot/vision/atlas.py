@@ -224,12 +224,19 @@ SHOP_TAB_STRIP = (318, 71, 1603, 174)  # centre-anchored, the row above the dial
 SHOP_TAB_BG = 0xC4A088  # tan background of an unselected tab
 SHOP_TAB_BG_VAR = 26
 SHOP_TAB_MIN_W, SHOP_TAB_MIN_H = 60, 30
-# "Claim your daily reward" bar of the check-in page and its green Check In button (an olive
-# green of its own, not GREEN_BUTTON). Nothing is ever clicked there without this button.
-SHOP_CHECKIN_BAR = (741, 800, 1495, 875)
+# Green Check In button of the check-in page (an olive green of its own, not GREEN_BUTTON).
+# Nothing is ever clicked there without this button. The search covers the whole body of the
+# dialog: a limited-time banner at the top of the page pushes the reward rows and the button
+# about 70 px down (Qualitas and the owner, both on Epic, 2026-09-10: the bar-sized rect
+# measured without the banner missed it and the check-in was skipped every day). The reward
+# tiles carry green frames and green ticks, so a blob only counts as the button when it is
+# much wider than high.
+SHOP_CHECKIN_AREA = (741, 430, 1495, 990)
 SHOP_CHECKIN_GREEN = 0x44941F
 SHOP_CHECKIN_GREEN_VAR = 40
 SHOP_CHECKIN_MIN_W, SHOP_CHECKIN_MIN_H = 60, 25
+SHOP_CHECKIN_MAX_H = 80
+SHOP_CHECKIN_MIN_RATIO = 2.5  # width / height of the button (174 x 42 at the reference)
 
 # --- CheckMail.ahk --------------------------------------------------------------------------
 MAIL_ICON = Point(56, 777)  # :8

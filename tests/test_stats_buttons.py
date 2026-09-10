@@ -65,3 +65,14 @@ def test_green_buttons_ignores_small_marks_and_empty_screens():
     assert buttons.green_buttons(g, rect) == []
     g = FakeGame(_canvas(rect, []), rect)
     assert buttons.green_buttons(g, rect) == []
+
+
+def test_check_in_button_told_from_the_green_reward_tiles():
+    from firestone_bot.features.shop import button_shaped
+    from firestone_bot.vision.blobs import Blob
+
+    button = Blob(1257, 880, 1431, 922, 5282)  # measured live, 1920x1009
+    tile_frame = Blob(890, 539, 1030, 681, 2000)  # a claimed reward tile: square
+    tick = Blob(900, 550, 990, 640, 1500)
+    assert button_shaped([tile_frame, tick, button]) == [button]
+    assert button_shaped([tile_frame, tick]) == []

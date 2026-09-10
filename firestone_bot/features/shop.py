@@ -151,28 +151,41 @@ def claim_free_mystery_box(g: Game) -> bool:
     return False
 
 
+def button_shaped(found: list) -> list:
+    """The blobs that look like the Check In button: much wider than high. The reward tiles
+    of the page carry green frames and green ticks, which are square."""
+    return [
+        b
+        for b in found
+        if b.h <= atlas.SHOP_CHECKIN_MAX_H and b.w >= atlas.SHOP_CHECKIN_MIN_RATIO * b.h
+    ]
+
+
 def check_in(g: Game) -> None:
     """Daily check-in: the calendar tab is the last one of the row; its green "Check In"
-    button is clicked only where it is actually found. The AHK clicked two fixed points blind,
-    which at another aspect landed on a paid bundle and opened the Steam checkout
-    (2026-09-09)."""
+    button is clicked only where it is actually found, anywhere in the body of the dialog
+    (a limited-time banner pushes it down). The AHK clicked two fixed points blind, which at
+    another aspect landed on a paid bundle and opened the Steam checkout (2026-09-09)."""
     slots = tab_slots(g)
     if not slots:
         g.status("Daily shop: no tab row found, check-in skipped")
         return
     if not _select_slot(g, slots, -1):
         return
-    button = blobs.find_blobs(
+    found = blobs.find_blobs(
         g,
-        atlas.SHOP_CHECKIN_BAR,
+        atlas.SHOP_CHECKIN_AREA,
         atlas.SHOP_CHECKIN_GREEN,
         atlas.SHOP_CHECKIN_GREEN_VAR,
         anchor=atlas.ANCHOR_CENTER,
         min_w=atlas.SHOP_CHECKIN_MIN_W,
         min_h=atlas.SHOP_CHECKIN_MIN_H,
     )
+    button = button_shaped(found)
     if not button:
         g.status("Daily shop: nothing to check in today")
+        if found:
+            g.save_diagnostic("shop-checkin-shape.png")  # green, but not button-shaped
         return
     b = max(button, key=lambda b: b.w * b.h)
     g.status("Daily shop: checking in")
