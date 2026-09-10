@@ -307,3 +307,16 @@ horizontally (twice what a 16:9 client shows); vertically the canvas fills the c
 - Shop tabs: a centred row, 138 logical px pitch, tan 0xC0A088-0xC8A088 background, the
   selected tab purple; 7 tabs on the owner's account, the last one the check-in calendar.
   Check In button: olive green 0x50A030/0x308818 in the bar at logical (741,800)-(1495,875).
+
+## 2026-09-10 — exotic merchant sell page, client 3024x1675 (macOS)
+
+- Every AHK sell probe missed: the points sat in the edge thirds (edge-anchored) while the
+  page is centred, and they assumed one scroll position. Replaced by a colour search.
+- Sell buttons, centre-anchored logical: columns at x 955 / 1278 / 1600, rows 318 apart;
+  a whole button is ~260 x 103. With the list at the top the first row is at y 602; at the
+  bottom the rows are at 325 (cut), 623, 939, the last one holding Totem of Annihilation alone.
+- Colours: bright green 0x08A00A (= GREEN_BUTTON), dark green top band, sold-out grey
+  0x717171 (top) / 0x949394 (bottom). Hovered buttons are lighter: the pointer is parked over
+  the cart first.
+- The list scrolls with inertia: 40 wheel notches stopped short of the bottom. It is wheeled
+  until two captures of the list are identical.

@@ -498,28 +498,27 @@ WM_BLUEPRINT_CHOICES = {  # Blueprints setting -> stats in click order
 
 # --- ExoticMerchant.ahk / ExoticUpgrades.ahk / BuyExotic.ahk --------------------------------
 TOWN_EXOTIC_MERCHANT = Point(1459, 650)  # ExoticMerchant.ahk:9
-EXOTIC_PARK = Point(1850, 540)  # off every Sell button (hovered = lighter green)
-EXOTIC_LIST_HOVER = Point(1300, 750)  # inside the item list, where the wheel scrolls it
-EXOTIC_SCROLLS = (  # :34-55 speed, damage, health
-    (Probe(1026, 596, 1074, 636, GREEN_BUTTON, 3, "sell_scroll_speed"), Point(959, 596)),
-    (Probe(1350, 598, 1401, 634, GREEN_BUTTON, 3, "sell_scroll_damage"), Point(1280, 601)),
-    (Probe(1678, 596, 1724, 635, GREEN_BUTTON, 3, "sell_scroll_health"), Point(1595, 592)),
+# Sell page: the Sell buttons are found by colour, not at fixed points (2026-09-10). The AHK
+# points sat in the edge thirds, so they were edge-anchored while the page is centred, and they
+# assumed one exact scroll position: at 3024x1675 every probe missed. The list is scrolled to
+# one end until it stops moving, and each button is named from that end with EXOTIC_GRID.
+EXOTIC_PARK = Point(150, 540, (LEFT, CENTER))  # over the merchant's cart, off every button
+EXOTIC_LIST_HOVER = Point(1280, 700, ANCHOR_CENTER)  # inside the list, where the wheel scrolls
+EXOTIC_LIST = (700, 280, 1900, 1075)  # centre-anchored: the item list, clear of the cart
+EXOTIC_BUTTON_MIN_W, EXOTIC_BUTTON_MIN_H = 200, 30  # a whole button is ~260 x 103 logical
+EXOTIC_GREEN_VAR = 40
+EXOTIC_ROW_TOLERANCE = 60  # rows are 318 logical px apart
+EXOTIC_GRID = (  # the list, top to bottom (game 9.1.1)
+    ("scroll_speed", "scroll_damage", "scroll_health"),
+    ("midas", "pouch", "bucket"),
+    ("crate", "barrel", "drums"),
+    ("dragon_armor", "guardian_rune", "totem_agony"),
+    ("totem_annihilation",),
 )
-EXOTIC_GOLD_TOP = (  # :60-81 midas' touch, pouch of gold, bucket of gold
-    (Probe(1022, 912, 1078, 951, GREEN_BUTTON, 3, "sell_midas"), Point(962, 908)),
-    (Probe(1336, 916, 1399, 956, GREEN_BUTTON, 3, "sell_pouch"), Point(1278, 910)),
-    (Probe(1663, 917, 1720, 950, GREEN_BUTTON, 3, "sell_bucket"), Point(1602, 911)),
-)
-EXOTIC_GOLD_BOTTOM = (  # :88-101 after 35 wheel-downs: crate of gold, barrel of gold
-    (Probe(1026, 298, 1081, 338, GREEN_BUTTON, 3, "sell_crate"), Point(967, 307)),
-    (Probe(1341, 296, 1398, 335, GREEN_BUTTON, 3, "sell_barrel"), Point(1280, 313)),
-)
-EXOTIC_ITEMS_BOTTOM = (  # :104-141 drums of war, dragon armor, guardian's rune, totems
-    (Probe(1678, 298, 1721, 332, GREEN_BUTTON, 3, "sell_drums"), Point(1611, 313)),
-    (Probe(1024, 616, 1078, 648, GREEN_BUTTON, 3, "sell_dragon_armor"), Point(954, 616)),
-    (Probe(1346, 614, 1399, 651, GREEN_BUTTON, 3, "sell_guardian_rune"), Point(1269, 608)),
-    (Probe(1667, 616, 1722, 652, GREEN_BUTTON, 3, "sell_totem_agony"), Point(1591, 610)),
-    (Probe(1030, 930, 1078, 975, GREEN_BUTTON, 3, "sell_totem_annihilation"), Point(951, 934)),
+EXOTIC_SCROLLS = frozenset(EXOTIC_GRID[0])
+EXOTIC_GOLD = frozenset(("midas", "pouch", "bucket", "crate", "barrel"))
+EXOTIC_ITEMS = frozenset(
+    ("drums", "dragon_armor", "guardian_rune", "totem_agony", "totem_annihilation")
 )
 EXOTIC_UPGRADES_TAB = Point(1282, 173)  # ExoticUpgrades.ahk:4
 EXOTIC_UPGRADES_HOVER = Point(1270, 567)  # :8
