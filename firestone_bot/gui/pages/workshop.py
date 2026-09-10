@@ -516,7 +516,7 @@ class Workshop:
             f"customtkinter {ctk.__version__}"
         )
         about.note(
-            "Firestone Fieldbook interface. Skins change appearance; automation behavior stays the same."
+            "Firestone Bot interface. Skins change appearance; automation behavior stays the same."
         )
 
 

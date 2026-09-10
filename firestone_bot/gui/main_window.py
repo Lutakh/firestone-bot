@@ -245,7 +245,10 @@ class MainWindow:
             brand, text="Firestone", text_color=theme.ON_HEADER, font=theme.heading(27)
         ).pack(side="left")
         ctk.CTkLabel(
-            brand, text="Fieldbook", text_color=theme.HEADER_MUTED, font=theme.heading(17)
+            brand,
+            text=theme.current_skin(),
+            text_color=theme.HEADER_MUTED,
+            font=theme.heading(17),
         ).pack(side="left", padx=(8, 0))
         nav = ctk.CTkFrame(header, fg_color="transparent")
         nav.grid(row=0, column=1, sticky="e", padx=(0, 24), pady=18)
