@@ -93,9 +93,10 @@ def open_more_loop(g: Game, variation: int | None = None) -> None:
 
 
 def _click_chest(g: Game, name: str | None, color: int, variation: int) -> bool:
-    """Click the chest in the bag grid: by its icon in the new style when a reference is
-    known (chest_grid), else by the AHK signature colour. False when the bag has none."""
-    if g.style == "new" and name is not None and chest_grid.known(name):
+    """Click the chest in the bag grid: by its icon when a reference is known (chest_grid,
+    both layouts: the classic bag draws the same panel lower), else by the AHK signature
+    colour. False when the bag has none."""
+    if name is not None and chest_grid.known(name):
         # a hovered icon grows (and pushes its neighbours): read the grid with the pointer away
         g.move_to(atlas.NS_MODE_PARK)
         g.sleep(300)

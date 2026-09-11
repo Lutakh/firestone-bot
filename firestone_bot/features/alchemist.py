@@ -6,6 +6,20 @@ from __future__ import annotations
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
+from firestone_bot.vision.probes import match_mask
+
+
+def free_to_complete(g, slot: atlas.AlchemySlot) -> bool:
+    """A running experiment whose Speed up button is free: the orange button is there and
+    carries no purple gem icon. A paid one (gem + cost) must never be clicked: its
+    confirmation dialog blocks the visit and a second click would spend the gems."""
+    img = g.region_image(slot.button).astype(int)
+    if img.size == 0:
+        return False
+    orange = float(match_mask(img, atlas.ORANGE_1, 40).mean())
+    b, gr, r = img[:, :, 0], img[:, :, 1], img[:, :, 2]
+    gems = int(((r > 150) & (b > 150) & (gr < 110)).sum())
+    return orange >= atlas.ALCHEMY_BUTTON_ORANGE_MIN and gems <= atlas.ALCHEMY_BUTTON_GEM_MAX
 
 
 def alchemist(g: Game) -> None:
@@ -37,7 +51,8 @@ def alchemist(g: Game) -> None:
             g.sleep(1000)
     # free to complete
     for slot in wanted if collect else ():
-        if g.found(slot.free):
+        if free_to_complete(g, slot):
+            g.save_diagnostic(f"alchemy-free-{slot.name.split()[0].lower()}.png")  # rare: keep it
             g.move_to(slot.collect)
             g.toast("Alchemy Status", f"{slot.name} experiment is free to complete", 1.5)
             g.click()

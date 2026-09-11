@@ -600,6 +600,16 @@ ARENA_BATTLE_CLAIM = Point(959, 775)  # :7
 TOWN_ALCHEMIST = Point(511, 837)  # :8
 
 
+# The orange "Speed up" button of a running experiment is the same button whether it costs
+# gems or is free (under 3 minutes left): only the purple gem icon tells them apart. The AHK
+# probe (ORANGE_1 in the button rect) took the paid one for free and clicked it, which opened
+# the "Spend gem confirmation" dialog and blocked the next clicks (Qualitas, 2026-09-11).
+# Measured on the owner's client: paid button 7762 orange and 715 purple px of 12950 in the
+# body rect; an idle slot (green start button) 48 orange and 0 purple.
+ALCHEMY_BUTTON_ORANGE_MIN = 0.15  # share of the body that must be orange: a Speed up button
+ALCHEMY_BUTTON_GEM_MAX = 60  # purple px allowed: the gem icon leaves hundreds
+
+
 @dataclass(frozen=True)
 class AlchemySlot:
     name: str
@@ -609,6 +619,7 @@ class AlchemySlot:
     in_progress: Probe  # brown timer: more than 3 minutes remaining
     collect: Point
     start: Point
+    button: tuple[int, int, int, int] = (0, 0, 0, 0)  # body of the slot's button (see below)
 
 
 ALCHEMY_SLOTS = (
@@ -620,6 +631,7 @@ ALCHEMY_SLOTS = (
         Probe(1007, 735, 1030, 766, 0x916A38, 3, "alch_blood_running"),
         Point(949, 777),
         Point(951, 771),
+        (848, 755, 1033, 825),
     ),
     AlchemySlot(
         "Strange Dust",
@@ -629,6 +641,7 @@ ALCHEMY_SLOTS = (
         Probe(1346, 734, 1373, 766, 0x916A38, 3, "alch_dust_running"),
         Point(1286, 786),
         Point(1286, 786),
+        (1196, 755, 1381, 825),
     ),
     AlchemySlot(
         "Exotic Coins",
@@ -638,6 +651,7 @@ ALCHEMY_SLOTS = (
         Probe(1699, 737, 1723, 767, 0x916A38, 3, "alch_coin_running"),
         Point(1632, 772),
         Point(1641, 767),
+        (1544, 755, 1729, 825),
     ),
 )
 

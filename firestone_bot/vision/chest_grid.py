@@ -20,9 +20,16 @@ import numpy as np
 from firestone_bot.vision import chest_refs
 from firestone_bot.vision.atlas import Point
 
-# slot centres (logical): three columns, five rows
+# slot centres (logical): three columns, five rows, measured on the new-style bag panel
 CELL_COLS = (1595, 1720, 1845)
 CELL_ROWS = (216, 341, 461, 576, 701)
+# The classic layout draws the same panel about 160 px lower (its X ring is at y 256 against
+# 92): the rows are placed from where the panel's X is actually found, `ROW_BELOW_X` under
+# it, so both layouts (and a client that shifts the panel) read the same slots. Without the
+# X the new-style rows above are used. (Qualitas, classic layout, 2026-09-11: "Opening Lunar
+# Chests" every cycle and the chest left in the bag; the colour search of the classic path
+# never matched the Lunar icon, and these rows were the new-style ones.)
+ROW_BELOW_X = tuple(r - 92 for r in CELL_ROWS)
 WINDOW = 96  # logical px, the icon with a little margin
 OFFSETS = (-8, -4, 0, 4, 8)  # logical px, slid around the slot centre
 MAX_DISTANCE = 10.0  # mean levels: a match must be this close...
@@ -81,12 +88,23 @@ def classify_thumbnails(thumbs: list[np.ndarray]) -> tuple[str | None, float, fl
     return name, d, second
 
 
+def grid_rows(g) -> tuple[int, ...]:
+    """Row centres of the bag's chest grid, from the panel's X when it is on screen."""
+    probe = getattr(getattr(g, "ms", None), "bag_close_x", None)
+    hit = g.search(probe) if probe is not None else None
+    if hit is None:
+        return CELL_ROWS
+    return tuple(hit.y + d for d in ROW_BELOW_X)
+
+
 class GridImage:
     """One RGB capture of the whole chest grid, sliced per slot in logical coordinates."""
 
-    def __init__(self, g) -> None:
-        self.img = g.region_image(GRID_RECT)[:, :, ::-1]  # BGR capture -> RGB references
-        x1, y1, x2, y2 = GRID_RECT
+    def __init__(self, g, rows: tuple[int, ...] | None = None) -> None:
+        self.rows = rows or grid_rows(g)
+        x1, x2 = CELL_COLS[0] - _MARGIN, CELL_COLS[-1] + _MARGIN
+        y1, y2 = self.rows[0] - _MARGIN, self.rows[-1] + _MARGIN
+        self.img = g.region_image((x1, y1, x2, y2))[:, :, ::-1]  # BGR capture -> RGB references
         self.fx = self.img.shape[1] / (x2 - x1)  # capture px per logical px
         self.fy = self.img.shape[0] / (y2 - y1)
         self.x1, self.y1 = x1, y1
@@ -113,7 +131,7 @@ def scan_grid(g) -> dict[tuple[int, int], str | None]:
     grid = GridImage(g)
     return {
         (c, r): grid.classify(cx, cy)[0]
-        for r, cy in enumerate(CELL_ROWS)
+        for r, cy in enumerate(grid.rows)
         for c, cx in enumerate(CELL_COLS)
     }
 
@@ -121,7 +139,7 @@ def scan_grid(g) -> dict[tuple[int, int], str | None]:
 def find_chest(g, name: str) -> Point | None:
     """Centre of the slot holding `name`, None when the bag has none."""
     grid = GridImage(g)
-    for cy in CELL_ROWS:
+    for cy in grid.rows:
         for cx in CELL_COLS:
             if grid.classify(cx, cy)[0] == name:
                 return Point(cx, cy)
