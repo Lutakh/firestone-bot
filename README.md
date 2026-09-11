@@ -177,7 +177,11 @@ annotated tag whose message is the changelog, `git tag -a vX.Y.Z --cleanup=verba
 CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and
 attaches everything to the GitHub release with the tag message as body (the tag must equal
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
-`python -m firestone_bot --start` starts the bot as soon as the window is up.
+`python -m firestone_bot --start` starts the bot as soon as the window is up. On Windows the
+packaged `FirestoneBot.exe --start` first re-creates itself through WMI, outside the job of
+the program that launched it (an IDE, an assistant app, a terminal): those programs end what
+they started when they close or update, which ended a night run on 2026-09-11. The log's
+first line says who started the bot (`started by ... (detached from its launcher)`).
 
 ## Click timing (fast / safe)
 

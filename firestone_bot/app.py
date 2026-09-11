@@ -907,5 +907,25 @@ def main(autostart: bool = False) -> int:
             logging.FileHandler(os.path.join(base_dir(), "firestone-bot.log"), encoding="utf-8")
         ],
     )
+    _log_launch_context()
     App(autostart=autostart).run()
     return 0
+
+
+def _log_launch_context() -> None:
+    """One line saying who started the bot: after a silent end it is the first question (a
+    night run started from the Claude app ended with that app's update, 2026-09-11)."""
+    try:
+        import psutil
+
+        chain = []
+        parent = psutil.Process().parent()
+        while parent is not None and len(chain) < 4:
+            chain.append(parent.name())
+            parent = parent.parent()
+        how = "detached from its launcher" if "--detached" in sys.argv else "in place"
+        # a launcher that returns at once (Start-Process, a script) is gone by now
+        who = " <- ".join(chain) or f"a program that already exited (pid {os.getppid()})"
+        log.info("started by %s (%s)", who, how)
+    except Exception:  # informational only
+        log.debug("launch context unavailable", exc_info=True)
