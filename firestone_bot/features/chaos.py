@@ -42,6 +42,19 @@ def _wait_hit_ready(g: Game, timeout_ms: int = atlas.CHAOS_HIT_WAIT_MS) -> bool:
         g.sleep(500)
 
 
+HIT_TAKEN_MS = 4000  # the green button greys within a second once the battle starts
+MAX_MISSED_CLICKS = 3  # clicks the game did not take in one visit before leaving
+
+
+def _hit_taken(g: Game) -> bool:
+    """Whether the click on Hit was taken by the game: the green button greys as the battle
+    starts. A click the game ignores (the stuck-button state, a click during a transition)
+    left the button green, yet the AHK-style loop counted it: on 2026-09-13 the bot showed
+    10/10 with one free token left (owner), the first "hit" of the day being a click on a
+    stuck button that a restart later cleared."""
+    return g.wait_gone(atlas.CHAOS_HIT_READY, HIT_TAKEN_MS)
+
+
 def _open_rift(g: Game) -> None:
     g.click_point(atlas.CHAOS_OPEN)  # MouseClick, Left, x, y, 1, 0
     g.sleep(2000)
@@ -60,6 +73,7 @@ def hit_chaos(g: Game) -> None:
         return
     _open_rift(g)
     hits = 0
+    missed = 0
     while need_hits:
         left = daily.chaos_left(g.settings)
         if left == 0:
@@ -91,7 +105,16 @@ def hit_chaos(g: Game) -> None:
         if token != "free":
             g.status(f"Chaos rift: no free token in the Hit button ({token}), leaving")
             break
-        g.tap(atlas.CHAOS_HIT)
+        g.tap(atlas.CHAOS_HIT, 0)
+        if not _hit_taken(g):
+            missed += 1
+            g.status("Chaos rift: the click on Hit was not taken, not counted")
+            if missed >= MAX_MISSED_CLICKS:
+                g.save_diagnostic("chaos-hit-not-taken.png")
+                break
+            big_close(g)
+            _open_rift(g)
+            continue
         daily.note_chaos_hit(g.settings)
         hits += 1
         g.status(f"Chaos rift: hit {hits} ({g.settings.ChaosCountDaily} today)")
