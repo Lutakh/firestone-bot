@@ -99,6 +99,7 @@ class MainWindow:
         self.is_running = is_running
         self.base_dir = base_dir or os.getcwd()
         self.state_path = os.path.join(self.base_dir, "gui_state.json")
+        self.last_tick = time.monotonic()
         self.gui_state = _load_state(self.state_path)
         self.ui_queue: queue.Queue[tuple[str, object]] = queue.Queue()
         self._closed = False
@@ -799,6 +800,7 @@ class MainWindow:
 
     # -- main-thread loop -----------------------------------------------------------------------
     def _tick(self) -> None:
+        self.last_tick = time.monotonic()  # read by the app's stall watchdog
         if self._closed:
             return
         try:

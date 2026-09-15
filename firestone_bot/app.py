@@ -908,8 +908,41 @@ def main(autostart: bool = False) -> int:
         ],
     )
     _log_launch_context()
-    App(autostart=autostart).run()
+    app = App(autostart=autostart)
+    _start_stall_watchdog(app)
+    app.run()
     return 0
+
+
+STALL_AFTER_S = 8.0  # the UI thread ticks every 150 ms; Windows says "Not Responding" at 5 s
+
+
+def _start_stall_watchdog(app: App) -> None:
+    """Write the stack of every thread to the log when the window stops responding.
+
+    Several users reported the 0.3.23 launcher as "Not Responding" right after it opened
+    (2026-09-15), on machines where it could not be reproduced; a hang leaves nothing in the
+    log, so the next one must describe itself: whatever the UI thread is stuck in, and what
+    the other threads were doing, dumped once, then again every minute while it lasts."""
+    import threading
+    import traceback
+
+    def watch() -> None:
+        reported = 0.0
+        while True:
+            time.sleep(1.0)
+            stalled = time.monotonic() - app.window.last_tick
+            if stalled < STALL_AFTER_S or time.monotonic() - reported < 60:
+                continue
+            reported = time.monotonic()
+            names = {t.ident: t.name for t in threading.enumerate()}
+            lines = [f"UI thread silent for {stalled:.0f} s; stacks of every thread:"]
+            for ident, frame in sys._current_frames().items():
+                lines.append(f"--- thread {names.get(ident, '?')} ({ident})")
+                lines.extend(line.rstrip() for line in traceback.format_stack(frame))
+            log.error("\n".join(lines))
+
+    threading.Thread(target=watch, name="stall-watchdog", daemon=True).start()
 
 
 def _log_launch_context() -> None:
