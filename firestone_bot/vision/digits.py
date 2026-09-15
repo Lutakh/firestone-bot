@@ -21,6 +21,11 @@ GLYPH_W = 12
 GLYPH_H = 20
 BRIGHT = 190  # min R, G and B of a "white" pixel (outlined white digits on any background)
 MIN_SCORE = 0.62  # correlation below this: the glyph is not a digit we know
+# A digit is taller than wide (0.4 to 0.7 of its height in this font). A bright run wider
+# than this share of its height holds two glyphs that touch: on a guild banner whose bar was
+# almost full, "73" came out as one 27 px glyph scored 0.34 as an "8", so the level was never
+# read (Tripl, 2026-09-15). Such a run is cut at its thinnest inner column.
+MAX_DIGIT_ASPECT = 0.85
 TEMPLATES_PATH = os.path.join(os.path.dirname(__file__), "digit_templates.json")
 
 
@@ -79,8 +84,25 @@ def segment(img_bgr: np.ndarray, min_gap: int = 1) -> list[Glyph]:
         body_cols = np.nonzero(mask[y0:y1, x0:x1].any(axis=0))[0]
         if len(body_cols):
             x0, x1 = x0 + int(body_cols[0]), x0 + int(body_cols[-1]) + 1
-        glyphs.append(Glyph(x0, x1, y0, y1, resample(mask[y0:y1, x0:x1])))
+        for a, b in split_touching(mask[y0:y1], x0, x1):
+            glyphs.append(Glyph(a, b, y0, y1, resample(mask[y0:y1, a:b])))
     return glyphs
+
+
+def split_touching(rows: np.ndarray, x0: int, x1: int) -> list[tuple[int, int]]:
+    """Column ranges of the glyphs in a bright run `x0:x1` of `rows` (the glyph body rows):
+    the run itself when it is digit-shaped, else cut at the thinnest column of its middle
+    part, again on each side while a part stays too wide."""
+    height = rows.shape[0]
+    if x1 - x0 <= MAX_DIGIT_ASPECT * height or x1 - x0 < 6:
+        return [(x0, x1)]
+    counts = rows[:, x0:x1].sum(axis=0)
+    lo, hi = int(len(counts) * 0.3), int(len(counts) * 0.7)
+    cut = lo + int(np.argmin(counts[lo:hi]))
+    left, right = (x0, x0 + cut), (x0 + cut, x1)
+    if counts[cut] == 0:  # an empty column: it belongs to neither side
+        right = (x0 + cut + 1, x1)
+    return split_touching(rows, *left) + split_touching(rows, *right)
 
 
 def _main_row_run(rows: np.ndarray) -> tuple[int, int]:
