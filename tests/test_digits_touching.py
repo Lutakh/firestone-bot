@@ -1,10 +1,10 @@
 """Two digits that touch on the guild banner are read as two digits (fixtures: real crops of
-the GUILD_LEVEL_REGION on two clients, 1920x1009)."""
+the GUILD_LEVEL_REGION on two clients, 1920x1009, saved as BGR uint8 arrays so the tests
+need no image library)."""
 
 import os
 
 import numpy as np
-from PIL import Image
 
 from firestone_bot.vision import digits
 
@@ -12,15 +12,15 @@ FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def _bgr(name: str) -> np.ndarray:
-    return np.array(Image.open(os.path.join(FIXTURES, name)).convert("RGB"))[:, :, ::-1].copy()
+    return np.load(os.path.join(FIXTURES, name))
 
 
 def test_touching_73_on_a_full_green_bar_is_read():
-    assert digits.DigitReader().read(_bgr("guild-banner-73.png"), last_word=True) == 73
+    assert digits.DigitReader().read(_bgr("guild-banner-73.npy"), last_word=True) == 73
 
 
 def test_separate_digits_still_read():
-    assert digits.DigitReader().read(_bgr("guild-banner-151.png"), last_word=True) == 151
+    assert digits.DigitReader().read(_bgr("guild-banner-151.npy"), last_word=True) == 151
 
 
 def test_split_touching_leaves_digit_shaped_runs_alone():
