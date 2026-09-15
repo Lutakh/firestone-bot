@@ -330,7 +330,10 @@ class Runner:
             else:
                 g.status("Scheduled game restart (RestartGame): the game is closed and relaunched")
             g.heartbeat("Initiating 24h Game Restart", important=True)
-            restart_game_routine.restart_game_routine(g)
+            if not restart_game_routine.restart_game_routine(g):
+                # no store known: do not ask again every cycle (the game's age stays due)
+                self._restart_ms = 0
+                g.status("Scheduled game restarts are off for this run")
             self._last_restart = _ms()
             if s.flag("RestartGameTest"):
                 # "restart once at the next start" is a one-shot test switch: AHK left it

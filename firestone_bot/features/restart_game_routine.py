@@ -15,17 +15,29 @@ class PlatformUnknown(RuntimeError):
     """AHK exits the app when the platform cannot be determined."""
 
 
-def restart_game_routine(g: Game) -> None:
-    # 1. detect the platform BEFORE closing the game
+def restart_game_routine(g: Game) -> bool:
+    """Close and relaunch the game. False when the store could not be told (the restart is
+    skipped and the bot goes on: a raised error here stopped the whole run, Tripl,
+    2026-09-15)."""
+    # 1. detect the platform BEFORE closing the game: the running exe, else the setting,
+    #    the store used last or the installs found on this machine
     platform = process.detect_platform()
+    if platform not in ("steam", "epic"):
+        platform = process.choose_platform(
+            g.settings.get("GamePlatform"), g.settings.get("LastPlatform")
+        )
     if platform == "steam":
         g.toast("Check Firestone launcher", "Steam Firestone found ", 2)
     elif platform == "epic":
         g.toast("Check Firestone launcher", "Epic Firestone found ", 2)
     else:
         g.heartbeat("Error: Could not determine if game is Steam or Epic.", important=True)
+        g.status(
+            "Game restart skipped: the store could not be told (Steam or Epic); set it in "
+            "Advanced > Game launch > Game platform"
+        )
         g.vars["lastRestartTime"] = int(time.monotonic() * 1000)
-        raise PlatformUnknown("Could not determine if game is Steam or Epic")
+        return False
     cap = int(g.settings.get("SafetyCap") or 0)
     attempts = 0
     while True:
@@ -51,7 +63,7 @@ def restart_game_routine(g: Game) -> None:
             g.status("Game restart: start screen found, resuming the cycle")
             g.heartbeat("Pixel found. Resuming bot.", important=True)
             g.vars["lastRestartTime"] = int(time.monotonic() * 1000)
-            return
+            return True
         g.heartbeat("Pixel not found after 5 min. Retrying restart...", important=True)
         attempts += 1
         if platform == "steam":
@@ -66,4 +78,4 @@ def restart_game_routine(g: Game) -> None:
                 process.restart_steam()
         if cap and attempts >= cap:
             g.status(f"RestartGameRoutine: safety cap of {cap} attempts reached")
-            return
+            return True

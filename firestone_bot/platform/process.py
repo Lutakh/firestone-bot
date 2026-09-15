@@ -50,14 +50,60 @@ def exe_path(proc: psutil.Process | None = None) -> str:
         return ""
 
 
+EPIC_CATALOG_ITEM = "e0aa26672dcb40c3a137ced30ed1f160"  # Firestone in the Epic catalogue
+EPIC_MANIFESTS_WIN = r"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
+
+
+def platform_of_folder(folder: str) -> str:
+    """'epic', 'steam' or 'unknown' from what the store leaves next to the game's exe: Epic
+    keeps its manifest in a `.egstore` folder, Steam ships its API DLL. A store folder on
+    another drive carries no 'Epic Games' or 'steamapps' in its path (Tripl, 2026-09-15:
+    Epic on a separate drive, every store detection failed and the scheduled restart
+    stopped the bot)."""
+    if not folder:
+        return "unknown"
+    if os.path.isdir(os.path.join(folder, ".egstore")):
+        return "epic"
+    if any(os.path.exists(os.path.join(folder, f)) for f in ("steam_api64.dll", "steam_api.dll")):
+        return "steam"
+    return "unknown"
+
+
 def detect_platform(path: str | None = None) -> str:
-    """'steam', 'epic' or 'unknown' from the running exe path."""
-    p = (path if path is not None else exe_path()).lower().replace("\\", "/")
+    """'steam', 'epic' or 'unknown' from the running exe: its path, then its folder."""
+    raw = path if path is not None else exe_path()
+    p = raw.lower().replace("\\", "/")
     if "/steamapps/" in p or "/steam/" in p:
         return "steam"
     if "/epic games/" in p or "epicgames" in p:
         return "epic"
-    return "unknown"
+    return platform_of_folder(os.path.dirname(raw)) if raw else "unknown"
+
+
+def epic_install_from_manifests(manifests_dir: str = EPIC_MANIFESTS_WIN) -> str | None:
+    """Folder of the Epic install of Firestone from the launcher's manifests, wherever the
+    game was installed (None when the launcher or the game is absent)."""
+    import json
+
+    try:
+        names = os.listdir(manifests_dir)
+    except OSError:
+        return None
+    for name in names:
+        if not name.endswith(".item"):
+            continue
+        try:
+            with open(os.path.join(manifests_dir, name), encoding="utf-8") as f:
+                item = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if str(item.get("CatalogItemId", "")).lower() != EPIC_CATALOG_ITEM:
+            continue
+        folder = item.get("InstallLocation") or ""
+        exe = os.path.join(folder, item.get("LaunchExecutable") or "Firestone.exe")
+        if folder and os.path.exists(exe):
+            return folder
+    return None
 
 
 def kill_game(timeout: float = 10.0) -> bool:
@@ -132,7 +178,9 @@ def installed_platforms() -> list[str]:
     """Stores with a Firestone install on this machine, e.g. ['epic', 'steam'] (Epic has no
     macOS / Linux client, so only Steam is looked up there)."""
     found = []
-    if sys.platform == "win32" and os.path.exists(EPIC_DEFAULT_EXE):
+    if sys.platform == "win32" and (
+        os.path.exists(EPIC_DEFAULT_EXE) or epic_install_from_manifests() is not None
+    ):
         found.append("epic")
     for root in _steam_library_paths():
         if os.path.exists(os.path.join(root, "steamapps", "common", *STEAM_GAME_FILE)):
