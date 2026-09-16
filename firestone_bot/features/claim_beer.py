@@ -9,6 +9,7 @@ per cycle. The beer -> token purchase itself is kept every cycle, as in AHK.
 from __future__ import annotations
 
 from firestone_bot import daily
+from firestone_bot.features import multiplier
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.craft_artifact import craft_artifact
 from firestone_bot.features.use_tavern_token import use_token
@@ -21,6 +22,8 @@ MAX_PLAYS_PER_VISIT = 60  # safety when MaxTokens is 0 (unlimited)
 def play_tokens(g: Game) -> int:
     """Tavern screen must be open. Plays tokens until the daily limit or no green button."""
     plays = 0
+    if not multiplier.ensure_single(g, "Tavern"):
+        return 0
     while plays < MAX_PLAYS_PER_VISIT:
         if daily.tokens_left(g.settings) == 0:
             g.status(f"Tavern: daily token limit reached ({g.settings.MaxTokens})")

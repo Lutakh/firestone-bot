@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 
 from firestone_bot import daily
+from firestone_bot.features import multiplier
 from firestone_bot.features.awaken import awaken_run
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos import hit_chaos
@@ -129,6 +130,9 @@ def hit_crystal(g: Game) -> None:
     if daily.crystal_left(g.settings) == 0:
         return
     g.tap(atlas.GUILD_CRYSTAL)
+    if not multiplier.ensure_single(g, "Crystal"):
+        big_close(g)
+        return
     hits = 0
     while hits < MAX_CRYSTAL_HITS_PER_VISIT and daily.crystal_left(g.settings) != 0:
         g.move_to(atlas.GUILD_CRYSTAL_PARK)  # off the button: hover would lighten it

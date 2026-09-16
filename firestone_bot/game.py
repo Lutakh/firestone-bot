@@ -510,6 +510,14 @@ class Game:
         sx2, sy2 = vp.to_screen(rect[2], rect[3], anchor)
         return capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))[:, :, :3].copy()
 
+    def digit_reader(self):
+        """The shared digit reader (templates loaded once)."""
+        if self._digits is None:
+            from firestone_bot.vision.digits import DigitReader
+
+            self._digits = DigitReader()
+        return self._digits
+
     def read_number(self, rect: tuple[int, int, int, int], last_word: bool = False) -> int | None:
         """The white number drawn in a logical rect (top-left anchored), None if unreadable."""
         try:

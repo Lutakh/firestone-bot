@@ -16,6 +16,7 @@ from __future__ import annotations
 import time
 
 from firestone_bot import daily
+from firestone_bot.features import multiplier
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos_books import buy_books
 from firestone_bot.game import Game
@@ -74,6 +75,8 @@ def hit_chaos(g: Game) -> None:
     _open_rift(g)
     hits = 0
     missed = 0
+    if need_hits and not multiplier.ensure_single(g, "Chaos rift"):
+        need_hits = False
     while need_hits:
         left = daily.chaos_left(g.settings)
         if left == 0:

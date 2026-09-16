@@ -27,6 +27,10 @@ LEFT, CENTER, RIGHT = 0.0, 0.5, 1.0
 TOP, BOTTOM = 0.0, 1.0
 ANCHOR_CENTER: Anchor = (CENTER, CENTER)  # centred content (dialogs, the world map)
 ANCHOR_BOTTOM_CENTER: Anchor = (CENTER, BOTTOM)  # the main screen's bottom bar
+ANCHOR_BOTTOM_RIGHT: Anchor = (
+    RIGHT,
+    BOTTOM,
+)  # the spend multiplier / mode pair of the token screens
 
 
 def default_anchor(fx: float, fy: float) -> Anchor:
@@ -1393,3 +1397,17 @@ EVENTS_CLOSE_X = Probe(1467, 75, 1471, 79, DIALOG_RING, 20, "events_close_x", AN
 # for the battle pass when the town was still open (2026-09-08).
 BP_CLOSE_X = Probe(1786, 116, 1866, 136, DIALOG_RING, 20, "bp_close_x")
 TAVERN_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "tavern_close_x", ANCHOR_CENTER)
+
+
+# --- Spend multiplier of the token screens (tavern game, scarab game, arcane crystal, chaos
+# rift): a blue "x1" button and a blue "Manual" / "Auto" button in the bottom-right corner,
+# the same pair on all four screens (measured 2026-09-16 on the crystal, scarab and tavern
+# pages). A click on the multiplier steps it (x1 -> x5 -> ...) and the game remembers it, so
+# a player who left x5 made every bot click spend five tokens (Tripl, 2026-09-16). The bot
+# puts both back to x1 / Manual before spending anything, and spends nothing when it cannot.
+SPEND_MULTIPLIER_LABEL = (1650, 871, 1905, 941)  # "x1", white on blue
+SPEND_MULTIPLIER = Point(1777, 906, ANCHOR_BOTTOM_RIGHT)
+SPEND_MODE_LABEL = (1650, 951, 1905, 1026)  # "Manual" / "Auto"
+SPEND_MODE = Point(1777, 988, ANCHOR_BOTTOM_RIGHT)
+SPEND_MANUAL_MIN_WIDTH = 105  # logical px of bright label: "Manual" is 135 wide, "Auto" about 75
+SPEND_PARK = Point(1500, 700, ANCHOR_BOTTOM_RIGHT)  # off both buttons (hover lightens them)

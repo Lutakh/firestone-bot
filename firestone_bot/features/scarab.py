@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 
 from firestone_bot import daily
+from firestone_bot.features import multiplier
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.platform import capture
@@ -66,6 +67,8 @@ def _wait_play_button(g: Game, timeout_ms: int = 20000) -> bool:
 def play_scarab(g: Game) -> int:
     """Scarab game screen must be open. Plays free tokens up to the daily limit."""
     plays = 0
+    if not multiplier.ensure_single(g, "Scarab"):
+        return 0
     while True:
         if daily.scarab_left(g.settings) == 0:
             g.status(f"Scarab: daily limit reached ({g.settings.MaxScarab}), leaving")
