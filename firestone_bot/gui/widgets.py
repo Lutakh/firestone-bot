@@ -138,11 +138,18 @@ class Entry(ctk.CTkEntry):
 
 
 class OptionMenu(ctk.CTkOptionMenu):
-    """Avoid CTk's nested idle loop on option-heavy pages in macOS/Tk 9."""
+    """Avoid CTk's nested idle loop on option-heavy pages.
+
+    CTk flushes every pending idle task from inside each option menu's draw. First seen on
+    macOS / Tk 9; on Windows with a display scale above 100 % the flush never returns while
+    the Workshop page is being built (rounded sizes keep the layout re-scheduling itself) and
+    the launcher stays "Not Responding" from its first second (Slyther, agraalex95, Monk
+    Farquaad, 0.3.16 to 0.3.26; reproduced 2026-09-17 at 125 / 150 / 175 %). The flush only
+    orders canvas items a moment earlier, so it is skipped everywhere.
+    """
 
     def _draw(self, no_color_updates=False):
-        if MAC_TK9:
-            self._canvas.update_idletasks = lambda: None
+        self._canvas.update_idletasks = lambda: None
         super()._draw(no_color_updates)
 
 
