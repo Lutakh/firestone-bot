@@ -78,8 +78,9 @@ def test_font_cache_belongs_to_current_interpreter(monkeypatch):
 
 
 @pytest.mark.parametrize("tk9", [False, True])
-def test_option_menu_skips_nested_idle_only_on_tk9(monkeypatch, tk9):
-    """Regression: nested idle draws caused 230k Configure callbacks per page."""
+def test_option_menu_skips_nested_idle_everywhere(monkeypatch, tk9):
+    """Regression: nested idle draws caused 230k Configure callbacks per page on Tk 9, and
+    never returned on Windows displays scaled above 100 % (launcher frozen at start)."""
     flushed, painted = [], []
     menu = widgets.OptionMenu.__new__(widgets.OptionMenu)
     menu._canvas = SimpleNamespace(update_idletasks=lambda: flushed.append(True))
@@ -92,7 +93,7 @@ def test_option_menu_skips_nested_idle_only_on_tk9(monkeypatch, tk9):
     monkeypatch.setattr(ctk.CTkOptionMenu, "_draw", draw)
     menu._draw()
     assert painted == [True]
-    assert flushed == ([] if tk9 else [True])
+    assert flushed == []
 
 
 @pytest.fixture(scope="module")
