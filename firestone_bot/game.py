@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -37,11 +38,56 @@ from firestone_bot.platform.window import (
     find_game_window,
 )
 from firestone_bot.settings import Settings
-from firestone_bot.vision.atlas import Point, Probe
+from firestone_bot.vision.atlas import DIALOG_CLOSE_X, TOWN_OPEN, Point, Probe
 from firestone_bot.vision.probes import pixel_search_in
 from firestone_bot.vision.viewport import Viewport
 
 log = logging.getLogger("firestone_bot")
+
+DIAGNOSTICS_PER_NAME = 3  # newest captures kept of each kind (town-miss, research-no-node...)
+DIAGNOSTICS_TOTAL = 60  # and at most this many files in all
+_STAMPED = re.compile(r"^(?:\d{8}-)?\d{6}-(.+)$")
+
+
+def prune_diagnostics(
+    folder: str,
+    spare: str | None = None,
+    per_name: int = DIAGNOSTICS_PER_NAME,
+    total: int = DIAGNOSTICS_TOTAL,
+) -> None:
+    """Delete old captures: keep the `per_name` newest of each kind, then the `total` newest
+    overall, by modification time; `spare` (the file just written) is never deleted.
+
+    The captures used to be named by time of day only and pruned by name, which kept the 40
+    latest times of day: a capture taken before 23:57 was deleted as soon as it was written
+    (the owner's folder held nothing but 2357xx-2359xx files, 2026-09-24), so no user could
+    ever send one in."""
+    try:
+        files = [os.path.join(folder, f) for f in os.listdir(folder)]
+    except OSError:
+        return
+    files = [p for p in files if os.path.isfile(p) and p != spare]
+    files.sort(key=_mtime, reverse=True)  # newest first
+    seen: dict[str, int] = {}
+    kept = 1 if spare else 0
+    for path in files:
+        match = _STAMPED.match(os.path.basename(path))
+        kind = match.group(1) if match else os.path.basename(path)
+        seen[kind] = seen.get(kind, 0) + 1
+        if seen[kind] > per_name or kept >= total:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        else:
+            kept += 1
+
+
+def _mtime(path: str) -> float:
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return 0.0
 
 
 class BotStopped(Exception):
@@ -360,20 +406,16 @@ class Game:
 
     def save_diagnostic(self, name: str) -> None:
         """Keep a capture of the whole client in a `diagnostics` folder next to the user
-        files when something unexpected is on screen (time-stamped, the 40 newest kept);
-        best effort."""
+        files when something unexpected is on screen (date and time stamped; the newest
+        few of each kind are kept, see prune_diagnostics); best effort."""
         try:
             folder = os.path.join(
                 os.path.dirname(os.path.abspath(self.map_state_path)), "diagnostics"
             )
             os.makedirs(folder, exist_ok=True)
-            stamp = time.strftime("%H%M%S")
-            capture.save_png(
-                capture.grab(self.window.client), os.path.join(folder, f"{stamp}-{name}")
-            )
-            old = sorted(os.listdir(folder))[:-40]
-            for f in old:
-                os.remove(os.path.join(folder, f))
+            path = os.path.join(folder, f"{time.strftime('%Y%m%d-%H%M%S')}-{name}")
+            capture.save_png(capture.grab(self.window.client), path)
+            prune_diagnostics(folder, spare=path)
         except Exception:
             log.debug("diagnostic %s not saved", name, exc_info=True)
 
@@ -443,7 +485,7 @@ class Game:
         is a town building (`via_town`), and click once more. Returns whether the expected
         screen is there (always True in safe timing, which cannot tell)."""
         self.tap(p, settle_ms, expect=expect)
-        if not self.fast() or self.found(expect):
+        if not self.fast() or self._screen_reached(expect, via_town):
             return True
         from firestone_bot.features.big_close import big_close
         from firestone_bot.features.main_menu import main_menu
@@ -463,7 +505,26 @@ class Game:
                 self.status("The town is not open, the building is not clicked")
                 return False
         self.tap(p, settle_ms, expect=expect)
-        return self.found(expect)
+        return self._screen_reached(expect, via_town)
+
+    TOWN_GONE_MS = 5000  # a building's dialog covers the town within 1-2 s (2026-09-24)
+    BUILDING_X_MS = 2000  # then its X, read twice (wait_for)
+
+    def _screen_reached(self, expect: Probe, via_town: bool) -> bool:
+        """`expect` is on screen, and for a building whose only probe is the generic dialog X,
+        the town is gone too: the town shows that same X, so a click on a building that did
+        not open it read as "screen reached" and the feature read the town (the library saw
+        two empty slots and no node, 2026-09-13; the alchemist its slots on the town). The
+        town's Map arrow is covered by the library, alchemist, guardians, oracle and exotic
+        merchant screens (measured 2026-09-24, 1920x1009 client)."""
+        if not (via_town and expect is DIALOG_CLOSE_X):
+            return self.found(expect)
+        if not self.wait_gone(TOWN_OPEN, self.TOWN_GONE_MS):
+            return False
+        self.wait_still()  # the arrow goes as the building starts scaling in
+        if self.found(TOWN_OPEN):
+            return False  # one frame without the arrow, on the town itself
+        return self.wait_for(expect, self.BUILDING_X_MS)
 
     def require_screen(
         self, p: Point, expect: Probe, settle_ms: float = 1500, via_town: bool = False
@@ -549,15 +610,20 @@ class Game:
         return False
 
     def wait_region_change(
-        self, rect: tuple[int, int, int, int], before: np.ndarray, timeout_ms: int = 15000
+        self,
+        rect: tuple[int, int, int, int],
+        before: np.ndarray,
+        timeout_ms: int = 15000,
+        anchor=None,
     ) -> bool:
-        """Poll a logical rect until enough pixels differ from `before` (digits redrawn)."""
+        """Poll a logical rect until enough pixels differ from `before` (digits redrawn);
+        `anchor` must be the one `before` was captured with."""
         waited = 0
         while waited < timeout_ms:
             step = self.poll_ms()
             self.sleep(step)
             waited += step
-            after = self.region_image(rect)
+            after = self.region_image(rect, anchor)
             if after.shape == before.shape:
                 changed = (np.abs(after.astype(int) - before.astype(int)) > 60).any(axis=2).sum()
                 if changed > 40:

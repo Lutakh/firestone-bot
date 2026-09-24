@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import logging
 
+import numpy as np
+
 from firestone_bot import daily
-from firestone_bot.features import multiplier
+from firestone_bot.features import multiplier, token_counter
 from firestone_bot.features.awaken import awaken_run
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos import hit_chaos
@@ -118,6 +120,33 @@ def claim_axes(g: Game) -> None:
 
 
 MAX_CRYSTAL_HITS_PER_VISIT = 60  # safety when MaxCrystals is 0 (unlimited)
+CRYSTAL_TAKEN_MS = 15000  # a hit shows on the counter at once; patience for a slow server
+CRYSTAL_RETRIES = 2  # clicks the game ignored in one visit before leaving
+CRYSTAL_RETRY_PAUSE_MS = 2000  # the hit animation swallows clicks for a moment
+
+
+def _crystal_hit_spent(g: Game, count: int | None, before: np.ndarray) -> int:
+    """Pickaxes the click spent (0: the game did not take it). With the counter read before
+    the click, the hit counts only once it reads lower; unreadable, the old check on the
+    digits' pixels is the fallback. The old check watched a wider rect, with sky and the
+    box edge in it: a redraw there counted a click the game had ignored (owner, 2026-09-24:
+    15 counted, 14 made; the 15th "hit" took 8 s to be seen)."""
+    if count is not None:
+        after = token_counter.wait_drop(g, atlas.GUILD_PICKAXE_DIGITS, count, CRYSTAL_TAKEN_MS)
+        return 0 if after is None else count - after
+    changed = g.wait_region_change(
+        atlas.GUILD_PICKAXE_DIGITS, before, CRYSTAL_TAKEN_MS, atlas.ANCHOR_TOP_RIGHT
+    )
+    return 1 if changed else 0
+
+
+def _crystal_multi_spend(g: Game, n: int) -> None:
+    g.status(
+        f"Crystal: one click spent {n} pickaxes, the spend multiplier is not x1: "
+        "no more hits until it reads x1"
+    )
+    g.save_diagnostic("crystal-multiplier.png")
+    multiplier.note_multi_spend(g, "Crystal")
 
 
 def hit_crystal(g: Game) -> None:
@@ -130,27 +159,62 @@ def hit_crystal(g: Game) -> None:
     if daily.crystal_left(g.settings) == 0:
         return
     g.tap(atlas.GUILD_CRYSTAL)
-    if not multiplier.ensure_single(g, "Crystal"):
+    if not multiplier.ensure_single(g, "Crystal") or multiplier.spend_blocked(g, "Crystal"):
         big_close(g)
         return
     hits = 0
+    ignored = 0
+    ignored_at: int | None = None  # the counter before a click that looked ignored
+    unread_saved = False
     while hits < MAX_CRYSTAL_HITS_PER_VISIT and daily.crystal_left(g.settings) != 0:
         g.move_to(atlas.GUILD_CRYSTAL_PARK)  # off the button: hover would lighten it
         g.sleep(500)
+        count = token_counter.read_stable(g, atlas.GUILD_PICKAXE_DIGITS)
+        if ignored_at is not None and count is not None and count < ignored_at:
+            # the click that looked ignored was taken, the counter only showed it late
+            late, ignored_at = ignored_at - count, None
+            ignored = max(0, ignored - 1)
+            for _ in range(late):
+                daily.note_crystal_hit(g.settings)
+            hits += late
+            g.status(f"Crystal: hit {hits} confirmed late ({g.settings.CrystalCountDaily} today)")
+            if late > 1:
+                _crystal_multi_spend(g, late)
+                break
+            continue
         if not g.found(atlas.GUILD_CRYSTAL_HIT_READY):
             break
+        if count == 0:
+            g.status("Crystal: no pickaxe left, leaving")
+            break
+        if count is None and not unread_saved:
+            unread_saved = True
+            g.status("Crystal: the pickaxe counter is not readable, watching its pixels instead")
+            g.save_diagnostic("crystal-counter-unread.png")
         g.heartbeat("HitCrystal", important=True)
-        before = g.region_image(atlas.GUILD_PICKAXE_COUNTER)
+        before = g.region_image(atlas.GUILD_PICKAXE_DIGITS, atlas.ANCHOR_TOP_RIGHT)
         g.tap(atlas.GUILD_CRYSTAL_HIT, 500)
         g.move_to(atlas.GUILD_CRYSTAL_PARK)
-        if not g.wait_region_change(atlas.GUILD_PICKAXE_COUNTER, before):
-            # the hit animation swallows clicks: the counter did not move, do not count it
-            g.status("Crystal: the pickaxe counter did not change, leaving")
-            break
+        spent = _crystal_hit_spent(g, count, before)
+        if not spent:
+            ignored += 1
+            ignored_at = count
+            if ignored > CRYSTAL_RETRIES:
+                g.status("Crystal: the pickaxe counter did not go down again, leaving")
+                g.save_diagnostic("crystal-hit-not-taken.png")
+                break
+            g.status("Crystal: the pickaxe counter did not go down, not counted, trying again")
+            g.sleep(CRYSTAL_RETRY_PAUSE_MS)
+            continue
+        ignored_at = None
         g.sleep(1500)
-        daily.note_crystal_hit(g.settings)
-        hits += 1
+        for _ in range(spent):
+            daily.note_crystal_hit(g.settings)
+        hits += spent
         g.status(f"Crystal: hit {hits} ({g.settings.CrystalCountDaily} today)")
+        if spent > 1:
+            _crystal_multi_spend(g, spent)
+            break
     if daily.crystal_left(g.settings) == 0:
         g.status(f"Crystal: daily limit reached ({g.settings.MaxCrystals})")
     big_close(g)

@@ -238,7 +238,8 @@ OPTIONS: dict[str, Option] = {
     "ChaosGuardianOrder": Option(
         "Chaos-rift upgrade order",
         "Roster order used when spending chaos-rift rewards on the guardian chaos tab "
-        "(e.g. 3,1,2,4). Only used when Guild > Chaos rift is on.",
+        "(e.g. 3,1,2,4): the first guardian is upgraded while it can afford it, then each "
+        "of the others that can.",
         "ordered",
         tuple(CHAOS_GUARDIAN_CHOICES),
         {n: f"Guardian {n}" for n in CHAOS_GUARDIAN_CHOICES},
@@ -344,7 +345,8 @@ OPTIONS: dict[str, Option] = {
     ),
     "GuardianChaosUpgrades": Option(
         "Spend chaos-rift rewards on the guardians",
-        "Third tab of the guardian screen, in the order below; also right after the chaos hits.",
+        "Third tab of the guardian screen, whenever a guardian shows a bell, in the order "
+        "below; also right after the chaos hits.",
         "switch",
     ),
     "TavernBeerTokens": Option(

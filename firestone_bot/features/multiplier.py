@@ -89,3 +89,25 @@ def ensure_single(g: Game, screen: str) -> bool:
             g.save_diagnostic("spend-mode-stuck.png")
             return False
     return True
+
+
+MULTI_SPEND = "multi_spend:"  # Game.vars key prefix, one per screen
+
+
+def note_multi_spend(g: Game, screen: str) -> None:
+    """A click on `screen` spent several tokens: its multiplier is not x1 although
+    ensure_single let it through (an unreadable label). Nothing more is spent there until
+    the label reads x1."""
+    g.vars[MULTI_SPEND + screen] = 1
+
+
+def spend_blocked(g: Game, screen: str) -> bool:
+    """True while a click on `screen` is known to spend several tokens (see
+    note_multi_spend); cleared as soon as the multiplier label reads x1."""
+    if not g.vars.get(MULTI_SPEND + screen):
+        return False
+    if read_multiplier(g) == 1:
+        del g.vars[MULTI_SPEND + screen]
+        return False
+    g.status(f"{screen}: a click spent several tokens earlier, nothing spent until it reads x1")
+    return True

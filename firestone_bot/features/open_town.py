@@ -51,5 +51,4 @@ def open_town(g: Game) -> bool:
             g.save_diagnostic("town-miss2.png")
             return False
     g.wait_still()  # the town scales in after its X shows: let it settle before clicking
-    g.save_diagnostic("town-open.png")  # what the town section starts from (2026-09-07)
     return True

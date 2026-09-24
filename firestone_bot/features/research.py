@@ -4,10 +4,16 @@ anything on screen and its "free completion" click landed on the gem "Speed up" 
 
 Flow: open the library (entry probe), select the Firestone tab, read the two slot panels at
 the bottom (green button = finished, claim it; orange "Speed up" = running; neither =
-empty), then for each empty slot try the tree's node boxes from the right (deeper nodes
+empty), then while a panel is empty try the tree's node boxes from the right (deeper nodes
 first, page 2 then page 1, like the AHK): a node whose popup offers the green "Research"
 button is started; any other popup is closed. The gem buttons ("Complete instantly",
 "Speed up") are never clicked.
+
+The panels are read again before every claim and start, and a start is confirmed by the
+number of busy panels: the game keeps the panels packed to the left with the newest research
+first, so a slot followed by its index changed under the bot. With both researches finished
+between two visits, the second one was left unclaimed for a whole cycle and the free slot was
+reported as not started ("not seeing available research", Qualitas, 2026-09-24).
 """
 
 from __future__ import annotations
@@ -63,6 +69,24 @@ def slot_state(g: Game, slot: int) -> str:
     return slot_buttons(g).get(slot, ("empty", None))[0]
 
 
+PARK_MS = 300  # a hovered button is lighter: let it fade before the strip is read
+START_CONFIRM_MS = 3000  # the new research can reach its panel after a server round trip
+MAX_ACTIONS = 6  # claims and starts in one visit (two slots: four is the most needed)
+LABELS = {"running": "in progress", "done": "finished, not claimed", "empty": "free"}
+
+
+def panels(g: Game) -> list[tuple[str, Point | None]]:
+    """State and button of each panel, left to right, read with the pointer parked."""
+    g.move_to(atlas.RS_PARK)
+    g.sleep(PARK_MS)
+    found = slot_buttons(g)
+    return [found.get(i, ("empty", None)) for i in range(atlas.RS_SLOT_COUNT)]
+
+
+def busy_count(states: list[tuple[str, Point | None]]) -> int:
+    return sum(kind != "empty" for kind, _ in states)
+
+
 def tree_nodes(g: Game) -> list[blobs.Blob]:
     """Node boxes on the visible tree page, rightmost first."""
     found = blobs.find_blobs(
@@ -77,38 +101,71 @@ def tree_nodes(g: Game) -> list[blobs.Blob]:
     return sorted(found, key=lambda b: -b.cx)
 
 
-def _try_node(g: Game, node: blobs.Blob, slot: int) -> bool:
+def _started(g: Game, busy: int) -> bool:
+    """A research was started: more panels are busy than before the click. The panels are
+    counted, not looked up by index: the game shows the newest research in the first panel
+    and moves the others right, so "slot 2 did not start" was logged for a research that
+    had started in slot 1 (owner's log: 9 visits, then 3 more Research clicks on a full
+    queue)."""
+    waited = 0
+    while True:
+        if busy_count(panels(g)) > busy:
+            return True
+        if waited >= START_CONFIRM_MS:
+            return False
+        g.sleep(500)
+        waited += 500 + PARK_MS
+
+
+def _claimed(g: Game, done: int) -> bool:
+    """The claim was taken: fewer panels show a green button than before the click. Until
+    then the panels are not trusted: a read taken before the game answered still shows the
+    claimed panel, and a second click at that spot could land on the orange gem "Speed up"
+    of the research that slides into it."""
+    waited = 0
+    while True:
+        states = panels(g)
+        if sum(kind == "done" for kind, _ in states) < done:
+            return True
+        if waited >= START_CONFIRM_MS:
+            return False
+        g.sleep(500)
+        waited += 500 + PARK_MS
+
+
+def _try_node(g: Game, node: blobs.Blob, busy: int) -> bool:
     g.tap(Point(node.cx, node.cy, atlas.ANCHOR_CENTER), 800)
     g.wait_still()
     if g.found(atlas.RS_POPUP_RESEARCH):
         g.tap(atlas.RS_POPUP_RESEARCH_BUTTON, 1000)
         g.wait_still()
-        if slot_state(g, slot) == "running":
+        if _started(g, busy):
             return True
-        g.status(f"Research: the Research button did not start slot {slot + 1}")
+        g.status("Research: the Research button did not start a research")
     if g.found(atlas.RS_POPUP_CLOSE_X):
         g.tap(atlas.RS_POPUP_CLOSE, 500)
         g.wait_still()
     return False
 
 
-def start_research(g: Game, slot: int) -> bool:
-    """Start a research in an empty slot; True when the slot is running afterwards.
-    Leaves the tree on page 1."""
+def start_research(g: Game, busy: int) -> bool:
+    """Start a research while `busy` panels are in use; True when one more is busy
+    afterwards. Leaves the tree on page 1."""
     g.move_to(atlas.RS_TREE_HOVER)
     for page, notches in ((2, -atlas.RS_PAGE_NOTCHES), (1, atlas.RS_PAGE_NOTCHES)):
+        g.move_to(atlas.RS_TREE_HOVER)
         g.wheel(notches)
         g.wait_still()
         nodes = tree_nodes(g)
         g.status(f"Research: {len(nodes)} node(s) on page {page}")
         for node in nodes[:MAX_NODES_PER_PAGE]:
-            if _try_node(g, node, slot):
-                g.status(f"Research: slot {slot + 1} started (page {page}, node at x={node.cx})")
+            if _try_node(g, node, busy):
+                g.status(f"Research: research started (page {page}, node at x={node.cx})")
                 if page == 2:
                     g.move_to(atlas.RS_TREE_HOVER)
                     g.wheel(atlas.RS_PAGE_NOTCHES)
                 return True
-    g.status(f"Research: slot {slot + 1} is free but no node could be started")
+    g.status("Research: a slot is free but no node could be started")
     g.save_diagnostic("research-no-node.png")
     return False
 
@@ -119,20 +176,29 @@ def go_research(g: Game) -> None:
     g.require_screen(atlas.TOWN_LIBRARY, atlas.DIALOG_CLOSE_X, via_town=True)
     g.tap(atlas.RS_FIRESTONE_TREE, 1000)
     g.wait_still()
-    for slot in range(atlas.RS_SLOT_COUNT):
-        state, button = slot_buttons(g).get(slot, ("empty", None))
-        if state == "done":
-            g.status(f"Research: slot {slot + 1} finished, claiming it")
-            g.tap(button, 1500)
+    claiming = True
+    for _ in range(MAX_ACTIONS):
+        states = panels(g)
+        kinds = [kind for kind, _ in states]
+        if "done" in kinds and claiming:
+            # both finished between two visits: each claim moves the other panel left, so
+            # the panels are read again before every action
+            i = max(j for j, kind in enumerate(kinds) if kind == "done")
+            g.status(f"Research: slot {i + 1} finished, claiming it")
+            g.tap(states[i][1], 1500)
             g.wait_still()
-            state = slot_state(g, slot)
-        if state == "running":
-            g.status(f"Research: slot {slot + 1} in progress")
-        elif state == "empty":
-            g.status(f"Research: slot {slot + 1} is free, looking for a node to start")
-            start_research(g, slot)
-        else:
-            g.status(f"Research: slot {slot + 1} still shows a green button, left alone")
+            if not _claimed(g, kinds.count("done")):
+                g.status("Research: the claim did not show, no more claims this visit")
+                g.save_diagnostic("research-claim.png")
+                claiming = False
+            continue
+        if "empty" not in kinds:
+            break
+        g.status("Research: a slot is free, looking for a node to start")
+        if not start_research(g, busy_count(states)):
+            break
+    for i, (kind, _) in enumerate(panels(g)):
+        g.status(f"Research: slot {i + 1} {LABELS[kind]}")
     big_close(g)
 
 

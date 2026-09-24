@@ -40,6 +40,8 @@ class FakeGame:
     def save_diagnostic(self, name):
         pass
 
+    _screen_reached = game_mod.Game._screen_reached
+
 
 @pytest.fixture(autouse=True)
 def fake_blobs(monkeypatch):

@@ -31,6 +31,7 @@ ANCHOR_BOTTOM_RIGHT: Anchor = (
     RIGHT,
     BOTTOM,
 )  # the spend multiplier / mode pair of the token screens
+ANCHOR_TOP_RIGHT: Anchor = (RIGHT, TOP)  # token counters left of a dialog's big X
 
 
 def default_anchor(fx: float, fy: float) -> Anchor:
@@ -611,7 +612,12 @@ TOWN_ALCHEMIST = Point(511, 837)  # :8
 # Measured on the owner's client: paid button 7762 orange and 715 purple px of 12950 in the
 # body rect; an idle slot (green start button) 48 orange and 0 purple.
 ALCHEMY_BUTTON_ORANGE_MIN = 0.15  # share of the body that must be orange: a Speed up button
-ALCHEMY_BUTTON_GEM_MAX = 60  # purple px allowed: the gem icon leaves hundreds
+# Share of the body allowed to be gem purple: the icon covers 715 / 12950 (5.5 %), a free or
+# idle button none. A share holds at every client size (60 px was the 1920x1009 value).
+ALCHEMY_BUTTON_GEM_SHARE_MAX = 60 / 12950
+# Where the pointer rests while the slots are read: where the click on the building leaves
+# it (the alchemist's portrait), off every slot button (302 good free reads from there).
+ALCHEMY_PARK = TOWN_ALCHEMIST
 
 
 @dataclass(frozen=True)
@@ -672,6 +678,10 @@ ALCHEMY_SLOTS = (
 TOWN_LIBRARY = Point(329, 657)  # Research.ahk:12
 RS_FIRESTONE_TREE = Point(1816, 610)  # Firestone tab of the right-hand panel (Research.ahk:18)
 RS_TREE_HOVER = Point(1429, 944)  # where the wheel scrolls the tree (ResearchStart.ahk:5)
+# Where the pointer rests while the slot strip is read: the empty top bar right of the tree
+# title ("Tree XIII" and its arrows end near x 1150), no widget under it. RS_TREE_HOVER lands
+# on slot 2's button at 16:9 and a hovered button is drawn lighter.
+RS_PARK = Point(1300, 60, (CENTER, TOP))
 RS_PAGE_NOTCHES = 35  # wheel notches between the tree's two pages (WheelDown = page 2)
 RS_TREE_AREA = (40, 110, 1650, 860)  # logical, centre-anchored: the tree without the tabs
 RS_NODE_BOX = 0x1D49DE
@@ -724,6 +734,11 @@ GUILD_CRYSTAL_PARK = Point(
     300, 950, (CENTER, CENTER)
 )  # mouse parking spot away from the hit button
 GUILD_PICKAXE_COUNTER = (1590, 51, 1710, 91)  # logical rect of the pickaxe counter digits
+# The digits alone (read as a number, top-right anchored): the rect above also holds the
+# box's bright bottom edge (y 85), open sky (y 86-91) and the pickaxe handle, whose redraws
+# counted a hit the game had ignored (owner, 2026-09-24: 15 counted, 14 made). Read live
+# 2026-09-24: 246 at every anchor on the 1920x1009 client.
+GUILD_PICKAXE_DIGITS = (1605, 53, 1705, 83)
 GUILD_NOTIF_1 = Point(1056, 487)  # :109
 GUILD_NOTIF_2 = Point(230, 667)  # :114
 
@@ -763,6 +778,10 @@ CHAOS_HIT_ICON_PAID = Probe(905, 911, 955, 951, 0xA54510, 12, "chaos_hit_icon_pa
 # with a reopening in between, before that conclusion.
 CHAOS_HIT_WAIT_MS = 20000
 CHAOS_HIT_ICON_FREE = Probe(905, 911, 955, 951, 0x3182C6, 16, "chaos_hit_icon_free")
+# Free moonstone counter, top bar left of the paid-medal counter (the moon icon at x
+# 1379-1409 left out). Captures read 10 / 9 / 8 / 7 / 0 through a day, 9 already during the
+# battle of a hit; live 2026-09-24: 0 (paid counter 93 beside it).
+CHAOS_FREE_COUNTER = (1420, 49, 1530, 83)
 # Rift shop (books), measured 2026-09-04: Shop button right column with its bell, Supplies
 # entry in the shop's left menu with its bell, green price button of the "Tome of power" card.
 RIFT_SHOP = Point(1815, 721)
