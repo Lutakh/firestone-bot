@@ -19,8 +19,8 @@ MAX_STEPS = 8  # clicks on the multiplier to come back round to x1
 MIN_LABEL_WIDTH = 20  # logical px: below it there is no label (no button on this screen)
 
 
-def _label(g: Game, rect) -> np.ndarray:
-    return g.region_image(rect, atlas.ANCHOR_BOTTOM_RIGHT)
+def _label(g: Game, rect, anchor=atlas.ANCHOR_BOTTOM_RIGHT) -> np.ndarray:
+    return g.region_image(rect, anchor)
 
 
 def _bright_width(g: Game, img_bgr: np.ndarray) -> int:
@@ -30,10 +30,14 @@ def _bright_width(g: Game, img_bgr: np.ndarray) -> int:
     return round((cols.max() - cols.min() + 1) / max(g._viewport().rel_scale, 0.1))
 
 
-def read_multiplier(g: Game) -> int | None:
+def read_multiplier(
+    g: Game, rect=atlas.SPEND_MULTIPLIER_LABEL, anchor=atlas.ANCHOR_BOTTOM_RIGHT
+) -> int | None:
     """The number of the "xN" label, None when there is no readable label. The "x" is a
-    glyph the digit reader cannot name: it is skipped and the digits after it are read."""
-    img = _label(g, atlas.SPEND_MULTIPLIER_LABEL)
+    glyph the digit reader cannot name: it is skipped and the digits after it are read.
+    The token screens' label by default; `rect` / `anchor` read another screen's (the
+    guardian screen has its own, top right of its panel)."""
+    img = _label(g, rect, anchor)
     if _bright_width(g, img) < MIN_LABEL_WIDTH:
         return None
     reader = g.digit_reader()

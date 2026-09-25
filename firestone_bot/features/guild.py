@@ -47,10 +47,11 @@ def guild(g: Game) -> None:
         awaken_run(g)
     if g.settings.flag("Chaos") and not g.locked("guild_chaos"):
         hit_chaos(g)
-    if not g.settings.flag("Pickaxes"):
+    event = daily.event_on(g.settings)  # Decorated Heroes: 15 crystal hits a day
+    if not g.settings.flag("Pickaxes") or event:
         claim_axes(g)
     # CrystalHit:
-    if g.settings.flag("Crystal") and not g.locked("guild_crystal"):
+    if (g.settings.flag("Crystal") or event) and not g.locked("guild_crystal"):
         hit_crystal(g)
     if g.settings.flag("PTree"):
         g.tap(atlas.GUILD_PTREE_ENTRY)
@@ -216,7 +217,7 @@ def hit_crystal(g: Game) -> None:
             _crystal_multi_spend(g, spent)
             break
     if daily.crystal_left(g.settings) == 0:
-        g.status(f"Crystal: daily limit reached ({g.settings.MaxCrystals})")
+        g.status(f"Crystal: daily limit reached ({daily.crystal_limit(g.settings)})")
     big_close(g)
 
 

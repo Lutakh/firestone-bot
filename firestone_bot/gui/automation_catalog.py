@@ -36,8 +36,9 @@ AUTOMATIONS: tuple[AutomationGroup, ...] = (
         title="Events & rewards",
         category="Collect",
         context="Main screen",
-        summary="Claim available event, battle pass, quest, daily check-in and free shop rewards.",
-        keys=("Events", "BattlePass", "Quests", "Shop"),
+        summary="Claim available event, battle pass, quest, daily check-in and free shop rewards, "
+        "and complete the Decorated Heroes event challenges.",
+        keys=("Events", "EventDecoratedHeroes", "BattlePass", "Quests", "Shop"),
     ),
     AutomationGroup(
         id="mail",
@@ -411,6 +412,8 @@ def disabled_reason(
         if key == "ChaosGuardianOrder" and not on("GuardianChaosUpgrades"):
             return "Turn on spending chaos-rift rewards to use the upgrade order."
         return None
+    if key == "GuardianTrain" and on("EventDecoratedHeroes"):
+        return None  # also the guardian the Decorated Heroes event enlightens
     if (
         group.master
         and key != group.master

@@ -11,6 +11,8 @@ different kind and are skipped.
 
 from __future__ import annotations
 
+from firestone_bot import daily
+from firestone_bot.features import decorated_heroes
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas, bells
@@ -27,8 +29,10 @@ def _claim_challenges(g: Game) -> int:
     return claimed
 
 
-def _first_card_with_bell(g: Game) -> int | None:
+def _first_card_with_bell(g: Game, skip: set[int] = frozenset()) -> int | None:
     for i, bell in enumerate(atlas.EVENTS_CARD_BELLS):
+        if i in skip:
+            continue
         # counted, not probed: the card bell is a red sprite whose exact shade drifts with the
         # canvas scale (it missed the RED_DOT probe at 2560x1302 on macOS, 2026-09-09)
         if bells.bell_in(g, bell):
@@ -37,6 +41,12 @@ def _first_card_with_bell(g: Game) -> int | None:
 
 
 def claim_events(g: Game) -> None:
+    """Claim the event rewards. `Events` claims the basic events (Challenges tab); the
+    Decorated Heroes switch claims that event's page. Each card with a bell is opened once
+    per visit: a card of another kind no longer stops the scan (the Decorated Heroes card,
+    active since 2026-09-18, was opened and left at every cycle and hid the cards after it)."""
+    basic = g.settings.flag("Events")
+    event = daily.event_on(g.settings)
     g.focus()
     if not bells.bell_in(g, g.ms.events_bell):
         g.status("Events: no bell on the button, nothing to claim")
@@ -45,11 +55,27 @@ def claim_events(g: Game) -> None:
     # open events
     g.open_screen(g.ms.events_icon, atlas.EVENTS_CLOSE_X)
     total = 0
+    opened: set[int] = set()
     for _ in range(MAX_EVENT_VISITS):
-        idx = _first_card_with_bell(g)
+        idx = _first_card_with_bell(g, opened)
         if idx is None:
             break
+        opened.add(idx)
         g.tap(atlas.EVENTS_CARDS[idx])
+        g.wait_still()  # the page scales in
+        if decorated_heroes.is_page(g):
+            if event and decorated_heroes.open_challenges(g):
+                total += decorated_heroes.claim_page(g)
+            elif event:
+                g.status("Events: the Decorated Heroes challenges did not show")
+                g.save_diagnostic("decorated-heroes-page.png")
+            else:
+                g.status(f"Events: card {idx + 1} is the Decorated Heroes event (switch off)")
+            g.tap(atlas.DH_PAGE_CLOSE)
+            continue
+        if not basic:
+            g.tap(atlas.EVENTS_PAGE_CLOSE)
+            continue
         if bells.bell_in(g, atlas.EVENTS_CHALLENGES_TAB_BELL):
             g.tap(atlas.EVENTS_CHALLENGES_TAB)
             n = _claim_challenges(g)
@@ -61,12 +87,10 @@ def claim_events(g: Game) -> None:
                 # client: keep the page so the three rows can be checked.
                 g.save_diagnostic("events-no-claim.png")
             g.tap(atlas.EVENTS_PAGE_CLOSE)
-            if n == 0:
-                break  # bell but nothing green: avoid looping on the same card
         else:
             g.status(f"Events: card {idx + 1} has no Challenges tab (other event type), skipping")
+            g.save_diagnostic(f"events-other-card-{idx + 1}.png")
             g.tap(atlas.EVENTS_PAGE_CLOSE)
-            break
     g.tap(atlas.EVENTS_LIST_CLOSE)
     g.toast("Main Menu Check", "Checking to ensure we are on main screen after claiming events", 2)
     main_menu(g)

@@ -5,6 +5,8 @@ AHK colour literal `0x0F40000` (7 digits) is read as 0xF40000; kept as RED_DOT.
 
 from __future__ import annotations
 
+from firestone_bot import daily
+from firestone_bot.features import decorated_heroes
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.guardian_chaos import upgrade_on_guardian_screen
 from firestone_bot.game import Game
@@ -12,7 +14,9 @@ from firestone_bot.vision import atlas
 
 
 def guardian(g: Game) -> None:
-    if not g.settings.flag("GuardianVisit"):
+    # the Decorated Heroes event also needs the screen for its enlightenments
+    visit = g.settings.flag("GuardianVisit")
+    if not visit and not daily.enlighten_left(g.settings):
         return
     g.focus()
     # open Magic Quarter
@@ -25,7 +29,7 @@ def guardian(g: Game) -> None:
         g.tap(atlas.TOWN_MAGIC_QUARTER, 0)
         g.sleep(6500)
     # check for evolve
-    if g.settings.flag("GuardianEvolve") and g.found(atlas.GUARDIAN_EVOLVE_DOT):
+    if visit and g.settings.flag("GuardianEvolve") and g.found(atlas.GUARDIAN_EVOLVE_DOT):
         g.tap(atlas.GUARDIAN_EVOLVE_TAB, 1000)
         g.move_to(atlas.GUARDIAN_EVOLVE_BUTTON)
         g.click()
@@ -35,7 +39,7 @@ def guardian(g: Game) -> None:
         g.click()
         g.sleep(1000)
     # check for training
-    if g.settings.flag("GuardianTraining") and g.found(atlas.GUARDIAN_TRAIN_READY):
+    if visit and g.settings.flag("GuardianTraining") and g.found(atlas.GUARDIAN_TRAIN_READY):
         g.key_down("left")
         g.sleep(2000)
         g.key_up("left")
@@ -48,7 +52,10 @@ def guardian(g: Game) -> None:
             g.key_up("right")
             g.sleep(100)
         g.tap(atlas.GUARDIAN_TRAIN_BUTTON, 1000)
+    # Decorated Heroes event: three enlightenments a day (first tab, strange dust)
+    if daily.enlighten_left(g.settings):
+        decorated_heroes.enlighten(g)
     # Python-only: spend the chaos-rift currency on the third tab when its bell shows
-    if g.settings.flag("GuardianChaosUpgrades"):
+    if visit and g.settings.flag("GuardianChaosUpgrades"):
         upgrade_on_guardian_screen(g)
     big_close(g)

@@ -26,7 +26,7 @@ def play_tokens(g: Game) -> int:
         return 0
     while plays < MAX_PLAYS_PER_VISIT:
         if daily.tokens_left(g.settings) == 0:
-            g.status(f"Tavern: daily token limit reached ({g.settings.MaxTokens})")
+            g.status(f"Tavern: daily token limit reached ({daily.token_limit(g.settings)})")
             break
         if not use_token(g):
             break
@@ -37,8 +37,11 @@ def play_tokens(g: Game) -> int:
 
 
 def claim_beer(g: Game) -> None:
-    # check if skip beer was selected
-    if g.settings.flag("Beer"):
+    # check if skip beer was selected (the Decorated Heroes event still needs its plays)
+    event = daily.event_on(g.settings)
+    # tavern skipped by the user: the event visits it only for its plays, nothing else
+    forced = g.settings.flag("Beer")
+    if forced and (not event or daily.tokens_left(g.settings) == 0):
         return
     g.focus()
     # open Tavern
@@ -46,17 +49,18 @@ def claim_beer(g: Game) -> None:
     g.tap(atlas.TAVERN_BEER_TAB, 1000)
     # check for enough beer to claim tokens
     g.tap(atlas.TAVERN_TOKEN_SHOP, 1000)
-    if g.settings.flag("TavernBeerTokens") and g.found(atlas.TAVERN_BEER_CLAIM_READY):
+    buy = g.settings.flag("TavernBeerTokens") and not forced
+    if buy and g.found(atlas.TAVERN_BEER_CLAIM_READY):
         g.tap(atlas.TAVERN_BEER_CLAIM, 1000)
     big_close(g)
     # check if Use Tavern Token is checked
-    if g.settings.flag("Token"):
+    if g.settings.flag("Token") or event:
         if daily.tokens_left(g.settings) == 0:
             g.status("Tavern: daily token limit already reached, skipping tokens")
         else:
             play_tokens(g)
     # Rework: the craft button is checked on every visit (AHK only after a token was played,
     # so a ready artifact waited until the next token; owner 2026-09-07)
-    if g.settings.flag("CraftArtifact"):
+    if g.settings.flag("CraftArtifact") and not forced:
         craft_artifact(g)
     big_close(g)

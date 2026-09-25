@@ -164,6 +164,9 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "OracleGifts": ("Actions", "1"),
     "MysteryBoxes": ("Actions", "1"),
     "BattlePass": ("Actions", "1"),
+    # Timed in-game events (default OFF: turned on by the user while the event runs)
+    "EventDecoratedHeroes": ("PythonOptions", "0"),
+    "EnlightenCountDaily": ("CommonOptions", "0"),  # guardian enlightenments since the reset
 }
 
 ENCODINGS = ("utf-16", "utf-8-sig")

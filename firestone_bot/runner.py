@@ -370,7 +370,7 @@ class Runner:
             self._style_seen = g.style
             g.status(f"Interface style: {g.style}")
             self._progress_checks()
-            if s.flag("Events"):
+            if s.flag("Events") or daily.event_on(s):
                 self._step("Events", lambda: claim_events.claim_events(g))
             if s.flag("BattlePass"):
                 self._step("Battle pass", lambda: battle_pass.battle_pass(g))

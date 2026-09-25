@@ -166,6 +166,32 @@ EVENTS_CHALLENGES_TAB_BELL = Probe(
     1290, 44, 1320, 74, RED_DOT, RED_DOT_VAR, "events_tab_bell", (CENTER, CENTER)
 )
 EVENTS_PAGE_CLOSE = Point(1715, 124, (CENTER, CENTER))  # X of the event page (client (1715,93))
+# The Decorated heroes page is another kind of event page: tabs Challenges (yellow when
+# selected) / Medals / Stars exchange / Skins / Market under the title, eight daily
+# challenge cards in two rows, each with a Claim button (grey until a tier is reached), a
+# check mark and no button once its three tiers are claimed, and its own X (the X of the
+# other event pages is elsewhere and did not close it).
+DH_CHALLENGES_TAB = Probe(340, 195, 510, 220, 0xE8D090, 16, "dh_challenges_tab", (CENTER, CENTER))
+DH_MEDALS_TAB = Probe(610, 195, 780, 220, 0x8890F0, 16, "dh_medals_tab", (CENTER, CENTER))
+DH_PAGE_CLOSE = Point(1785, 106, (CENTER, CENTER))
+DH_PAGE_CLOSE_X = Probe(1772, 94, 1798, 118, 0xF8F8C8, 16, "dh_page_close_x", (CENTER, CENTER))
+DH_CHALLENGES_TAB_BUTTON = Point(425, 207, (CENTER, CENTER))
+# the same two tab slots in the other state (a page reopened on another tab)
+DH_CHALLENGES_TAB_IDLE = Probe(
+    340, 195, 510, 220, 0x8890F0, 16, "dh_challenges_tab_idle", (CENTER, CENTER)
+)
+DH_MEDALS_TAB_SELECTED = Probe(
+    610, 195, 780, 220, 0xE8D090, 16, "dh_medals_tab_selected", (CENTER, CENTER)
+)
+DH_CLAIMS = tuple(
+    (
+        Probe(x - 70, y - 14, x + 70, y + 14, GREEN_BUTTON, 12, f"dh_claim_{i}", (CENTER, CENTER)),
+        Point(x, y, (CENTER, CENTER)),
+    )
+    for i, (x, y) in enumerate(
+        ((cx, cy) for cy in (607, 917) for cx in (326, 745, 1162, 1580)), start=1
+    )
+)
 EVENTS_CHALLENGE_CLAIMS = (  # :25-43 (probe, claim button) - still valid in the 2026 layout
     (
         Probe(1540, 365, 1568, 405, GREEN_BUTTON, 3, "events_claim_1", (CENTER, CENTER)),
@@ -375,6 +401,17 @@ GUARDIAN_EVOLVE_BUTTON = Point(1117, 750)  # :21
 GUARDIAN_BACK_TAB = Point(1049, 171)  # :26
 GUARDIAN_TRAIN_READY = Probe(1199, 766, 1257, 810, GREEN_BUTTON, 3, "guardian_train_ready")  # :32
 GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
+# "Enlightenment N" button right of Train (strange dust, 20 per enlightenment at x1; green
+# when affordable), and the screen's multiplier label top right of the panel. The label
+# steps x20 -> x1 -> x5 -> x10 -> x20 (measured 2026-09-25) and also sets how many
+# enlightenments one click buys. The strange dust counter sits where the pickaxe counter of
+# the crystal is (GUILD_PICKAXE_DIGITS reads 8015 there).
+GUARDIAN_ENLIGHTEN_READY = Probe(1420, 736, 1680, 816, GREEN_BUTTON, 3, "guardian_enlighten")
+GUARDIAN_ENLIGHTEN = Point(1550, 776)
+GUARDIAN_MULTIPLIER_LABEL = (1700, 213, 1810, 273)
+GUARDIAN_MULTIPLIER = Point(1755, 243)
+GUARDIAN_MULTIPLIER_PARK = Point(1300, 300)  # panel text, nothing clickable
+GUARDIAN_DUST_DIGITS = (1605, 53, 1705, 83)  # same place as the crystal's pickaxe digits
 # Chaos-rift tab of the guardian screen (Python-only, measured 2026-09-04): third tab, bell on
 # it, bells at the top-right corner of the 4 roster portraits, green Upgrade button.
 GUARDIAN_CHAOS_TAB = Point(1360, 171)

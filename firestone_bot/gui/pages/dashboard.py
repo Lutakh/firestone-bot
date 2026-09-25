@@ -382,17 +382,18 @@ class DashboardView:
         self.refresh_runtime()
         s = self.ctx.settings
         progress = _load_progress(os.path.join(self.ctx.base_dir, "progress.json"))
-        self.meter_tokens.set(daily._int(s, "TokenCountDaily"), daily._int(s, "MaxTokens"))
+        # the limits in force (the Decorated Heroes event raises tokens and crystal hits)
+        self.meter_tokens.set(daily._int(s, "TokenCountDaily"), daily.token_limit(s))
         for meter, feature, used, limit in (
-            (self.meter_chaos, "guild_chaos", "ChaosCountDaily", "MaxChaos"),
-            (self.meter_scarab, "scarab", "ScarabCountDaily", "MaxScarab"),
-            (self.meter_crystal, "guild_crystal", "CrystalCountDaily", "MaxCrystals"),
+            (self.meter_chaos, "guild_chaos", "ChaosCountDaily", daily._int(s, "MaxChaos")),
+            (self.meter_scarab, "scarab", "ScarabCountDaily", daily._int(s, "MaxScarab")),
+            (self.meter_crystal, "guild_crystal", "CrystalCountDaily", daily.crystal_limit(s)),
         ):
             reason = progress.locked_short(feature)
             if reason:
                 meter.set_locked(reason)  # "0 / 10" on a locked feature only frustrates
             else:
-                meter.set(daily._int(s, used), daily._int(s, limit))
+                meter.set(daily._int(s, used), limit)
         reason = progress.locked_short("arena")
         done = daily.arena_done(s) and not reason
         self.arena_dot.set("ok" if done else "grey")

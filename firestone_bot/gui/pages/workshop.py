@@ -404,7 +404,13 @@ class Workshop:
             )
         )
         settings = self.ctx.settings
-        for key in ("TokenCountDaily", "ChaosCountDaily", "ScarabCountDaily", "CrystalCountDaily"):
+        for key in (
+            "TokenCountDaily",
+            "ChaosCountDaily",
+            "ScarabCountDaily",
+            "CrystalCountDaily",
+            "EnlightenCountDaily",
+        ):
             self._value(
                 card, key, READ_ONLY_LABELS[key], lambda name=key: settings.get(name) or "0"
             )
@@ -445,8 +451,8 @@ class Workshop:
             return
         if not messagebox.askyesno(
             "Reset daily counters",
-            "Clear today's tavern token, chaos, scarab and crystal counters, and reset the "
-            "arena, chaos-book and mailbox markers?",
+            "Clear today's tavern token, chaos, scarab, crystal and guardian enlightenment "
+            "counters, and reset the arena, chaos-book and mailbox markers?",
             parent=self.ctx.root,
         ):
             return

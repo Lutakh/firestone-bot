@@ -214,6 +214,7 @@ WORKSHOP_VALUES = (
             "ChaosCountDaily",
             "ScarabCountDaily",
             "CrystalCountDaily",
+            "EnlightenCountDaily",
             "LastTokenReset",
             "LastChaosReset",
         )

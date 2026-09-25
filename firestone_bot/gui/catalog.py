@@ -118,6 +118,7 @@ READ_ONLY_KEYS = {
     "ChaosBooksDaily",
     "MailSweepDaily",
     "CrystalCountDaily",
+    "EnlightenCountDaily",
     "LastPlatform",
     "ScarabCountDaily",
     "ClientID",
@@ -165,6 +166,15 @@ OPTIONS: dict[str, Option] = {
     # -- Main screen ---------------------------------------------------------------------
     "Events": Option(
         "Claim basic events", "Collects the event rewards shown on the main screen.", "switch"
+    ),
+    "EventDecoratedHeroes": Option(
+        "Decorated Heroes event",
+        "Turn on while the Decorated Heroes event runs (two weeks, odd months): each day the "
+        "bot plays at least 12 tavern tokens, hits the arcane crystal at least 15 times (with "
+        "guild visits on), enlightens the guardian chosen for training 3 times (60 strange "
+        "dust) and claims the stars of the event's challenges. Turn it off when the event ends.",
+        "switch",
+        warn=True,
     ),
     "Quests": Option(
         "Claim quests", "Claims completed quests, then returns to the main screen.", "switch"
@@ -595,6 +605,7 @@ READ_ONLY_LABELS = {
     "TokenCountDaily": "Tokens used today",
     "ChaosCountDaily": "Chaos hits today",
     "CrystalCountDaily": "Crystal hits today",
+    "EnlightenCountDaily": "Enlightenments today",
     "LastPlatform": "Store seen last",
     "ScarabCountDaily": "Scarab plays today",
     "ArenaDoneDaily": "Arena done today",
