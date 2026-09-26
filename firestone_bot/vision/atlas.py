@@ -720,6 +720,11 @@ RS_TREE_HOVER = Point(1429, 944)  # where the wheel scrolls the tree (ResearchSt
 # on slot 2's button at 16:9 and a hovered button is drawn lighter.
 RS_PARK = Point(1300, 60, (CENTER, TOP))
 RS_PAGE_NOTCHES = 35  # wheel notches between the tree's two pages (WheelDown = page 2)
+# One notch moves the tree about 56 logical px (measured 2026-09-26, 1920x1009): the
+# search stops every RS_SCAN_NOTCHES on its way back from the end, so a node box (about
+# 410 px wide) is whole and clear of the right-hand panel at one stop at least.
+RS_SCAN_NOTCHES = 12
+RS_TREE_BAND = (40, 300, 1650, 700)  # rows the view shift is measured on (centre-anchored)
 RS_TREE_AREA = (40, 110, 1650, 860)  # logical, centre-anchored: the tree without the tabs
 RS_NODE_BOX = 0x1D49DE
 RS_NODE_VAR = 32

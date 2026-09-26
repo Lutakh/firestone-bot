@@ -5,9 +5,12 @@ anything on screen and its "free completion" click landed on the gem "Speed up" 
 Flow: open the library (entry probe), select the Firestone tab, read the two slot panels at
 the bottom (green button = finished, claim it; orange "Speed up" = running; neither =
 empty), then while a panel is empty try the tree's node boxes from the right (deeper nodes
-first, page 2 then page 1, like the AHK): a node whose popup offers the green "Research"
-button is started; any other popup is closed. The gem buttons ("Complete instantly",
-"Speed up") are never clicked.
+first): the tree is scrolled to its end, then back to its start in steps, and the nodes of
+every stop are tried (the AHK looked at the two ends only: a node in the middle of a tree,
+hidden under the right-hand panel at the start and gone past the left edge at the end, was
+never seen; Qualitas, 2026-09-26, "Meteorite hunter" in Tree II). A node whose popup
+offers the green "Research" button is started; any other popup is closed. The gem buttons
+("Complete instantly", "Speed up") are never clicked.
 
 The panels are read again before every claim and start, and a start is confirmed by the
 number of busy panels: the game keeps the panels packed to the left with the newest research
@@ -18,12 +21,16 @@ reported as not started ("not seeing available research", Qualitas, 2026-09-24).
 
 from __future__ import annotations
 
+import numpy as np
+
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas, blobs
 from firestone_bot.vision.atlas import Point
 
 MAX_NODES_PER_PAGE = 8
+MAX_POPUPS = 12  # node popups opened in one search, all stops together
+SAME_NODE_PX = 60  # logical px: a node seen again at the next stop, after the view shift
 SLOT_ANCHOR = (atlas.LEFT, atlas.BOTTOM)
 
 
@@ -148,22 +155,76 @@ def _try_node(g: Game, node: blobs.Blob, busy: int) -> bool:
     return False
 
 
+def scan_steps() -> list[int]:
+    """Wheel notches of each stop: to the end of the tree, then back to its start."""
+    steps = [-atlas.RS_PAGE_NOTCHES]
+    left = atlas.RS_PAGE_NOTCHES
+    while left > 0:
+        steps.append(min(atlas.RS_SCAN_NOTCHES, left))
+        left -= steps[-1]
+    return steps
+
+
+def tree_profile(g: Game) -> np.ndarray:
+    """Mean brightness of each column of the tree band: what the view shift is read on."""
+    img = g.region_image(atlas.RS_TREE_BAND, atlas.ANCHOR_CENTER)
+    return img.astype(np.float32).mean(axis=(0, 2))
+
+
+def view_shift(before: np.ndarray, after: np.ndarray) -> float | None:
+    """How far the tree moved right between two profiles, as a share of the band width
+    (0 = the same view); None when no shift matches (the view changed otherwise)."""
+    n = min(len(before), len(after))
+    if n < 20:
+        return None
+    before, after = before[:n], after[:n]
+    best = None
+    for s in range(n - n // 5):
+        d = float(np.abs(after[s:] - before[: n - s]).mean())
+        if best is None or d < best[0]:
+            best = (d, s)
+    if best is None or best[0] > 6.0:
+        return None
+    return best[1] / n
+
+
 def start_research(g: Game, busy: int) -> bool:
     """Start a research while `busy` panels are in use; True when one more is busy
-    afterwards. Leaves the tree on page 1."""
-    g.move_to(atlas.RS_TREE_HOVER)
-    for page, notches in ((2, -atlas.RS_PAGE_NOTCHES), (1, atlas.RS_PAGE_NOTCHES)):
+    afterwards. Leaves the tree at its start."""
+    band = atlas.RS_TREE_BAND[2] - atlas.RS_TREE_BAND[0]
+    tried: list[float] = []  # logical x of the nodes tried, in the current view
+    popups = 0
+    profile = None
+    scrolled_back = 0
+    steps = scan_steps()
+    for stop, notches in enumerate(steps, start=1):
         g.move_to(atlas.RS_TREE_HOVER)
         g.wheel(notches)
         g.wait_still()
-        nodes = tree_nodes(g)
-        g.status(f"Research: {len(nodes)} node(s) on page {page}")
+        if notches > 0:
+            scrolled_back += notches
+        before, profile = profile, tree_profile(g)
+        if before is not None:
+            shift = view_shift(before, profile)
+            if shift is None:
+                tried = []  # the view is not the one before, shifted: nothing to skip
+            elif shift * band < SAME_NODE_PX / 2:
+                continue  # the tree did not move (its start was already reached)
+            else:
+                tried = [x + shift * band for x in tried]
+        nodes = [n for n in tree_nodes(g) if all(abs(n.cx - x) > SAME_NODE_PX for x in tried)]
+        g.status(f"Research: {len(nodes)} new node(s) at stop {stop}/{len(steps)}")
         for node in nodes[:MAX_NODES_PER_PAGE]:
+            if popups >= MAX_POPUPS:
+                break
+            popups += 1
+            tried.append(node.cx)
             if _try_node(g, node, busy):
-                g.status(f"Research: research started (page {page}, node at x={node.cx})")
-                if page == 2:
+                g.status(f"Research: research started (stop {stop}, node at x={node.cx})")
+                back = atlas.RS_PAGE_NOTCHES - scrolled_back
+                if back > 0:
                     g.move_to(atlas.RS_TREE_HOVER)
-                    g.wheel(atlas.RS_PAGE_NOTCHES)
+                    g.wheel(back)
                 return True
     g.status("Research: a slot is free but no node could be started")
     g.save_diagnostic("research-no-node.png")
