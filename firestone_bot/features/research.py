@@ -21,6 +21,8 @@ reported as not started ("not seeing available research", Qualitas, 2026-09-24).
 
 from __future__ import annotations
 
+import time
+
 import numpy as np
 
 from firestone_bot.features.big_close import big_close
@@ -28,9 +30,10 @@ from firestone_bot.game import Game
 from firestone_bot.vision import atlas, blobs
 from firestone_bot.vision.atlas import Point
 
-MAX_NODES_PER_PAGE = 8
-MAX_POPUPS = 12  # node popups opened in one search, all stops together
-SAME_NODE_PX = 60  # logical px: a node seen again at the next stop, after the view shift
+MAX_NODES_PER_STOP = 6  # every stop gets its tries, the tree's start (its roots) included
+SAME_ROW_PX = 50  # logical px between the centres of two boxes of one row (rows ~120 apart)
+NO_NODE_PAUSE_S = 15 * 60  # after a search that started nothing, the next one waits
+NO_NODE_UNTIL = "research_no_node_until"  # Game.vars: monotonic second of the next search
 SLOT_ANCHOR = (atlas.LEFT, atlas.BOTTOM)
 
 
@@ -188,12 +191,22 @@ def view_shift(before: np.ndarray, after: np.ndarray) -> float | None:
     return best[1] / n
 
 
+def same_node(box: tuple[float, float, float], node: blobs.Blob) -> bool:
+    """`node` is the box tried before (x1, x2, centre y, in this view): same row, and the
+    two overlap by half the narrower one. Boxes, not centres: a box cut by the tree area's
+    edge is seen by its visible part, whose centre moves once the box is whole."""
+    x1, x2, cy = box
+    if abs(node.cy - cy) > SAME_ROW_PX:
+        return False
+    overlap = min(x2, node.x2) - max(x1, node.x1)
+    return overlap >= min(x2 - x1, node.x2 - node.x1) / 2
+
+
 def start_research(g: Game, busy: int) -> bool:
     """Start a research while `busy` panels are in use; True when one more is busy
     afterwards. Leaves the tree at its start."""
     band = atlas.RS_TREE_BAND[2] - atlas.RS_TREE_BAND[0]
-    tried: list[float] = []  # logical x of the nodes tried, in the current view
-    popups = 0
+    tried: list[tuple[float, float, float]] = []  # boxes opened, in the current view
     profile = None
     scrolled_back = 0
     steps = scan_steps()
@@ -208,17 +221,15 @@ def start_research(g: Game, busy: int) -> bool:
             shift = view_shift(before, profile)
             if shift is None:
                 tried = []  # the view is not the one before, shifted: nothing to skip
-            elif shift * band < SAME_NODE_PX / 2:
+            elif shift * band < SAME_ROW_PX / 2:
                 continue  # the tree did not move (its start was already reached)
             else:
-                tried = [x + shift * band for x in tried]
-        nodes = [n for n in tree_nodes(g) if all(abs(n.cx - x) > SAME_NODE_PX for x in tried)]
+                dx = shift * band
+                tried = [(x1 + dx, x2 + dx, cy) for x1, x2, cy in tried]
+        nodes = [n for n in tree_nodes(g) if not any(same_node(t, n) for t in tried)]
         g.status(f"Research: {len(nodes)} new node(s) at stop {stop}/{len(steps)}")
-        for node in nodes[:MAX_NODES_PER_PAGE]:
-            if popups >= MAX_POPUPS:
-                break
-            popups += 1
-            tried.append(node.cx)
+        for node in nodes[:MAX_NODES_PER_STOP]:
+            tried.append((node.x1, node.x2, node.cy))
             if _try_node(g, node, busy):
                 g.status(f"Research: research started (stop {stop}, node at x={node.cx})")
                 back = atlas.RS_PAGE_NOTCHES - scrolled_back
@@ -226,8 +237,9 @@ def start_research(g: Game, busy: int) -> bool:
                     g.move_to(atlas.RS_TREE_HOVER)
                     g.wheel(back)
                 return True
-    g.status("Research: a slot is free but no node could be started")
+    g.status("Research: a slot is free but no node could be started, next search in 15 min")
     g.save_diagnostic("research-no-node.png")
+    g.vars[NO_NODE_UNTIL] = int(time.monotonic()) + NO_NODE_PAUSE_S
     return False
 
 
@@ -254,6 +266,10 @@ def go_research(g: Game) -> None:
                 claiming = False
             continue
         if "empty" not in kinds:
+            break
+        if time.monotonic() < g.vars.get(NO_NODE_UNTIL, 0):
+            # nothing could be started a moment ago: the whole tree is not scrolled again
+            # at every cycle (firestones take a while to come)
             break
         g.status("Research: a slot is free, looking for a node to start")
         if not start_research(g, busy_count(states)):

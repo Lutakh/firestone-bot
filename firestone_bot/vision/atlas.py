@@ -724,7 +724,9 @@ RS_PAGE_NOTCHES = 35  # wheel notches between the tree's two pages (WheelDown = 
 # search stops every RS_SCAN_NOTCHES on its way back from the end, so a node box (about
 # 410 px wide) is whole and clear of the right-hand panel at one stop at least.
 RS_SCAN_NOTCHES = 12
-RS_TREE_BAND = (40, 300, 1650, 700)  # rows the view shift is measured on (centre-anchored)
+# Rows the view shift is measured on (centre-anchored). It starts at x 70: a client
+# narrower than the reference (16:9, 16:10) shows nothing left of logical x 63.
+RS_TREE_BAND = (70, 300, 1650, 700)
 RS_TREE_AREA = (40, 110, 1650, 860)  # logical, centre-anchored: the tree without the tabs
 RS_NODE_BOX = 0x1D49DE
 RS_NODE_VAR = 32

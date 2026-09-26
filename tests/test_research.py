@@ -5,8 +5,8 @@ the others move left; a started research goes first ("newest") or after the busy
 ("append"). Both orders are tested: the bot must not depend on which one the game uses.
 
 The fake tree has nodes at fixed places along a strip that the wheel scrolls (56 logical px
-a notch, as measured, stopped at both ends); a node is seen when its box is whole inside the
-tree area, as the blob size limit makes it on the game.
+a notch, as measured, stopped at both ends), in rows. As on the game, a box cut by the tree
+area's edge is still found while 140 px of it show, as its visible part.
 """
 
 import numpy as np
@@ -43,10 +43,11 @@ class FakeGame:
         self.pending_claim = None
         self.reads = 0
         self.order = order
-        # tree nodes: (x of the box centre at the tree's start, startable)
+        # tree nodes: (x of the box centre at the tree's start, startable[, y])
         if tree is None:
             tree = [(1400, popup_research)] if nodes else []
-        self.tree = list(tree)
+        self.tree = [(t[0], t[1], t[2] if len(t) > 2 else NODE_Y) for t in tree]
+        self.vars = {}
         self.tree_end = tree_end  # px the tree scrolls from its start to its end
         self.offset = 0  # px scrolled from the start
         self.taps = []
@@ -70,13 +71,19 @@ class FakeGame:
         else:
             self.panels[self.panels.index(None)] = "orange"
 
-    def visible_nodes(self):
+    def visible_boxes(self):
+        """(node index, x1, x2, y) of the visible part of each box found as a blob."""
         out = []
-        for i, (x, _) in enumerate(self.tree):
-            cx = x - self.offset
-            if AREA_X1 <= cx - NODE_W // 2 and cx + NODE_W // 2 <= AREA_X2:
-                out.append((i, cx))
+        for i, (x, _, y) in enumerate(self.tree):
+            x1 = max(AREA_X1, x - self.offset - NODE_W // 2)
+            x2 = min(AREA_X2, x - self.offset + NODE_W // 2)
+            if x2 - x1 >= atlas.RS_NODE_MIN_W:
+                out.append((i, x1, x2, y))
         return out
+
+    def visible_nodes(self):
+        """(node index, centre x) of the boxes that are whole on screen."""
+        return [(i, (x1 + x2) // 2) for i, x1, x2, _ in self.visible_boxes() if x2 - x1 == NODE_W]
 
     # Game API used by the feature
     def focus(self):
@@ -100,9 +107,9 @@ class FakeGame:
             self._start()
         elif p is atlas.RS_POPUP_CLOSE:
             self.popup = None
-        elif p.y == NODE_Y:
-            for i, cx in self.visible_nodes():
-                if abs(cx - p.x) < 5:
+        else:
+            for i, x1, x2, y in self.visible_boxes():
+                if abs((x1 + x2) / 2 - p.x) < 5 and abs(y - p.y) < 5:
                     self.popup = i
                     self.popups.append(i)
 
@@ -158,10 +165,7 @@ def fake(monkeypatch):
                     if state == want
                 ]
             assert rect == atlas.RS_TREE_AREA
-            return [
-                blobs.Blob(cx - NODE_W // 2, NODE_Y - 50, cx + NODE_W // 2, NODE_Y + 50, 1)
-                for _, cx in g.visible_nodes()
-            ]
+            return [blobs.Blob(x1, y - 50, x2, y + 50, 1) for _, x1, x2, y in g.visible_boxes()]
 
         monkeypatch.setattr(blobs, "find_blobs", find)
         monkeypatch.setattr(research, "big_close", lambda game: game.statuses.append("big_close"))
@@ -239,11 +243,45 @@ def test_a_node_seen_at_two_stops_is_opened_once(fake):
     assert sorted(g.popups) == [0, 1]
 
 
-def test_popups_are_capped(fake):
-    tree = [(300 + 450 * i, False) for i in range(12)]
+def test_every_stop_gets_its_tries(fake):
+    """Deep columns full of nodes the player cannot afford: the tree's start (its roots,
+    seen at the last stop only) still gets tried."""
+    tree = [(x, False, y) for x in (1850, 2310, 2770) for y in (230, 350, 470)]
+    tree.append((417, True, 350))
     g = fake(["orange", None], tree=tree, tree_end=1960)
+    assert research.start_research(g, 1)
+    assert g.panels == ["orange", "orange"]
+    assert len(set(g.popups)) == len(g.popups)  # none opened twice
+
+
+def test_a_row_left_out_at_one_stop_is_tried_at_the_next(fake):
+    """Three rows in a column: the rows over the per-stop limit are not taken for tried."""
+    tree = [(x, False, y) for x in (2300, 2760, 3220) for y in (230, 350, 470)]
+    tree[2] = (2300, True, 470)  # the only startable node: leftmost column, last row
+    g = fake(["orange", None], tree=tree, tree_end=1960)
+    assert research.start_research(g, 1)
+    assert len(set(g.popups)) == len(g.popups)
+
+
+def test_a_box_cut_by_the_edge_is_opened_once(fake):
+    """Seen by its visible part at one stop, whole at the next: the same node."""
+    g = fake(["orange", None], tree=[(1400, False)], tree_end=1300)
+    g.offset = 1300
+    assert [i for i, *_ in g.visible_boxes()] == [0]  # cut at the left edge at the end
+    g.offset = 0
     assert not research.start_research(g, 1)
-    assert len(g.popups) <= research.MAX_POPUPS
+    assert g.popups == [0]
+
+
+def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
+    g = fake([None, None], popup_research=False)
+    research.go_research(g)
+    wheels = len(g.wheels)
+    research.go_research(g)  # the next cycle
+    assert len(g.wheels) == wheels
+    g.vars[research.NO_NODE_UNTIL] = 0  # 15 min later
+    research.go_research(g)
+    assert len(g.wheels) > wheels
 
 
 def test_view_shift_on_a_short_tree_that_stops_at_its_start(fake):
