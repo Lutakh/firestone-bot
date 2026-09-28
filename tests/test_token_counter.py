@@ -31,6 +31,10 @@ class Reader:
         ("chaos-free-9", 9),
         ("chaos-free-0", 0),
         ("crystal-pickaxes-52", 52),
+        # tavern game, TAVERN_TOKEN_DIGITS (owner's 1920x1009 Epic client, 2026-09-28)
+        ("tavern-tokens-141", 141),
+        # guardian screen, GUARDIAN_DUST_DIGITS showing "10,518": the comma is dropped
+        ("guardian-dust-10518", 10518),
     ],
 )
 def test_counters_read_on_real_captures(name, value):

@@ -452,6 +452,12 @@ GUARDIAN_CHAOS_PARK = Point(1672, 600)  # off the button (hovered = lighter gree
 # --- ClaimBeer.ahk / UseTavernToken.ahk / CraftArtifact.ahk -----------------------------------
 TAVERN_BEER_TAB = Point(773, 500)  # ClaimBeer.ahk:18
 TAVERN_TOKEN_SHOP = Point(1735, 69)  # :23
+# Tavern token counter of the tavern game, top right between the token icon (ends ~1600) and
+# the green "+" (TAVERN_TOKEN_SHOP, starts ~1723): the digits alone, read as a number
+# top-right anchored (token_counter.read), so a play counts only when it took a token.
+# "141" at logical x 1640..1672, y 67..84, read live 2026-09-28 on the owner's 1920x1009
+# Epic client (new style), also with the rect moved 2 px either way; one play: 141 -> 140.
+TAVERN_TOKEN_DIGITS = (1606, 60, 1718, 92)
 # ClaimBeer.ahk:27 looked for a yellow 0xFFBB33 button in (616,610)-(697,656); the token shop
 # button is now green (0x0AA008) and spans (407,611)-(652,654) (measured 2026-09-04).
 TAVERN_BEER_CLAIM_READY = Probe(430, 615, 630, 650, GREEN_BUTTON, 3, "tavern_beer_claim")

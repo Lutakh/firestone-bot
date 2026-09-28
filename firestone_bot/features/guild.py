@@ -36,13 +36,7 @@ def guild(g: Game) -> None:
         g.tap(g.ms.guild_icon, expect=atlas.DIALOG_CLOSE_X)
         _guild_level_check(g, final=True)
     # check if expeditions are ready
-    if g.settings.flag("GuildExpedition") and g.found(atlas.GUILD_EXPEDITION_DOT):
-        g.heartbeat("Guild expedition start", important=True)
-        g.tap(atlas.GUILD_EXPEDITIONS)
-        g.tap(atlas.GUILD_EXPEDITION_START)
-        g.click()
-        g.sleep(1000)
-        big_close(g)
+    expedition(g)
     if g.settings.flag("Awaken") and not g.locked("guild_awaken"):
         awaken_run(g)
     if g.settings.flag("Chaos") and not g.locked("guild_chaos"):
@@ -59,6 +53,65 @@ def guild(g: Game) -> None:
     if g.settings.flag("GNotif"):
         clear_notifications(g)
     big_close(g)
+
+
+EXPEDITION_RECHECK_MS = 500  # the dot is read twice before it counts as still there
+
+
+def _expedition_dot(g: Game) -> bool:
+    """The expeditions dot on the guild map once the screen is still, found on two reads a
+    moment apart: a frame of the closing dialog never decides alone."""
+    g.wait_still()
+    if not g.found(atlas.GUILD_EXPEDITION_DOT):
+        return False
+    g.sleep(EXPEDITION_RECHECK_MS)
+    return g.found(atlas.GUILD_EXPEDITION_DOT)
+
+
+def _open_and_start(g: Game, twice: bool) -> None:
+    g.tap(atlas.GUILD_EXPEDITIONS)
+    g.tap(atlas.GUILD_EXPEDITION_START)
+    if twice:
+        g.click()
+    g.sleep(1000)
+    big_close(g)
+
+
+def expedition(g: Game) -> str:
+    """Guild map open: claim the finished expedition and start the next when the expeditions
+    dot shows. Returns "off" (switch off), "none" (no dot), "started" or "failed".
+
+    The AHK clicks are kept: the first click on Start claims the finished expedition, the
+    second one at the same spot starts the next. Only the opt-in heartbeat said so, a DEBUG
+    line the log file never shows: whether expeditions ran could not be seen (owner backlog,
+    2026-09-28). The dot gone once the dialog is closed means one started (run_feature guild:
+    dot at logical (414,439), gone after the start). When it stays, the second click may only
+    have closed the reward of the finished one: Start is clicked once more."""
+    if not g.settings.flag("GuildExpedition"):
+        return "off"
+    if not g.found(atlas.GUILD_EXPEDITION_DOT):
+        g.status("Guild expedition: no dot, nothing to claim or start")
+        return "none"
+    g.status(
+        "Guild expedition: dot on the expeditions, claiming the finished one and starting the next"
+    )
+    g.heartbeat("Guild expedition start", important=True)
+    _open_and_start(g, twice=True)
+    if not _expedition_dot(g):
+        g.status("Guild expedition: started (the dot is gone)")
+        return "started"
+    g.status("Guild expedition: the dot is still there, clicking Start once more")
+    _open_and_start(g, twice=False)
+    if not _expedition_dot(g):
+        g.status("Guild expedition: started on the second try")
+        return "started"
+    # the dot may also stay when no expedition can be started right now
+    g.status(
+        "Guild expedition: the dot is still there after two tries, no start seen "
+        "(no expedition available?)"
+    )
+    g.save_diagnostic("guild-expedition-not-started.png")
+    return "failed"
 
 
 def _guild_level_check(g: Game, final: bool = False) -> bool:
