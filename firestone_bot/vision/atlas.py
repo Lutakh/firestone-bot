@@ -732,11 +732,12 @@ ALCHEMY_SLOTS = (
 
 # --- Research: the library's research tree (game 9.1.1, measured 2026-09-08 on the Mac) ----
 # The AHK-era library (two slots with orange "free" / green "done" buttons, blue 0x0D49DE
-# nodes matched at variation 0) is gone. The Firestone tab shows a scrolling tree of blue
-# node boxes (0x2848D8 on the Mac's sRGB capture, 0x0D49DE on Windows: matched at 0x1D49DE
-# +-32, which excludes the tree's own blue background 0x184080 / 0x407DD3); clicking a node
-# opens a centred popup with a green "Research" button (left) and an orange "Complete
-# instantly" gem button (right, never clicked). Two slot panels sit at the bottom left: a
+# nodes matched at variation 0) is gone. The Firestone tab shows a scrolling tree of node
+# boxes: dark blue = available (0x2848D8 on the Mac's sRGB capture, 0x0D49DE on Windows),
+# light blue = maxed, gold = running (2026-09-28; the tree's own blue background 0x184080 /
+# 0x407DD3 is none of them); clicking a node opens a centred popup with a green "Research"
+# button (left) and an orange "Complete instantly" gem button (right, never clicked). Two
+# slot panels sit at the bottom left: a
 # running research shows a progress bar and an orange "Speed up" gem button (never
 # clicked), an empty slot reads "Select a firestone research", a finished one is expected
 # to show a green button in the same place as "Speed up" (not seen yet).
@@ -747,18 +748,34 @@ RS_TREE_HOVER = Point(1429, 944)  # where the wheel scrolls the tree (ResearchSt
 # title ("Tree XIII" and its arrows end near x 1150), no widget under it. RS_TREE_HOVER lands
 # on slot 2's button at 16:9 and a hovered button is drawn lighter.
 RS_PARK = Point(1300, 60, (CENTER, TOP))
-RS_PAGE_NOTCHES = 35  # wheel notches between the tree's two pages (WheelDown = page 2)
-# One notch moves the tree about 56 logical px (measured 2026-09-26, 1920x1009): the
-# search stops every RS_SCAN_NOTCHES on its way back from the end, so a node box (about
-# 410 px wide) is whole and clear of the right-hand panel at one stop at least.
+# One notch moves the tree 56 logical px (WheelDown = further right; measured 2026-09-26 and
+# 2026-09-28, 1920x1009: 12 notches = 672 px on all thirteen trees, each 2478 px from its start
+# to its end). The scan stops every RS_SCAN_NOTCHES from the start, so every box's icon is whole
+# and clear of the right-hand panel at one stop at least (an icon is whole anywhere in a 1576 px
+# wide stretch of the view; the first two columns only show at the tree's start).
 RS_SCAN_NOTCHES = 12
+RS_PX_PER_NOTCH = 56
+RS_REWIND_NOTCHES = 48  # more than a whole tree (44 notches): back to its start in one go
 # Rows the view shift is measured on (centre-anchored). It starts at x 70: a client
 # narrower than the reference (16:9, 16:10) shows nothing left of logical x 63.
 RS_TREE_BAND = (70, 300, 1650, 700)
-RS_TREE_AREA = (40, 110, 1650, 860)  # logical, centre-anchored: the tree without the tabs
-RS_NODE_BOX = 0x1D49DE
-RS_NODE_VAR = 32
-RS_NODE_MIN_W, RS_NODE_MIN_H = 140, 40  # a node box is ~410x100 logical
+# Where the node boxes are looked for (logical, centre-anchored): up to the right-hand tab
+# panel, which starts at x 1728 (right-anchored, RS_TAB_PANEL_X): a box half behind it still
+# shows its icon when it starts 110 px before the panel (2026-09-28; the old area ending at
+# 1650 cut such icons). The boxes are 383 x 101 (running 105), found as colour blobs of the
+# three box colours (vision/research_icons.py) on 6 px cells half filled.
+RS_TREE_AREA = (40, 110, 1725, 860)
+RS_TAB_PANEL_X = 1728
+RS_NODE_MIN_W, RS_NODE_MIN_H = 140, 60
+RS_NODE_CELL = 6
+RS_NODE_FILL = 0.5
+# Tree geometry (2026-09-28, trees I..XIII): the columns are 459.5 px apart (up to 8 px off in
+# some trees), column 1 is the left-most box at the tree's start (x 225); a column holds 1, 2
+# or 3 boxes whose tops sit on five levels: 224 / 467 / 709 (three boxes), 345 / 588 (two),
+# 467 (one). A running box's top is 1 px lower.
+RS_COLUMN_PITCH = 459.5
+RS_COLUMN1_X = 225
+RS_ROW_TOPS = (224, 345, 467, 588, 709)
 RS_POPUP_RESEARCH = Probe(700, 690, 900, 716, 0x0EA10C, 20, "rs_popup_research", ANCHOR_CENTER)
 RS_POPUP_RESEARCH_BUTTON = Point(800, 704, ANCHOR_CENTER)
 RS_POPUP_CLOSE_X = Probe(1215, 200, 1263, 248, DIALOG_RING, 30, "rs_popup_close_x", ANCHOR_CENTER)

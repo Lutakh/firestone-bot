@@ -1,91 +1,227 @@
-"""Research tree (game 9.1.1): panel states from the bottom strip, claims, node attempts.
+"""Research tree (game 9.1.1): panel states from the bottom strip, claims, the scan of the tree
+and the research started (priorities, 2026-09-28).
 
 The fake keeps the panels packed to the left like the game: a claimed panel disappears and
 the others move left; a started research goes first ("newest") or after the busy ones
 ("append"). Both orders are tested: the bot must not depend on which one the game uses.
 
-The fake tree has nodes at fixed places along a strip that the wheel scrolls (56 logical px
-a notch, as measured, stopped at both ends), in rows. As on the game, a box cut by the tree
-area's edge is still found while 140 px of it show, as its visible part.
+The fake tree is drawn, and the bot's own blob search and icon identification run on it:
+node boxes in the three box colours at the measured places (columns 459.5 px apart from x
+225 at the tree's start, five row levels), each with the icon of its recorded reference
+painted cell by cell (the bot's thumbnail of it is its reference), on a background whose
+brightness varies along the tree (the view shift is read on it). The wheel scrolls it 56
+logical px a notch between its start and its end (2478 px, as measured on every tree), and
+the view shows it from x 32 to the right-hand tab panel at 1728, so a box is cut at both
+edges as in the game. Screen px = logical px (the reference client).
 """
+
+import re
 
 import numpy as np
 import pytest
 
 from firestone_bot.features import research
-from firestone_bot.vision import atlas, blobs
+from firestone_bot.platform.window import Rect
+from firestone_bot.settings import Settings
+from firestone_bot.vision import atlas, blobs, research_icons
+from firestone_bot.vision.viewport import Viewport
 
 PX_PER_NOTCH = 56
-NODE_W = 410
-NODE_Y = 350
-AREA_X1, AREA_X2 = atlas.RS_TREE_AREA[0], atlas.RS_TREE_AREA[2]
-BAND_X1, BAND_X2 = atlas.RS_TREE_BAND[0], atlas.RS_TREE_BAND[2]
+TREE_END = 2478
+VIEW_X1 = 32
+PANEL_X = atlas.RS_TAB_PANEL_X
+BOX_W, BOX_H = 383, 101
+BODY = {"available": (222, 73, 13), "maxed": (255, 192, 53), "running": (68, 208, 255)}  # BGR
+CANVAS_W = PANEL_X + TREE_END + 64
+REFS = research_icons.default_refs()
+REAL_FIND = blobs.find_blobs
+REF_CLIENT = Rect(0, 31, 1920, 1009)  # the reference: screen px = logical px
+
+# Tree XIII as the owner had it on 2026-09-28: name -> (column, row level, state)
+XIII = {
+    "Rage Heroes": (1, 2, "available"),
+    "Energy Heroes": (2, 1, "available"),
+    "Mana Heroes": (2, 3, "available"),
+    "Attribute Health": (3, 0, "maxed"),
+    "Attribute Armor": (3, 2, "maxed"),
+    "Attribute Damage": (3, 4, "running"),
+    "Guardian Power": (4, 2, "running"),
+    "Expose Weakness": (5, 1, "maxed"),
+    "Powerless Boss": (5, 3, "maxed"),
+    "Weaklings": (6, 1, "maxed"),
+    "Powerless Enemy": (6, 3, "maxed"),
+    "Leadership": (7, 1, "maxed"),
+    "Team Bonus": (7, 3, "maxed"),
+    "Raining Gold": (8, 0, "maxed"),
+    "Firestone Effect": (8, 2, "maxed"),
+    "All Main Attributes": (8, 4, "maxed"),
+}
+
+
+class Node:
+    """A box of the fake tree; state "hidden" = a locked box (never seen live: not drawn)."""
+
+    def __init__(self, col, row, name, state="available", startable=True):
+        self.col, self.row, self.name, self.state, self.startable = col, row, name, state, startable
+
+    @property
+    def x(self):
+        return round(atlas.RS_COLUMN1_X + (self.col - 1) * atlas.RS_COLUMN_PITCH)
+
+    @property
+    def y(self):
+        return atlas.RS_ROW_TOPS[self.row]
+
+
+def xiii(locked=(), **states):
+    """Tree XIII, `states` by name ("hidden": a locked column's box); `locked`: the names
+    whose popup offers no Research button."""
+    out = []
+    for name, (col, row, state) in XIII.items():
+        state = states.get(name, state)
+        out.append(Node(col, row, name, state, name not in locked))
+    return out
 
 
 def _texture(x: np.ndarray) -> np.ndarray:
     """A brightness that varies along the tree without repeating (for the view shift)."""
-    return 120 + 60 * np.sin(x / 37.0) + 40 * np.sin(x / 11.3 + 1.0)
+    return 60 + 30 * np.sin(x / 37.0) + 25 * np.sin(x / 11.3 + 1.0)
 
 
-class FakeGame:
+def _paint(img: np.ndarray, node: Node) -> None:
+    x, y = node.x, node.y
+    img[y : y + BOX_H, x : x + BOX_W] = BODY[node.state]
+    if node.name is None:  # an icon without a reference
+        thumb = np.random.default_rng(node.col * 10 + node.row).integers(0, 255, (12, 12, 3))
+    else:
+        thumb = REFS.stacks[node.state][REFS.names.index(node.name)]
+    left, top, right, bottom = research_icons.WINDOW
+    ys = np.floor(np.linspace(0, bottom - top, 13)).astype(int) + y + top
+    xs = np.floor(np.linspace(0, right - left, 13)).astype(int) + x + left
+    for i in range(12):
+        for j in range(12):
+            img[ys[i] : ys[i + 1], xs[j] : xs[j + 1]] = np.round(thumb[i, j][::-1])
+
+
+class FakeLibrary:
     def __init__(
         self,
         panels,
-        order="newest",
-        popup_research=True,
-        nodes=True,
-        claim_lag=0,
         tree=None,
-        tree_end=1400,
+        order="newest",
+        claim_lag=0,
+        offset=0,
+        tree_end=TREE_END,
+        client=REF_CLIENT,
+        **settings,
     ):
         self.panels = list(panels)  # "green" / "orange" / None, left to right
         self.claim_lag = claim_lag  # strip reads before a claim shows
         self.pending_claim = None
         self.reads = 0
         self.order = order
-        # tree nodes: (x of the box centre at the tree's start, startable[, y])
-        if tree is None:
-            tree = [(1400, popup_research)] if nodes else []
-        self.tree = [(t[0], t[1], t[2] if len(t) > 2 else NODE_Y) for t in tree]
-        self.vars = {}
+        self.tree = xiii() if tree is None else tree
         self.tree_end = tree_end  # px the tree scrolls from its start to its end
-        self.offset = 0  # px scrolled from the start
+        self.offset = offset  # px scrolled from the start
+        self.settings = Settings()
+        for k, v in settings.items():
+            self.settings.set(k, v)
+        self.vars = {}
         self.taps = []
         self.statuses = []
         self.wheels = []
         self.style = "classic"
-        self.popup = None  # index of the node whose popup is open
-        self.popups = []
+        self.popup = None  # the node whose popup is open
+        self.popups = []  # names of the nodes opened, in order
+        self.sparkles = {}  # name -> grabs of its icon still hidden by a sparkle
+        self.vp = Viewport(client)
+        self._canvas = None
+        self._screen = None
+        self._screen_key = None
+        self._version = 0
 
     # the game's reactions
     def _claim(self, i):
         del self.panels[i]
         self.panels.append(None)
 
-    def _start(self):
+    def _start(self, node):
         if None not in self.panels:
             return  # a full queue takes nothing
+        node.state = "running"
+        self._canvas = None
+        self._version += 1
         if self.order == "newest":
             self.panels.insert(0, "orange")
             self.panels.remove(None)
         else:
             self.panels[self.panels.index(None)] = "orange"
 
-    def visible_boxes(self):
-        """(node index, x1, x2, y) of the visible part of each box found as a blob."""
-        out = []
-        for i, (x, _, y) in enumerate(self.tree):
-            x1 = max(AREA_X1, x - self.offset - NODE_W // 2)
-            x2 = min(AREA_X2, x - self.offset + NODE_W // 2)
-            if x2 - x1 >= atlas.RS_NODE_MIN_W:
-                out.append((i, x1, x2, y))
+    # drawing
+    def canvas(self):
+        if self._canvas is None:
+            t = _texture(np.arange(CANVAS_W, dtype=np.float32))
+            img = np.zeros((1080, CANVAS_W, 3), np.uint8)
+            img[:, :, 0] = (80 + 0.6 * t).astype(np.uint8)
+            img[:, :, 1] = (40 + 0.3 * t).astype(np.uint8)
+            img[:, :, 2] = 20
+            for node in self.tree:
+                if node.state != "hidden":
+                    _paint(img, node)
+            self._canvas = img
+        return self._canvas
+
+    def screen(self):
+        """The screen, drawn in logical px then, for another client, resampled to it (the
+        nearest logical pixel of every screen pixel)."""
+        key = (self.offset, self._version)
+        if self._screen_key != key:
+            s = np.full((1080, 1920, 3), 50, np.uint8)
+            s[:, VIEW_X1:PANEL_X] = self.canvas()[:, VIEW_X1 + self.offset : PANEL_X + self.offset]
+            s[:, PANEL_X:] = (120, 110, 100)  # the tab panel
+            c = self.vp.client
+            if c != REF_CLIENT:
+                f = self.vp.ref_scale / self.vp.scale  # logical px per screen px
+                lx = 960 + (np.arange(c.w) + 0.5 - c.w / 2) * f
+                ly = 31 + 1009 / 2 + (np.arange(c.h) + 0.5 - c.h / 2) * f
+                out = np.zeros((c.y + c.h, c.x + c.w, 3), np.uint8)
+                out[c.y :, c.x :] = s[ly.astype(int).clip(0, 1079)][:, lx.astype(int).clip(0, 1919)]
+                s = out
+            self._screen, self._screen_key = s, key
+        return self._screen
+
+    def grab(self, r):
+        s = self.screen()
+        out = np.zeros((r.h, r.w, 3), np.uint8)
+        y1, y2 = max(0, r.y), min(s.shape[0], r.y + r.h)
+        x1, x2 = max(0, r.x), min(s.shape[1], r.x + r.w)
+        out[y1 - r.y : y2 - r.y, x1 - r.x : x2 - r.x] = s[y1:y2, x1:x2]
         return out
 
-    def visible_nodes(self):
-        """(node index, centre x) of the boxes that are whole on screen."""
-        return [(i, (x1 + x2) // 2) for i, x1, x2, _ in self.visible_boxes() if x2 - x1 == NODE_W]
+    def node_at(self, x, y):
+        for node in self.tree:
+            vx = node.x - self.offset
+            if node.state == "hidden" or not node.y <= y < node.y + BOX_H:
+                continue
+            if max(vx, VIEW_X1) <= x < min(vx + BOX_W, PANEL_X):
+                return node
+        return None
 
     # Game API used by the feature
+    def _viewport(self):
+        return self.vp
+
+    def region_image(self, rect, anchor=None):
+        sx1, sy1 = self.vp.to_screen(rect[0], rect[1], anchor)
+        sx2, sy2 = self.vp.to_screen(rect[2], rect[3], anchor)
+        img = self.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1)).copy()
+        icon = rect[2] - rect[0] == research_icons.PAD + research_icons.RECT_W
+        node = self.node_at(rect[0] + 20, rect[1] + 30) if icon else None
+        if node is not None and self.sparkles.get(node.name):
+            self.sparkles[node.name] -= 1
+            img[30:60, 20:110] = 255  # a white streak over the icon
+        return img
+
     def focus(self):
         pass
 
@@ -102,16 +238,18 @@ class FakeGame:
             else:
                 self._claim(i)
         elif p is atlas.RS_POPUP_RESEARCH_BUTTON:
-            assert self.popup is not None and self.tree[self.popup][1]
+            assert self.popup is not None and self.popup.startable
+            self._start(self.popup)
             self.popup = None
-            self._start()
         elif p is atlas.RS_POPUP_CLOSE:
             self.popup = None
-        else:
-            for i, x1, x2, y in self.visible_boxes():
-                if abs((x1 + x2) / 2 - p.x) < 5 and abs(y - p.y) < 5:
-                    self.popup = i
-                    self.popups.append(i)
+        elif p is not atlas.RS_FIRESTONE_TREE:
+            assert self.popup is None, "a box tapped over an open popup"
+            node = self.node_at(p.x, p.y)
+            assert node is not None, f"a tap on no box at {p}"
+            assert node.state == "available", f"a tap on a {node.state} box"
+            self.popup = node
+            self.popups.append(node.name)
 
     def wait_still(self, max_ms=1500):
         return True
@@ -128,16 +266,10 @@ class FakeGame:
 
     def found(self, probe):
         if probe is atlas.RS_POPUP_RESEARCH:
-            return self.popup is not None and self.tree[self.popup][1]
+            return self.popup is not None and self.popup.startable
         if probe is atlas.RS_POPUP_CLOSE_X:
             return self.popup is not None
         return False
-
-    def region_image(self, rect, anchor=None):
-        assert rect == atlas.RS_TREE_BAND
-        xs = np.arange(BAND_X1, BAND_X2) + self.offset
-        row = _texture(xs.astype(np.float32))
-        return np.repeat(np.repeat(row[None, :, None], 20, axis=0), 3, axis=2).astype(np.uint8)
 
     def require_screen(self, p, expect, settle_ms=1500, via_town=False):
         pass
@@ -149,25 +281,25 @@ class FakeGame:
 @pytest.fixture
 def fake(monkeypatch):
     def make(*args, **kw):
-        g = FakeGame(*args, **kw)
+        g = FakeLibrary(*args, **kw)
 
         def find(game, rect, color=None, variation=0, **kw):
-            if rect == atlas.RS_SLOT_STRIP:
-                if g.pending_claim is not None and color in atlas.RS_SLOT_DONE:
-                    g.reads += 1
-                    if g.reads > g.claim_lag:
-                        g._claim(g.pending_claim)
-                        g.pending_claim = None
-                want = "green" if color in atlas.RS_SLOT_DONE else "orange"
-                return [
-                    blobs.Blob(cx - 80, 920, cx + 80, 980, 1)
-                    for cx, state in zip((645, 1290), g.panels)
-                    if state == want
-                ]
-            assert rect == atlas.RS_TREE_AREA
-            return [blobs.Blob(x1, y - 50, x2, y + 50, 1) for _, x1, x2, y in g.visible_boxes()]
+            if rect != atlas.RS_SLOT_STRIP:
+                return REAL_FIND(game, rect, color, variation, **kw)
+            if g.pending_claim is not None and color in atlas.RS_SLOT_DONE:
+                g.reads += 1
+                if g.reads > g.claim_lag:
+                    g._claim(g.pending_claim)
+                    g.pending_claim = None
+            want = "green" if color in atlas.RS_SLOT_DONE else "orange"
+            return [
+                blobs.Blob(cx - 80, 920, cx + 80, 980, 1)
+                for cx, state in zip((645, 1290), g.panels)
+                if state == want
+            ]
 
         monkeypatch.setattr(blobs, "find_blobs", find)
+        monkeypatch.setattr(blobs.capture, "grab", g.grab)
         monkeypatch.setattr(research, "big_close", lambda game: game.statuses.append("big_close"))
         return g
 
@@ -180,6 +312,23 @@ def _claims(g):
 
 def _research_clicks(g):
     return g.taps.count((atlas.RS_POPUP_RESEARCH_BUTTON.x, atlas.RS_POPUP_RESEARCH_BUTTON.y))
+
+
+def _starts(g):
+    """The start lines as the owner's log watcher counts them."""
+    return [
+        s
+        for s in g.statuses
+        if re.search(r"\bstarted\b", s) and not re.search(r"\b(no|not|nothing)\b", s)
+    ]
+
+
+def _all(state, **states):
+    """Tree XIII with every box in `state` (then `states` by name)."""
+    return xiii(**{**{n: state for n in XIII}, **states})
+
+
+# --- panels and claims ------------------------------------------------------------------------
 
 
 def test_slot_states(fake):
@@ -199,12 +348,15 @@ def test_both_finished_are_claimed_then_both_slots_started(fake, order):
     assert _claims(g) == 2
     assert _research_clicks(g) == 2
     assert g.panels == ["orange", "orange"]
+    assert g.popups == ["Energy Heroes", "Mana Heroes"]  # the right-most first, as before
     assert not any("did not" in s or "left alone" in s for s in g.statuses)
+    assert len(_starts(g)) == 2
     assert g.statuses[-3:] == [
         "Research: slot 1 in progress",
         "Research: slot 2 in progress",
         "big_close",
     ]
+    assert g.offset == 0  # the tree left at its start
 
 
 @pytest.mark.parametrize("order", ["newest", "append"])
@@ -221,74 +373,7 @@ def test_a_start_shown_in_the_first_panel_counts_as_started(fake, order):
     g = fake(["orange", None], order=order)
     assert research.start_research(g, 1)
     assert _research_clicks(g) == 1
-    assert sum(g.wheels) == 0 and g.offset == 0  # the tree is left at its start
-
-
-def test_a_node_seen_only_in_the_middle_of_the_tree_is_started(fake):
-    """Qualitas, Tree II: the only startable node sits under the right-hand panel at the
-    start and past the left edge at the end; the old search looked at the two ends only."""
-    g = fake(["orange", None], tree=[(1850, True)], tree_end=1900)
-    assert not any(i == 0 for i, _ in g.visible_nodes())  # hidden at the start
-    g.offset = 1900
-    assert not g.visible_nodes()  # and at the end
-    g.offset = 0
-    assert research.start_research(g, 1)
-    assert g.panels == ["orange", "orange"]
-    assert g.offset == 0
-
-
-def test_a_node_seen_at_two_stops_is_opened_once(fake):
-    g = fake(["orange", None], tree=[(1100, False), (2100, False)], tree_end=1300)
-    assert not research.start_research(g, 1)
-    assert sorted(g.popups) == [0, 1]
-
-
-def test_every_stop_gets_its_tries(fake):
-    """Deep columns full of nodes the player cannot afford: the tree's start (its roots,
-    seen at the last stop only) still gets tried."""
-    tree = [(x, False, y) for x in (1850, 2310, 2770) for y in (230, 350, 470)]
-    tree.append((417, True, 350))
-    g = fake(["orange", None], tree=tree, tree_end=1960)
-    assert research.start_research(g, 1)
-    assert g.panels == ["orange", "orange"]
-    assert len(set(g.popups)) == len(g.popups)  # none opened twice
-
-
-def test_a_row_left_out_at_one_stop_is_tried_at_the_next(fake):
-    """Three rows in a column: the rows over the per-stop limit are not taken for tried."""
-    tree = [(x, False, y) for x in (2300, 2760, 3220) for y in (230, 350, 470)]
-    tree[2] = (2300, True, 470)  # the only startable node: leftmost column, last row
-    g = fake(["orange", None], tree=tree, tree_end=1960)
-    assert research.start_research(g, 1)
-    assert len(set(g.popups)) == len(g.popups)
-
-
-def test_a_box_cut_by_the_edge_is_opened_once(fake):
-    """Seen by its visible part at one stop, whole at the next: the same node."""
-    g = fake(["orange", None], tree=[(1400, False)], tree_end=1300)
-    g.offset = 1300
-    assert [i for i, *_ in g.visible_boxes()] == [0]  # cut at the left edge at the end
-    g.offset = 0
-    assert not research.start_research(g, 1)
-    assert g.popups == [0]
-
-
-def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
-    g = fake([None, None], popup_research=False)
-    research.go_research(g)
-    wheels = len(g.wheels)
-    research.go_research(g)  # the next cycle
-    assert len(g.wheels) == wheels
-    g.vars[research.NO_NODE_UNTIL] = 0  # 15 min later
-    research.go_research(g)
-    assert len(g.wheels) > wheels
-
-
-def test_view_shift_on_a_short_tree_that_stops_at_its_start(fake):
-    """A tree shorter than the scan: the last stops do not move it, and are not scanned."""
-    g = fake(["orange", None], tree=[(900, False)], tree_end=500)
-    assert not research.start_research(g, 1)
-    assert g.popups == [0]
+    assert g.offset == 0  # the tree is left at its start
 
 
 def test_full_queue_opens_no_node(fake):
@@ -298,21 +383,9 @@ def test_full_queue_opens_no_node(fake):
     assert g.popups == []
 
 
-def test_popups_without_a_research_button_are_closed(fake):
-    g = fake([None, None], popup_research=False)
-    research.go_research(g)
-    # the node is tapped once (the same node at the next stops is skipped), then its X
-    close = (atlas.RS_POPUP_CLOSE.x, atlas.RS_POPUP_CLOSE.y)
-    tab = (atlas.RS_FIRESTONE_TREE.x, atlas.RS_FIRESTONE_TREE.y)
-    assert g.taps[0] == tab
-    assert g.popups == [0]
-    assert g.taps[-1] == close
-    assert any(s.startswith("diag:research-no-node") for s in g.statuses)
-
-
 def test_slot_button_is_the_rightmost_blob_of_its_half(monkeypatch):
     """The "Completed" progress bar is green too and sits left of the Claim button."""
-    g = FakeGame([None, None])
+    g = FakeLibrary([None, None])
 
     def find(game, rect, color=None, variation=0, **kw):
         if rect == atlas.RS_SLOT_STRIP and color in atlas.RS_SLOT_DONE:
@@ -340,3 +413,153 @@ def test_a_claim_that_never_shows_stops_the_claims(fake):
     research.go_research(g)
     assert _claims(g) == 1
     assert any("no more claims this visit" in s for s in g.statuses)
+
+
+# --- the scan -----------------------------------------------------------------------------------
+
+
+def test_the_scan_sees_every_box_once_and_finds_the_tree(fake):
+    g = fake(["orange", None])
+    scan = research.scan_tree(g)
+    got = {b.name: (b.col, b.row, b.state) for b in scan.boxes}
+    assert got == XIII
+    assert scan.complete and len(scan.shifts) == 5
+    assert abs(scan.shifts[-1] - TREE_END) <= 3  # measured on the view itself
+    assert research.summary(scan.boxes, research.matching_layouts(scan.boxes)) == (
+        "Research: tree like X/XIII/XVI/XIX/..., 16 boxes (3 available, 2 running, 11 maxed)"
+    )
+
+
+def test_the_tree_left_elsewhere_is_wheeled_back_to_its_start_first(fake):
+    """The tree reopens where it was left (a player's scroll)."""
+    g = fake(["orange", None], offset=1344)
+    scan = research.scan_tree(g)
+    assert {b.name: (b.col, b.row, b.state) for b in scan.boxes} == XIII
+
+
+def test_a_short_tree_ends_where_the_view_stops_moving(fake):
+    tree = [n for n in xiii() if n.col <= 4]
+    g = fake(["orange", None], tree=tree, tree_end=560)
+    scan = research.scan_tree(g)
+    assert scan.complete and len(scan.shifts) == 2  # 0 and 560
+    assert sorted(b.name for b in scan.boxes) == sorted(n.name for n in tree)
+
+
+def test_a_smaller_client_is_scanned_and_tapped_the_same(fake):
+    """A 1281x673 client, 2/3 of the reference: the boxes, the view's shifts and the taps
+    are all in logical px through the Viewport."""
+    g = fake(["orange", None], client=Rect(0, 0, 1281, 673), ResearchPriority1="Mana Heroes")
+    scan = research.scan_tree(g)
+    assert {b.name: (b.col, b.row, b.state) for b in scan.boxes} == XIII
+    assert abs(scan.shifts[-1] - TREE_END) <= 6
+    research.to_start(g, scan)
+    assert research.start_research(g, 1)
+    assert g.popups == ["Mana Heroes"] and g.offset == 0
+
+
+def test_an_icon_hidden_by_a_sparkle_is_grabbed_again(fake):
+    g = fake(["orange", None], ResearchPriority1="Mana Heroes")
+    g.sparkles["Mana Heroes"] = 1
+    assert research.start_research(g, 1)
+    assert g.popups == ["Mana Heroes"]
+    assert not any("unidentified" in s for s in g.statuses)
+
+
+# --- which research ---------------------------------------------------------------------------
+
+
+def test_a_priority_is_started_wherever_it_is(fake):
+    g = fake(["orange", None], ResearchPriority1="Guardian Power", ResearchPriority2="Mana Heroes")
+    research.go_research(g)
+    assert g.popups == ["Mana Heroes"]
+    assert _starts(g) == ["Research: Mana Heroes started (priority 2)"]
+    assert g.offset == 0
+
+
+def test_a_priority_at_the_trees_end(fake):
+    tree = xiii(**{"Firestone Effect": "available"})
+    g = fake(["orange", None], tree=tree, ResearchPriority1="Firestone Effect")
+    assert research.start_research(g, 1)
+    assert g.popups == ["Firestone Effect"]
+    assert _starts(g) == ["Research: Firestone Effect started (priority 1)"]
+
+
+def test_a_box_seen_only_in_the_middle_of_the_tree_is_started(fake):
+    """Qualitas, Tree II: the only startable box sits under the right-hand panel at the
+    start and past the left edge at the end."""
+    tree = _all("maxed", **{"Expose Weakness": "available"})
+    g = fake(["orange", None], tree=tree)
+    assert research.start_research(g, 1)
+    assert g.popups == ["Expose Weakness"]
+    assert g.panels == ["orange", "orange"]
+    assert g.offset == 0
+
+
+def test_a_locked_priority_gets_what_unlocks_it(fake):
+    """Columns 4 to 8 locked (not drawn): Leadership (column 7) is reached through column 3,
+    the nearest column seen before it; its top box first."""
+    later = {n: "hidden" for n, (col, _, _) in XIII.items() if col >= 4}
+    col3 = {n: "available" for n, (col, _, _) in XIII.items() if col == 3}
+    g = fake(["orange", None], tree=xiii(**later, **col3), ResearchPriority1="Leadership")
+    research.go_research(g)
+    assert g.popups == ["Attribute Health"]
+    assert _starts(g) == ["Research: Attribute Health started to unlock Leadership (priority 1)"]
+
+
+def test_a_priority_whose_popup_offers_no_research_button(fake):
+    tree = xiii(locked=("Energy Heroes",))
+    g = fake(["orange", None], tree=tree, ResearchPriority1="Energy Heroes")
+    assert research.start_research(g, 1)
+    assert g.popups == ["Energy Heroes", "Rage Heroes"]
+    assert _starts(g) == ["Research: Rage Heroes started to unlock Energy Heroes (priority 1)"]
+
+
+def test_every_available_box_is_tried_right_most_first(fake):
+    tree = xiii(locked=("Energy Heroes", "Mana Heroes"))
+    g = fake(["orange", None], tree=tree)
+    assert research.start_research(g, 1)
+    assert g.popups == ["Energy Heroes", "Mana Heroes", "Rage Heroes"]
+    assert _starts(g) == [
+        "Research: Rage Heroes started (any research, the priority list is empty)"
+    ]
+
+
+def test_with_research_something_else_off_the_slot_stays_free(fake):
+    g = fake(["orange", None], ResearchPriority1="Guardian Power", ResearchAnyOther="0")
+    research.go_research(g)
+    assert g.popups == [] and _research_clicks(g) == 0
+    assert (
+        "Research: slot left free (the priorities are maxed or running; Research something "
+        "else is off), next search in 15 min"
+    ) in g.statuses
+    assert not any(s.startswith("diag:") for s in g.statuses)
+    assert g.vars[research.NO_NODE_UNTIL] > 0 and g.offset == 0
+
+
+# --- nothing to start -------------------------------------------------------------------------
+
+
+def test_popups_without_a_research_button_are_closed(fake):
+    g = fake([None, None], tree=xiii(locked=("Rage Heroes", "Energy Heroes", "Mana Heroes")))
+    research.go_research(g)
+    close = (atlas.RS_POPUP_CLOSE.x, atlas.RS_POPUP_CLOSE.y)
+    tab = (atlas.RS_FIRESTONE_TREE.x, atlas.RS_FIRESTONE_TREE.y)
+    assert g.taps[0] == tab
+    assert g.popups == ["Energy Heroes", "Mana Heroes", "Rage Heroes"]  # each once
+    assert g.taps[-1] == close
+    assert any(s.startswith("diag:research-no-node") for s in g.statuses)
+    assert "Research: a slot is free but no research could start, next search in 15 min" in (
+        g.statuses
+    )
+    assert _starts(g) == [] and g.offset == 0
+
+
+def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
+    g = fake([None, None], tree=xiii(locked=("Rage Heroes", "Energy Heroes", "Mana Heroes")))
+    research.go_research(g)
+    wheels = len(g.wheels)
+    research.go_research(g)  # the next cycle
+    assert len(g.wheels) == wheels
+    g.vars[research.NO_NODE_UNTIL] = 0  # 15 min later
+    research.go_research(g)
+    assert len(g.wheels) > wheels
