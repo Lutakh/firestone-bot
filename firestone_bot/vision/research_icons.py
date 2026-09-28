@@ -34,9 +34,15 @@ full-size stars on a dark-blue box), never another name in 9,684 synthetic trial
 grabs it again a moment later. A box cut by the tree's left edge comes out None; it is whole at
 another scroll stop. Resampled captures (1/2, 2/3, 4/3) identify every box: the window and the
 grid are placed in logical px through the Viewport (region_image), whatever the client size.
-The references come from Windows captures only: on the Mac's sRGB capture (its dark blue reads
-0x2848D8) a name may come out None; the box is still found by its colour, which is all the
-"Research something else" choice needs.
+The references come from Windows captures only. The Mac's sRGB capture reads the dark blue
+0x2848D8 (Windows 0x0D49DE): every available box came out None there (review of 2026-09-29).
+The box's own colour is therefore measured right of its icon (box_body), and each reference
+cell moved by its share of box colour (research_refs.json "masks") times the box's offset from
+the recorded colour, for the three states (Refs.stack). On the 571 Windows boxes nothing changes
+(offsets within the Windows spread are none); with the Mac's dark blue, a uniform cast of
+(+27, -1, -6) or the sRGB -> Display P3 model, every available and maxed box is identified,
+and every running one but 4 of 11 under the uniform cast (the gold's red is cut at 255, so
+its offset cannot be read), as before; no wrong name in any of them.
 """
 
 from __future__ import annotations
@@ -71,6 +77,14 @@ CORNER_SLACK = 14  # logical px: the exact corner lies within this of the blob's
 # Logical px right of the corner where the icon has ended: the state is read from there, and a
 # box whose icon would reach behind the right-hand tab panel is left for another stop.
 ICON_W = 110
+# The box colour around each state's reference icons, as box_body() reads it right of the icon,
+# and how far it strays on Windows (2026-09-29, the 571 Windows boxes of trees I..XIII the
+# references come from): the flat dark blue exactly, the median of the light-blue gradient within
+# 2 levels, the gold's within 4 (its blue: 93 on Attribute Damage, 101 on Guardian Power). An
+# offset within that spread is no colour cast: the Windows boxes are compared as recorded.
+REF_BODY = {"maxed": (51, 166, 255), "available": (13, 73, 222), "running": (255, 224, 97)}
+BODY_SPREAD = {"maxed": 2, "available": 0, "running": 4}
+BODY_MIN_SHARE = 0.1  # fewer box-colour px in the strip right of the icon: no colour correction
 
 
 def state_masks(rgb: np.ndarray) -> dict[str, np.ndarray]:
@@ -103,6 +117,15 @@ def box_state(rgb: np.ndarray) -> str:
     """The dominant box colour of an RGB image of a box's body."""
     m = state_masks(rgb)
     return max(STATES, key=lambda s: int(m[s].sum()))
+
+
+def box_body(rgb: np.ndarray, state: str) -> np.ndarray | None:
+    """The box's own colour: the median of the `state` box pixels of an RGB image of its body
+    (right of the icon); None when too few of them show."""
+    m = state_masks(rgb)[state]
+    if not m.any() or m.sum() < BODY_MIN_SHARE * m.size:
+        return None
+    return np.median(rgb[m].astype(np.float64), axis=0)
 
 
 def find_boxes(g, rect: tuple[int, int, int, int]) -> list[blobs.Blob]:
@@ -193,7 +216,8 @@ def find_corner(
 
 
 class Refs:
-    """research_refs.json: per state, one reference thumbnail per research name."""
+    """research_refs.json: per state, one reference thumbnail per research name, and per name
+    the share of icon pixels of each cell ("masks"; the rest is the box's colour)."""
 
     def __init__(self, data: dict) -> None:
         n = int(data["thumb"])
@@ -204,6 +228,29 @@ class Refs:
             )
             for s in STATES
         }
+        masks = data.get("masks")
+        icon = (
+            np.array([masks[name] for name in self.names], np.float64)
+            if masks
+            else np.ones((len(self.names), n * n))  # no masks: nothing to correct
+        )
+        self.background = 1.0 - icon.reshape(len(self.names), n, n, 1)
+
+    def stack(self, state: str, body=None) -> np.ndarray:
+        """The references of `state` for a box whose own colour is `body` (box_body; None: as
+        recorded): each cell moved by its share of box colour times the box's offset from
+        REF_BODY (less the Windows spread). The Mac's sRGB capture reads the dark blue 0x2848D8
+        against Windows' 0x0D49DE: 11 levels on every background cell, half the icon window,
+        which used up the whole MAX_DISTANCE budget (review of 2026-09-29: every available box
+        None with the Mac's colours)."""
+        stack = self.stacks[state]
+        if body is None:
+            return stack
+        offset = np.asarray(body, np.float64) - REF_BODY[state]
+        offset = np.sign(offset) * np.maximum(np.abs(offset) - BODY_SPREAD[state], 0)
+        if not offset.any():
+            return stack
+        return np.clip(stack + self.background * offset, 0, 255)
 
     @classmethod
     def load(cls, path: str = PATH) -> Refs:
@@ -226,10 +273,10 @@ class Ranked:
     thumb: np.ndarray
 
 
-def rank(thumbs: list[np.ndarray], state: str, refs: Refs) -> list[Ranked]:
+def rank(thumbs: list[np.ndarray], state: str, refs: Refs, body=None) -> list[Ranked]:
     """Every name with its best distance over the thumbnails (window positions), closest
-    first."""
-    stack = refs.stacks[state]
+    first; `body`: the box's own colour (Refs.stack)."""
+    stack = refs.stack(state, body)
     t = np.array(thumbs, np.float64)
     d = np.abs(t[:, None] - stack[None]).mean(axis=(2, 3, 4))  # thumbs x names
     best = d.argmin(axis=0)
@@ -253,14 +300,14 @@ def pair_distances(a: Ranked, b: Ranked) -> tuple[float, float, int]:
 
 
 def classify_thumbs(
-    thumbs: list[np.ndarray], state: str, refs: Refs
+    thumbs: list[np.ndarray], state: str, refs: Refs, body=None
 ) -> tuple[str | None, float, float]:
     """(name, distance, runner-up distance) for the thumbnails of one box; the name is None
     when no reference is within MAX_DISTANCE or when the pair stage cannot tell the best two
-    apart (the pair-stage distances are returned then)."""
+    apart (the pair-stage distances are returned then). `body`: the box's own colour."""
     if not thumbs:
         return None, 1e9, 1e9
-    ranked = rank(thumbs, state, refs)
+    ranked = rank(thumbs, state, refs, body)
     first, second = ranked[0], ranked[1]
     if first.distance > MAX_DISTANCE:
         return None, first.distance, second.distance
@@ -285,15 +332,18 @@ class Match:
 
 def classify_image(bgr: np.ndarray, state: str | None = None, refs: Refs | None = None) -> Match:
     """Identify the box whose blob corner sits PAD logical px inside `bgr` (the BGR
-    region_image of icon_rect). state None: read from the box's body right of the icon."""
+    region_image of icon_rect). state None: read from the box's body right of the icon, where
+    the box's own colour is measured too (the references are moved to it: Refs.stack)."""
     refs = refs or default_refs()
     h, w = bgr.shape[:2]
     if h < 8 or w < 8:
         return Match(None, state or "available", 1e9, 1e9)
     rgb = bgr[..., 2::-1]
     fx, fy = w / (RECT_W + PAD), h / (RECT_H + PAD)
+    body_rgb = rgb[int(PAD * fy) :, int((PAD + ICON_W) * fx) :]
     if state is None:
-        state = box_state(rgb[int(PAD * fy) :, int((PAD + ICON_W) * fx) :])
+        state = box_state(body_rgb)
+    body = box_body(body_rgb, state)
     corner = find_corner(rgb, fx, fy, PAD * fx, PAD * fy)
     if corner is None:  # the blob's own corner, slid further
         thumbs = window_thumbs(rgb, PAD * fx, PAD * fy, fx, fy, FALLBACK_OFFSETS)
@@ -301,7 +351,7 @@ def classify_image(bgr: np.ndarray, state: str | None = None, refs: Refs | None 
     else:
         thumbs = window_thumbs(rgb, corner[0], corner[1], fx, fy)
         dx, dy = corner[0] / fx - PAD, corner[1] / fy - PAD
-    name, d1, d2 = classify_thumbs(thumbs, state, refs)
+    name, d1, d2 = classify_thumbs(thumbs, state, refs, body)
     return Match(name, state, d1, d2, dx, dy)
 
 

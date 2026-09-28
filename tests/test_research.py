@@ -31,7 +31,8 @@ TREE_END = 2478
 VIEW_X1 = 32
 PANEL_X = atlas.RS_TAB_PANEL_X
 BOX_W, BOX_H = 383, 101
-BODY = {"available": (222, 73, 13), "maxed": (255, 192, 53), "running": (68, 208, 255)}  # BGR
+# the box colours the references were recorded with (a box's own colour moves them), BGR
+BODY = {state: tuple(reversed(rgb)) for state, rgb in research_icons.REF_BODY.items()}
 CANVAS_W = PANEL_X + TREE_END + 64
 REFS = research_icons.default_refs()
 REAL_FIND = blobs.find_blobs
@@ -134,6 +135,15 @@ class FakeLibrary:
         self.popup = None  # the node whose popup is open
         self.popups = []  # names of the nodes opened, in order
         self.sparkles = {}  # name -> grabs of its icon still hidden by a sparkle
+        # the game's misses (review of 2026-09-29)
+        self.dropped = set()  # WheelDowns (1 = the first) the game does not take
+        self.stuck_from = None  # from this WheelDown on, the view stays where it is
+        self.downs = 0
+        self.dropped_ups = 0  # the next wheel ups the game does not take
+        self.swallow = 0  # box taps the game takes no notice of
+        self.late = 0  # the next box tap's popup opens at this look for its close button
+        self.pending = None  # [node, looks left] of a popup still to open
+        self.orange_x = False  # the tree shows the close button's orange where it is looked for
         self.vp = Viewport(client)
         self._canvas = None
         self._screen = None
@@ -248,8 +258,13 @@ class FakeLibrary:
             node = self.node_at(p.x, p.y)
             assert node is not None, f"a tap on no box at {p}"
             assert node.state == "available", f"a tap on a {node.state} box"
-            self.popup = node
-            self.popups.append(node.name)
+            if self.swallow:
+                self.swallow -= 1
+            elif self.late:
+                self.pending, self.late = [node, self.late], 0
+            else:
+                self.popup = node
+                self.popups.append(node.name)
 
     def wait_still(self, max_ms=1500):
         return True
@@ -262,13 +277,26 @@ class FakeLibrary:
 
     def wheel(self, n):
         self.wheels.append(n)
+        if n < 0:
+            self.downs += 1
+            if self.downs in self.dropped or (self.stuck_from and self.downs >= self.stuck_from):
+                return
+        elif self.dropped_ups:
+            self.dropped_ups -= 1
+            return
         self.offset = max(0, min(self.tree_end, self.offset - n * PX_PER_NOTCH))
 
     def found(self, probe):
         if probe is atlas.RS_POPUP_RESEARCH:
             return self.popup is not None and self.popup.startable
         if probe is atlas.RS_POPUP_CLOSE_X:
-            return self.popup is not None
+            if self.pending is not None:
+                self.pending[1] -= 1
+                if not self.pending[1]:
+                    self.popup = self.pending[0]
+                    self.popups.append(self.popup.name)
+                    self.pending = None
+            return self.popup is not None or self.orange_x
         return False
 
     def require_screen(self, p, expect, settle_ms=1500, via_town=False):
@@ -465,6 +493,65 @@ def test_an_icon_hidden_by_a_sparkle_is_grabbed_again(fake):
     assert not any("unidentified" in s for s in g.statuses)
 
 
+def _far_priority(fake):
+    """Tree XIII with Expose Weakness (column 5) and Leadership (column 7) available,
+    Leadership as priority 1 and Research something else off."""
+    tree = xiii(**{"Expose Weakness": "available", "Leadership": "available"})
+    return fake(["orange", None], tree=tree, ResearchPriority1="Leadership", ResearchAnyOther="0")
+
+
+@pytest.mark.parametrize("dropped", [1, 2, 3])
+def test_a_wheel_the_game_did_not_take_is_no_end_of_the_tree(fake, dropped):
+    """Review of 2026-09-29: one WheelDown the game did not take (a hitch, an overlay) ended
+    the scan at column 5, the columns after it were taken for locked ones and Expose
+    Weakness started "to unlock" Leadership, available all along. One more wheel tells a
+    still view from the tree's end."""
+    g = _far_priority(fake)
+    g.dropped = {dropped}
+    assert research.start_research(g, 1)
+    assert g.statuses[0] == (
+        "Research: tree like X/XIII/XVI/XIX/..., 16 boxes (5 available, 2 running, 9 maxed)"
+    )
+    assert g.popups == ["Leadership"]
+    assert _starts(g) == ["Research: Leadership started (priority 1)"]
+
+
+def test_a_dropped_wheel_at_the_start_is_no_start_of_the_tree(fake):
+    """The tree left one stop on: a wheel up the game did not take is no start either (the
+    columns are numbered from the start)."""
+    g = fake(["orange", None], offset=672)
+    g.dropped_ups = 1
+    scan = research.scan_tree(g)
+    assert {b.name: (b.col, b.row, b.state) for b in scan.boxes} == XIII
+
+
+def test_a_view_that_stops_following_the_wheel_leaves_the_far_columns_alone(fake):
+    """Every WheelDown from the second on is lost: the view stays one stop on. The end came
+    before the tree's last column, so the scan is incomplete, and the columns it never saw
+    are unknown, not locked: nothing is started to unlock Leadership."""
+    g = _far_priority(fake)
+    g.stuck_from = 2
+    assert not research.start_research(g, 1)
+    assert g.popups == [] and _research_clicks(g) == 0
+    assert g.statuses[0].endswith(", the end of the tree was out of reach")
+    assert g.statuses[-1] == (
+        "Research: slot left free (priorities: Leadership unseen beyond the scan's reach; "
+        "Research something else is off), next search in 15 min"
+    )
+    assert not any("to unlock" in s for s in g.statuses)
+    assert g.offset == 0
+
+
+def test_the_scans_reach_is_the_last_column_seen_whole(fake):
+    g = _far_priority(fake)
+    assert research.scan_tree(g).reach_col >= 8
+    g = _far_priority(fake)
+    g.stuck_from = 2  # the view stays at 672 px: columns 1 to 5 whole (column 5 at x 2063)
+    scan = research.scan_tree(g)
+    assert scan.complete and scan.reach_col == 5  # the end is only ruled out by the layouts
+    assert max(b.col for b in scan.boxes) == 5
+
+
 # --- which research ---------------------------------------------------------------------------
 
 
@@ -534,6 +621,61 @@ def test_with_research_something_else_off_the_slot_stays_free(fake):
     ) in g.statuses
     assert not any(s.startswith("diag:") for s in g.statuses)
     assert g.vars[research.NO_NODE_UNTIL] > 0 and g.offset == 0
+
+
+# --- popups -----------------------------------------------------------------------------------
+
+
+def test_a_tap_that_opens_no_popup_is_no_locked_box(fake):
+    """Review of 2026-09-29: a box tap the game swallowed was read as a popup without a
+    Research button, and Rage Heroes started "to unlock" Mana Heroes, available all along."""
+    g = fake(["orange", None], ResearchPriority1="Mana Heroes", ResearchAnyOther="0")
+    g.swallow = 1
+    assert not research.start_research(g, 1)
+    assert g.popups == [] and _research_clicks(g) == 0
+    assert "Research: the popup of Mana Heroes did not open, skipped" in g.statuses
+    assert "diag:research-popup.png" in g.statuses
+    assert not any("to unlock" in s for s in g.statuses)
+    assert g.statuses[-1] == (
+        "Research: slot left free (priorities: Mana Heroes lost; Research something else is "
+        "off), next search in 15 min"
+    )
+
+
+def test_a_late_popup_is_closed_before_the_next_tap(fake):
+    """The popup opens after the bot stopped waiting for it: it is closed before the next
+    box is tapped (the fake refuses a tap over an open popup)."""
+    g = fake(["orange", None], ResearchPriority1="Mana Heroes")
+    g.late = research.POPUP_WAIT_MS // research.POPUP_POLL_MS + 2  # the first look after
+    assert research.start_research(g, 1)
+    assert g.popups == ["Mana Heroes", "Energy Heroes"]
+    assert _starts(g) == [
+        "Research: Energy Heroes started (other research, priorities: Mana Heroes lost)"
+    ]
+    close = (atlas.RS_POPUP_CLOSE.x, atlas.RS_POPUP_CLOSE.y)
+    assert close in g.taps and _research_clicks(g) == 1
+
+
+def test_a_late_popup_is_closed_before_the_tree_is_left(fake):
+    g = fake(["orange", None], ResearchPriority1="Mana Heroes", ResearchAnyOther="0")
+    g.late = research.POPUP_WAIT_MS // research.POPUP_POLL_MS + 2
+    assert not research.start_research(g, 1)
+    assert g.popups == ["Mana Heroes"] and g.popup is None
+    assert _research_clicks(g) == 0 and g.offset == 0
+
+
+def test_a_close_button_seen_before_the_tap_leaves_the_box_alone(fake):
+    """The tree shows the close button's orange where it is looked for (a top-row icon):
+    it could not tell the popup, so the box is not tapped."""
+    g = fake(["orange", None], ResearchPriority1="Mana Heroes", ResearchAnyOther="0")
+    g.orange_x = True
+    assert not research.start_research(g, 1)
+    assert g.popups == [] and _research_clicks(g) == 0
+    assert (
+        "Research: the popup's close button shows before Mana Heroes is tapped, skipped"
+        in g.statuses
+    )
+    assert not any("to unlock" in s for s in g.statuses)
 
 
 # --- nothing to start -------------------------------------------------------------------------

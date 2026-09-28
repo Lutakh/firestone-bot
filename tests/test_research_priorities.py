@@ -49,14 +49,14 @@ class Run:
     """A Chooser over synthetic boxes; `outcomes` = what a tap on each box gives (default
     "started")."""
 
-    def __init__(self, boxes, priorities, any_other=True, outcomes=None):
+    def __init__(self, boxes, priorities, any_other=True, outcomes=None, reach=None, cands=None):
         self.tapped = []
         self.said = []
         self.outcomes = outcomes or {}
         self.boxes = boxes
-        cands = research.matching_layouts(boxes)
+        cands = research.matching_layouts(boxes) if cands is None else cands
         prios = [(i, n) for i, n in enumerate(priorities, start=1) if n]
-        self.chooser = Chooser(boxes, cands, prios, any_other, self.attempt, self.say)
+        self.chooser = Chooser(boxes, cands, prios, any_other, self.attempt, self.say, reach)
 
     def attempt(self, box):
         self.tapped.append(box.name or (box.col, box.row))
@@ -302,6 +302,63 @@ def test_ambiguous_layouts_use_only_what_they_agree_on():
         "Research: the column 2 research started to unlock Guardian Power (priority 2)"
     )
     assert len(run.said) == 1 and run.said[0].startswith("Research: Leadership is unseen")
+
+
+@pytest.mark.parametrize("name", ["Guardian Power", "Attribute Health"])
+def test_unidentified_boxes_of_several_layouts_start_nothing_before_a_column_that_shows(name):
+    """Review of 2026-09-29: tree XIII wholly open, no icon identified (the Mac's colours):
+    four layouts fit, Guardian Power lies in column 3 of one of them and 4 or 8 of the
+    others. Column 3 shows, so none of them needs column 2: nothing is tapped (it started
+    the column 2 research "to unlock" Guardian Power)."""
+    boxes = [Box(b.col, b.row, None, "available") for b in xiii()]
+    assert len(research.matching_layouts(boxes)) > 1
+    run = Run(boxes, [name], any_other=False)
+    choice = run.choose()
+    assert run.tapped == [] and choice.box is None
+    assert f"{name} unseen" in choice.line
+
+
+def test_a_tree_no_layout_holds_is_said_so():
+    """Review of 2026-09-29: with no layout left, "its place differs between the possible
+    trees" was said though there were none."""
+    run = Run([], ["Leadership"], any_other=False, cands=[])
+    choice = run.choose()
+    assert choice.box is None and run.tapped == []
+    assert run.said == [
+        "Research: the tree could not be recognised, Leadership (unseen, priority 1) skipped"
+    ]
+    assert "Leadership unseen in an unrecognised tree" in choice.line
+
+
+def _scanned_to_column_5():
+    """What a scan that stopped at column 5 saw of tree XIII (Expose Weakness available)."""
+    return [b for b in xiii(**{"Expose Weakness": "available"}) if b.col <= 5]
+
+
+def test_a_priority_beyond_the_scans_reach_is_passed_over():
+    """Leadership (column 7) with the scan stopped at column 5: column 6 was never seen, it
+    is unknown, not locked, and Expose Weakness is not started "to unlock" Leadership."""
+    run = Run(_scanned_to_column_5(), ["Leadership"], any_other=False, reach=5)
+    choice = run.choose()
+    assert run.tapped == [] and choice.box is None
+    assert "Leadership unseen beyond the scan's reach" in choice.line
+    # with Research something else on, the other research says why
+    run = Run(_scanned_to_column_5(), ["Leadership"], reach=5)
+    choice = run.choose()
+    assert choice.line == (
+        "Research: Expose Weakness started (other research, priorities: Leadership unseen "
+        "beyond the scan's reach)"
+    )
+    assert _is_start(choice.line)
+
+
+def test_an_unlock_never_walks_over_a_column_beyond_the_reach():
+    boxes = _scanned_to_column_5()
+    cands = research.matching_layouts(xiii())
+    run = Run(boxes, [], cands=cands, reach=5)
+    assert run.chooser.unlock(7) is None and run.tapped == []  # column 6: unknown
+    run = Run(boxes, [], cands=cands)  # a whole tree whose columns 6 to 8 are locked
+    assert run.chooser.unlock(7).name == "Expose Weakness"
 
 
 def test_other_research_right_most_first_when_the_priorities_cannot_be_used():

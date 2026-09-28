@@ -18,7 +18,8 @@ Research priorities (owner request 2026-09-28: users disliked the bot starting w
 sat right-most in the tree; they choose up to five researches, in their order):
 
 - Scan. The tree reopens where it was left: it is wheeled back to its start, then looked at
-  in stops of RS_SCAN_NOTCHES to its end (the view stops moving). At every stop the boxes of
+  in stops of RS_SCAN_NOTCHES to its end (the view stops moving, and one more wheel leaves it
+  there: a wheel the game did not take looks the same). At every stop the boxes of
   the three states (available, maxed, running) are found and identified by their icon
   (vision/research_icons.py). A box's place in the tree is its place in the view plus how far
   the view has moved (measured on the tree's own pixels, view_shift: 672 px a stop, the last
@@ -43,13 +44,18 @@ sat right-most in the tree; they choose up to five researches, in their order):
   the column before that one when all of its boxes are locked too; nothing to start there
   (maxed or running), the next priority. Unseen in a column that shows (columns unlock as a
   whole: the box was missed), absent from the tree (said once per game day and tree): the
-  next priority. No priority started: with "Research something else"
+  next priority. The scan's reach (the right-most column it saw whole) bounds all this: an
+  end before the tree's last column makes the scan incomplete, and a column past its reach
+  is unknown, never locked (its priority is the next one, no unlock walks over it). No
+  priority started: with "Research something else"
   (ResearchAnyOther, on by default) the choice of old, the right-most available box first and
   every one in turn; off, the slot stays free.
 - Start. The view goes back to a stop where the box's icon is whole (from the tree's start,
   the scan's own stops), the box is found again by its place and icon, tapped, and the
-  popup's Research button pressed. A popup without it is closed. The tree is left at its
-  start after the visit, and a search that started nothing pauses the next ones 15 minutes.
+  popup's Research button pressed. A popup without it is closed; a tap whose popup did not
+  open skips the box (a locked box is one whose popup shows without the button), and a popup
+  that opens late is closed before the next tap. The tree is left at its start after the
+  visit, and a search that started nothing pauses the next ones 15 minutes.
 """
 
 from __future__ import annotations
@@ -230,16 +236,24 @@ def _wheel(g: Game, notches: int) -> None:
     g.wait_still()
 
 
-def rewind(g: Game, first: int = atlas.RS_SCAN_NOTCHES) -> bool:
+def rewind(g: Game, first: int = atlas.RS_SCAN_NOTCHES, confirm: bool = False) -> bool:
     """Wheel the tree back to its start: until a wheel up leaves the view where it was.
     `first`: the notches of the first wheel (enough to reach the start when the view's place
-    is known). False when the view kept changing."""
+    is known); `confirm`: a still view is wheeled once more before it is taken for the start
+    (a wheel the game did not take looks the same, and the scan numbers the columns from the
+    start). False when the view kept changing."""
     before = tree_profile(g)
     for notches in (first, atlas.RS_SCAN_NOTCHES, atlas.RS_REWIND_NOTCHES, atlas.RS_SCAN_NOTCHES):
         _wheel(g, notches)
         after = tree_profile(g)
         if _still(before, after):
-            return True
+            if not confirm:
+                return True
+            _wheel(g, atlas.RS_SCAN_NOTCHES)
+            again = tree_profile(g)
+            if _still(after, again):
+                return True
+            after = again
         before = after
     return False
 
@@ -268,6 +282,7 @@ ROW_SLACK = 40  # logical px off the row levels (121 apart)
 REGRAB_MS = 400  # an icon a sparkle hid is grabbed again after this
 BOUNCE_MS = 500  # a tapped box bounces after its popup closes (identified at 9.8 against 11)
 FIND_PX = 60  # logical px: the chosen box is found again this close to where the scan saw it
+COLUMN_SLACK_REACH = 8  # logical px: a column's boxes sit up to this far off the column grid
 
 
 @dataclass
@@ -304,6 +319,16 @@ class Scan:
     profiles: list[np.ndarray] = field(default_factory=list)
     at: int = 0  # the stop on screen, -1 unknown
     complete: bool = False  # the tree's end was reached
+    origin: float = atlas.RS_COLUMN1_X  # column 1's left edge, tree px
+    reach: float = 0.0  # tree px up to which a box's icon was whole at one stop at least
+    popup_late: bool = False  # a tapped box's popup had not opened: it may open late
+
+    @property
+    def reach_col(self) -> int:
+        """The right-most column whose boxes had their icon whole at one stop at least (the
+        stops overlap: every column before it too)."""
+        k = (self.reach - self.origin - COLUMN_SLACK_REACH) / atlas.RS_COLUMN_PITCH
+        return max(0, math.floor(k) + 1)
 
 
 def row_of(y: float) -> int | None:
@@ -355,9 +380,14 @@ def _moved_by_boxes(before: list[Seen], after: list[Seen]) -> float | None:
     return float(np.median(moves)) if moves else None
 
 
+def origin_of(stops: list[list[Seen]]) -> float:
+    """Column 1's left edge in tree px: the left-most box at the tree's start."""
+    return min((s.x for s in stops[0]), default=atlas.RS_COLUMN1_X) if stops else 0
+
+
 def merge(stops: list[list[Seen]], shifts: list[float]) -> list[Box]:
     """The boxes of every stop placed in the tree, each once, left to right."""
-    origin = min((s.x for s in stops[0]), default=atlas.RS_COLUMN1_X) if stops else 0
+    origin = origin_of(stops)
     boxes: dict[tuple[int, int], Box] = {}
     for stop, (here, shift) in enumerate(zip(stops, shifts, strict=True)):
         for s in here:
@@ -378,27 +408,50 @@ def merge(stops: list[list[Seen]], shifts: list[float]) -> list[Box]:
     return sorted(boxes.values(), key=lambda b: (b.col, b.row))
 
 
+def _measure(
+    g: Game, before: np.ndarray, seen: list[Seen]
+) -> tuple[np.ndarray, list[Seen] | None, float | None]:
+    """After a wheel: the view's profile, its boxes when they were needed (else None) and its
+    move since the stop of `before` / `seen`: read on the profiles, or on the boxes seen at
+    both stops when the profiles do not fit (a sparkle or a shooting star over the band)."""
+    profile = tree_profile(g)
+    moved = _scrolled(before, profile)
+    if moved is not None and moved > -STILL_PX:
+        return profile, None, moved
+    here = stop_boxes(g)
+    return profile, here, _moved_by_boxes(seen, here)
+
+
 def scan_tree(g: Game) -> Scan:
-    """Every box of the tree, from its start to its end (the view is left at the end)."""
-    if not rewind(g):
+    """Every box of the tree, from its start to its end (the view is left at the end).
+
+    A view that did not move is wheeled once more before it is taken for the tree's end: a
+    wheel the game did not take (a hitch, an overlay under the pointer) looks the same, and
+    the scan then stopped at column 5 while the Chooser took the columns it never saw for
+    locked ones and started a research to unlock a priority that was available (review of
+    2026-09-29). How far the scan saw is kept (Scan.reach) for the same reason."""
+    if not rewind(g, confirm=True):
         g.status("Research: the tree kept moving on its way back to its start")
+    _, panel = _view_edges(g)
     scan = Scan([])
     stops: list[list[Seen]] = []
     shift = 0.0
     for stop in range(MAX_STOPS):
+        here: list[Seen] | None = None
+        moved: float | None = 0.0
         if stop:
             _wheel(g, -atlas.RS_SCAN_NOTCHES)
-        profile = tree_profile(g)
-        moved = _scrolled(scan.profiles[-1], profile) if stop else 0.0
-        if moved is not None and stop and abs(moved) < STILL_PX:
-            scan.complete = True  # the end: this stop is the one before
-            break
-        here = stop_boxes(g)
-        if moved is None or moved < 0:  # the profiles do not fit: the boxes seen at both stops
-            moved = _moved_by_boxes(stops[-1], here)
+            profile, here, moved = _measure(g, scan.profiles[-1], stops[-1])
             if moved is not None and abs(moved) < STILL_PX:
-                scan.complete = True
-                break
+                _wheel(g, -atlas.RS_SCAN_NOTCHES)  # the end, or a wheel the game did not take
+                profile, here, moved = _measure(g, scan.profiles[-1], stops[-1])
+                if moved is not None and abs(moved) < STILL_PX:
+                    scan.complete = True  # the end: this stop is the one before
+                    break
+        else:
+            profile = tree_profile(g)
+        if here is None:
+            here = stop_boxes(g)
         if moved is None or moved < 0:  # a WheelDown never moves the view back
             g.status(f"Research: the tree view could not be followed past stop {stop}")
             scan.at = -1
@@ -409,6 +462,8 @@ def scan_tree(g: Game) -> Scan:
         stops.append(here)
         scan.at = stop
     scan.boxes = merge(stops, scan.shifts)
+    scan.origin = origin_of(stops)
+    scan.reach = (scan.shifts[-1] if scan.shifts else 0.0) + panel - research_icons.ICON_W
     return scan
 
 
@@ -465,10 +520,56 @@ def find_again(g: Game, scan: Scan, box: Box, k: int, error: float | None) -> bl
     return None
 
 
+POPUP_WAIT_MS = 2000  # a box's popup scales in; a hitch of the game delays it
+POPUP_POLL_MS = 250
+
+
+def _popup_open(g: Game) -> bool:
+    """The tapped box's popup is open (its close button), waited for POPUP_WAIT_MS more: the
+    tap itself waits 800 ms (fast timing: for the screen to change), a hitch of the game
+    takes longer."""
+    waited = 0
+    while True:
+        if g.found(atlas.RS_POPUP_CLOSE_X):
+            return True
+        if waited >= POPUP_WAIT_MS:
+            return False
+        g.sleep(POPUP_POLL_MS)
+        waited += POPUP_POLL_MS
+
+
+def _close_popup(g: Game) -> None:
+    """Close the popup that is open (a close tap the game swallowed is tapped again)."""
+    for _ in range(2):
+        if not g.found(atlas.RS_POPUP_CLOSE_X):
+            break
+        g.tap(atlas.RS_POPUP_CLOSE, 500)
+        g.wait_still()
+    g.move_to(atlas.RS_PARK)  # the popup's X lies over the tree's top row
+    g.sleep(BOUNCE_MS)
+
+
+def close_late_popup(g: Game, scan: Scan) -> None:
+    """Close the popup of a tap that opened after the bot stopped waiting for it: it would
+    take the next tap, or the Research press meant for another box. The view has not moved
+    since that tap, and the close button's place was clear before it: what shows there now
+    is that popup."""
+    if scan.popup_late:
+        scan.popup_late = False
+        _close_popup(g)
+
+
 def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
-    """Tap `box` and press its popup's Research button: "started", "locked" (the popup
-    offers no Research button), "failed" (pressed, no panel filled) or "missing" (the box
-    was not found again)."""
+    """Tap `box` and press its popup's Research button: "started", "locked" (its popup
+    shows and offers no Research button), "failed" (pressed, no panel filled) or "missing"
+    (the box was not found again, or its popup did not open).
+
+    A popup that does not open is no lock (review of 2026-09-29): a tap the game swallowed
+    was taken for a locked box, and the research before it started "to unlock" a priority
+    that was available. Its close button is looked for before the tap too: where the tree
+    shows that orange already (a top-row icon: Guardian Power's, Damage Specialization's),
+    it could not tell the popup, and the box is left alone."""
+    close_late_popup(g, scan)
     ahead = [s for s in box.stops if s >= scan.at] if scan.at >= 0 else []
     k = min(ahead) if ahead else min(box.stops)  # no wheel, or the fewest
     error = _goto(g, scan, k)
@@ -477,8 +578,19 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
     if blob is None:
         g.status(f"Research: {box.label} was lost from view, skipped")
         return "missing"
+    if g.found(atlas.RS_POPUP_CLOSE_X):
+        g.status(f"Research: the popup's close button shows before {box.label} is tapped, skipped")
+        g.save_diagnostic("research-popup-x.png")
+        return "missing"
     g.tap(Point(blob.cx, blob.cy, atlas.ANCHOR_CENTER), 800)
     g.wait_still()
+    if not _popup_open(g):
+        g.status(f"Research: the popup of {box.label} did not open, skipped")
+        g.save_diagnostic("research-popup.png")
+        scan.popup_late = True
+        g.move_to(atlas.RS_PARK)
+        return "missing"
+    g.wait_still()  # the popup has scaled in
     result = "locked"
     if g.found(atlas.RS_POPUP_RESEARCH):
         g.tap(atlas.RS_POPUP_RESEARCH_BUTTON, 1000)
@@ -488,11 +600,7 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
             return "started"
         g.status("Research: the Research button did not start a research")
         result = "failed"
-    if g.found(atlas.RS_POPUP_CLOSE_X):
-        g.tap(atlas.RS_POPUP_CLOSE, 500)
-        g.wait_still()
-    g.move_to(atlas.RS_PARK)  # the popup's X lies over the tree's top row
-    g.sleep(BOUNCE_MS)
+    _close_popup(g)
     return result
 
 
@@ -601,7 +709,8 @@ class Choice:
 
 class Chooser:
     """The choice of a research for a free slot, over what the scan saw (pure: a tap on a
-    box is `attempt`, a status line said once a game day `say_once`)."""
+    box is `attempt`, a status line said once a game day `say_once`; `reach`: the right-most
+    column the scan saw whole, None for no limit)."""
 
     def __init__(
         self,
@@ -611,6 +720,7 @@ class Chooser:
         any_other: bool,
         attempt: Callable[[Box], str],
         say_once: Callable[[str, str], None],
+        reach: int | None = None,
     ) -> None:
         self.boxes = boxes
         self.cands = cands
@@ -618,6 +728,7 @@ class Chooser:
         self.any_other = any_other
         self.attempt = attempt
         self.say_once = say_once
+        self.reach = reach
         self.by_name = {b.name.lower(): b for b in boxes if b.name}
         self.at_place = {(b.col, b.row): b for b in boxes if b.name is None}
         self.results: dict[tuple[int, int], str] = {}
@@ -638,10 +749,13 @@ class Chooser:
 
     def unlock(self, col: int) -> Box | None:
         """Start an available box of the nearest seen column before `col` (a priority first,
-        else the top one); the column before when every one of them is locked too."""
+        else the top one); the column before when every one of them is locked too. A column
+        without boxes is locked only when the scan saw it: past its reach it is unknown."""
         for c in range(col - 1, 0, -1):
             here = [b for b in self.boxes if b.col == c]
             if not here:
+                if self.reach is not None and c > self.reach:
+                    return None
                 continue  # a locked column
             available = sorted(
                 (b for b in here if b.state == "available"),
@@ -683,6 +797,15 @@ class Chooser:
                 )
                 self.passed.append((name, "absent from this tree"))
                 return None
+            if kind == "unclear" and not self.cands:
+                # no layout holds what the scan saw (a box read off its place, a misread name)
+                self.say_once(
+                    f"unrecognised:{name}",
+                    f"Research: the tree could not be recognised, {name} (unseen, priority "
+                    f"{rank}) skipped",
+                )
+                self.passed.append((name, "unseen in an unrecognised tree"))
+                return None
             if kind == "unclear":
                 self.say_once(
                     f"unclear:{name}:{self.tree}",
@@ -691,11 +814,16 @@ class Chooser:
                 )
                 self.passed.append((name, "unseen"))
                 return None
-            if len({c.place(name)[0] for c in self.cands}) == 1 and any(
-                b.col == col for b in self.boxes
-            ):
-                # its column shows (a column unlocks as a whole), its box did not: nothing
-                # to unlock, and nothing to tap
+            if self.reach is not None and col > self.reach:
+                # a column the scan never saw whole: unknown, not locked
+                self.passed.append((name, "unseen beyond the scan's reach"))
+                return None
+            if any(b.col == col for b in self.boxes):
+                # its left-most column shows (a column unlocks as a whole), its box did not:
+                # nothing to unlock, and nothing to tap. With layouts that disagree, every
+                # later column of theirs is open or needs one after this one, never the one
+                # before (review of 2026-09-29: unidentified icons on the Mac started the
+                # column before a column that showed)
                 self.passed.append((name, "unseen"))
                 return None
         started = self.unlock(col)
@@ -764,6 +892,10 @@ def start_research(g: Game, busy: int) -> bool:
     afterwards. Leaves the tree at its start."""
     scan = scan_tree(g)
     cands = matching_layouts(scan.boxes)
+    if scan.complete and scan.reach_col < max((len(c.columns) for c in cands), default=0):
+        # an end before the tree's last column (every tree has 8 and scrolls 2478 px):
+        # wheels the game did not take
+        scan.complete = False
     g.status(summary(scan.boxes, cands, scan.complete))
     chooser = Chooser(
         scan.boxes,
@@ -772,8 +904,10 @@ def start_research(g: Game, busy: int) -> bool:
         g.settings.flag("ResearchAnyOther"),
         lambda box: try_box(g, scan, box, busy),
         lambda key, text: _say_once(g, key, text),
+        scan.reach_col,
     )
     choice = chooser.choose()
+    close_late_popup(g, scan)  # before the tree is wheeled back
     if choice.box is not None:
         g.status(choice.line)
         to_start(g, scan)

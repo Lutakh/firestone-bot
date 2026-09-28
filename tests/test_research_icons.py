@@ -2,6 +2,7 @@
 (2026-09-28): tests/fixtures/research-*.npy are the BGR region_image of icon_rect(blob) the bot
 reads, the blob as blobs.find_blobs returns it (rounded to its 6 px cells)."""
 
+import json
 import os
 
 import numpy as np
@@ -108,6 +109,91 @@ def test_the_references_cover_every_firestone_research():
     assert set(refs.names) == set(research_data.firestone_names())
     for state in research_icons.STATES:
         assert refs.stacks[state].shape == (len(refs.names), 12, 12, 3)
+    assert refs.background.shape == (len(refs.names), 12, 12, 1)
+    assert 0.4 < refs.background.mean() < 0.8  # the box's colour around the icons
+
+
+# --- another capture's colours (review of 2026-09-29) ---------------------------------------
+MAC_BLUE = (0x28, 0x48, 0xD8)  # RGB: the Mac's sRGB capture of the dark blue 0x0D49DE
+AVAILABLE = CASES[:2]
+
+
+def _mac_body(img: np.ndarray) -> np.ndarray:
+    """The box's dark blue as the Mac's capture reads it, around the icon too; the icon
+    untouched."""
+    out = img.copy()
+    out[research_icons.state_masks(img[..., ::-1])["available"]] = MAC_BLUE[::-1]
+    return out
+
+
+def _cast(img: np.ndarray, rgb=(27, -1, -6)) -> np.ndarray:
+    """The whole capture moved by the Mac's offset of the dark blue."""
+    return np.clip(img.astype(int) + np.array(rgb[::-1]), 0, 255).astype(np.uint8)
+
+
+def _display_p3(img: np.ndarray) -> np.ndarray:
+    """A model of a capture in Display P3: the sRGB colours converted (it puts 0x0D49DE at
+    (33, 72, 214), next to the Mac's 0x2848D8), the icons and every box colour moved."""
+    m = np.array([[0.8225, 0.1774, 0.0], [0.0332, 0.9669, 0.0], [0.0171, 0.0724, 0.9108]])
+    rgb = img[..., ::-1].astype(np.float64) / 255
+    lin = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    p3 = np.clip(lin @ m.T, 0, 1)
+    enc = np.where(p3 <= 0.0031308, p3 * 12.92, 1.055 * p3 ** (1 / 2.4) - 0.055)
+    return np.round(enc * 255)[..., ::-1].astype(np.uint8)
+
+
+@pytest.mark.parametrize("case", AVAILABLE, ids=IDS[:2])
+def test_the_macs_dark_blue_is_corrected(case):
+    """Energy Heroes came out None with the Mac's dark blue (11.6 against MAX_DISTANCE 11):
+    the references are moved to the box's own colour, each cell by its share of it."""
+    name, _, expected = case
+    m = research_icons.classify_image(_mac_body(_load(name)))
+    assert m.name == expected and m.state == "available"
+    assert m.distance <= 6.7  # the Windows self distances
+    rng = np.random.default_rng(5)
+    for _ in range(6):  # a sparkle still gives the name or None, never another
+        x, y = rng.integers(16, 90, size=2)
+        spark = _mac_body(_load(name))
+        spark[y : y + 30, x + 12 : x + 18] = 255
+        spark[y + 12 : y + 18, x : x + 30] = 255
+        assert research_icons.classify_image(spark).name in (expected, None)
+
+
+def test_without_the_masks_the_macs_dark_blue_is_missed():
+    with open(research_icons.PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    del data["masks"]
+    img = _mac_body(_load("research-energy-heroes-available.npy"))
+    assert research_icons.classify_image(img, None, research_icons.Refs(data)).name is None
+    assert research_icons.classify_image(img).name == "Energy Heroes"
+
+
+@pytest.mark.parametrize("case", AVAILABLE, ids=IDS[:2])
+def test_a_uniform_colour_cast_is_corrected(case):
+    name, _, expected = case
+    assert research_icons.classify_image(_cast(_load(name))).name == expected
+
+
+@pytest.mark.parametrize("case", CASES[:7], ids=IDS[:7])
+def test_a_display_p3_capture_is_identified_in_every_state(case):
+    """The light-blue and gold gradients are moved too (the P3 model moves the light blue's
+    red by 43 levels: 425 of the owner's 545 maxed boxes came out None, Fist Fight here)."""
+    name, state, expected = case
+    m = research_icons.classify_image(_display_p3(_load(name)))
+    assert (m.name, m.state) == (expected, state)
+
+
+@pytest.mark.parametrize("case", CASES[:7], ids=IDS[:7])
+def test_windows_boxes_are_compared_as_recorded(case):
+    """A Windows box reads its colour within the Windows spread: the references are used as
+    recorded, the Windows results unchanged."""
+    name, state, _ = case
+    rgb = _load(name)[..., ::-1]
+    pad, icon = research_icons.PAD, research_icons.ICON_W
+    body = research_icons.box_body(rgb[pad:, pad + icon :], state)
+    refs = research_icons.default_refs()
+    assert body is not None
+    assert refs.stack(state, body) is refs.stacks[state]
 
 
 def _rgb(colour: int) -> np.ndarray:
