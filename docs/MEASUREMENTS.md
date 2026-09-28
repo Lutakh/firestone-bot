@@ -336,3 +336,32 @@ formula on a saved capture gave points up to ~60 px off: always go through the V
 - Tavern chooser: bell of the "Scarab's game" card centred at (1290, 345), ~40 px across.
 - Scarab market (Monthly pass page): free Pharaoh's token card (461..903, 245..823), green
   Free button 249 x 59 at (683, 765); the paid pass button ($4.99, orange) at x 1260..1511.
+
+## 2026-09-28 — tavern tokens, guardian enlightenment, events list (Windows, 1920x1009)
+
+Owner's Epic client, new adventure style, logical y = client y + 31. Fixtures cut from these
+captures live in `tests/fixtures` (`tavern-tokens-141`, `guardian-dust-10518`,
+`guardian-enlighten-cost-*`, `events-strip-*`).
+
+- Tavern game: the token counter sits top right between the token icon (ends at client x
+  ~1600) and the green "+" (starts at ~1723); "141" at client x 1640..1672, y 36..53, read by
+  the digit reader in `TAVERN_TOKEN_DIGITS` (1606, 60, 1718, 92), top-right anchored. One play
+  (Play, a card, dismiss: ~5 s) took it from 141 to 140, already shown when the play ended.
+  The Play button reads "Play 1" with the token cost under it.
+- Guardian screen: the strange dust counter shows thousands separators ("10,518"); the
+  reader drops the comma and `GUARDIAN_DUST_DIGITS` reads 10518. The multiplier label steps
+  x1 -> x5 -> x10 -> x20 -> x1 and the green button follows it: "Enlightenment 1 / 20",
+  "5 / 100", "10 / 200", "20 / 400" (20 strange dust per enlightenment at every multiplier,
+  +120 guardian XP each). Cost digits at client x 1568..1629, y 753..775, read in
+  `GUARDIAN_ENLIGHTEN_COST` (1540, 776, 1660, 814) with the default anchor. The button stayed
+  green at x20 with 10,518 dust.
+- Events list (opened without a bell): a title, an "Active events" header bar, the active
+  cards in full colour with "Time left: 3d 15:47", then an "Upcoming events" header and the
+  upcoming cards drawn in grey with a padlock and "Starts in: ...". With one active event the
+  `EVENTS_CARDS` slots past the first land on the header and the grey cards. Share of pixels
+  with a chroma (max - min channel) above 80 in a strip x 520..1400, +-15 px around a slot
+  centre: active Decorated heroes card 0.44, grey upcoming card 0.07 (its yellow title), header
+  bar and empty list 0.0.
+- Decorated heroes page: "Challenges will be renewed in 15:46:45" at 18:13, and the card said
+  "Time left: 3d 15:47": the event ends at about 10:00 on 2026-10-02, the moment of the daily
+  reset.

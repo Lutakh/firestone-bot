@@ -134,3 +134,24 @@
   next to its brown title bar, and SafetyCap counts closes that change nothing. Still to do:
   capture a real rate pop-up (diagnostic `rate-popup-no-x.png`) to replace the brown-bar
   trigger, which also matches ordinary screens.
+
+- Decorated Heroes auto switch-off (done 2026-09-28, `features/event_watch.py`): to verify at
+  the event's end (~2026-10-02 10:00): does the card leave the active part of the list at
+  once (a claim period that keeps it active would keep the switch on), and does the first
+  cycle after the reset log two looks and "switch turned off" (`decorated-heroes-gone.png`)?
+  `EVENTS_PAGE_CLOSE_X` (basic event page) was measured on diagnostics only and now decides
+  that a page is another event's: if it misses live, a basic event active after the end keeps
+  the switch on (no verdict). The wheel back to the list's top (`TOP_NOTCHES`) is not measured
+  (the list held 3 cards and did not scroll); only 4 list slots are modelled (a 5th active
+  event gives no verdict).
+- Guardian enlightenment automation (done 2026-09-28): `GUARDIAN_ENLIGHTEN_COST` and the
+  multiplier reads were measured on the owner's 1920x1009 client only (an unreadable cost only
+  loses the x5/x10/x20 tiers). Unknown: an enlightenment cap per guardian (the button would go
+  grey), and whether the event's challenge counts clicks or enlightenments (its 3 stay x1).
+- Tavern plays on the counter and guild expedition logs (done 2026-09-28): whether Play stays
+  green at 0 tokens is not measured (the bot now leaves at 0); `TAVERN_TOKEN_DIGITS` is unproven
+  on other aspects (unreadable = the digits' pixels). Claimed vs started expeditions are not
+  told apart (no probe on the expeditions dialog).
+- Scarab game plays are still counted on any pixel change of the free-coin counter
+  (`scarab._wait_counter_change`), the weakness the crystal and the tavern had: read the number
+  like `token_counter` does.

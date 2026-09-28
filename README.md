@@ -368,7 +368,16 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   is minimised; the Camp check does the same instead of reporting an error.
 - **Daily limits** (Automations editors): tavern tokens, chaos hits, scarab plays and arcane
   crystal hits per game day (defaults 0 / 10 / 10 / 5, 0 = no limit); each is done in one
-  visit and then skipped until the daily shop's free box is claimable again.
+  visit and then skipped until the daily shop's free box is claimable again. Tavern plays,
+  chaos hits and crystal hits are counted only when the game's counter goes down.
+- **Guardian enlightenment** (Automations > Guardian enlightenment, off by default): strange
+  dust spent on the guardian chosen for training, within up to three limits, the strictest
+  winning: enlightenments per day (default 3), strange dust per day and a reserve of dust
+  always kept (0 = no limit / none). Large budgets use the x5 / x10 / x20 multiplier; the
+  button's cost is checked before each multiplier and every click is counted by the dust
+  counter.
+- **Decorated Heroes event**: the switch completes the event's daily challenges and claims its
+  stars; the bot turns it off by itself once the event is no longer in the events list.
 - **Per-action switches**: every action the bot performs has its own switch (section
   `[Actions]` of `settings.ini`, all ON by default): guardian visit/evolve/training/chaos
   upgrades, beer tokens, artifact, Pharaoh's token, rituals, engineer tools, alchemy collection,
