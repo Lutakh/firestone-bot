@@ -80,6 +80,19 @@ def ensure_game_running(g: Game) -> bool:
         win = find_game_window()
     except GameWindowNotFound:
         # process alive but no window yet (still loading): wait for the start screen
+        if wait_for_start_button(g):
+            return True
+        # 2026-09-28 23:51: the owner's game lost its window and stayed a 30 MB process;
+        # the start-button wait ran out and the bot stopped for the night. A process that
+        # shows no window for that long is a dead game: close it and launch it again, once.
+        if process.find_game_process() is None:
+            return launch_game(g)
+        try:
+            find_game_window()
+        except GameWindowNotFound:
+            g.status("Game launch: the game process has no window (crashed?), restarting it")
+            process.kill_game()
+            return launch_game(g)
         return wait_for_start_button(g)
     if win.client.w == 0:
         g.status("Game window was minimised: restoring it")
