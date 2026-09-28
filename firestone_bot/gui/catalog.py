@@ -380,7 +380,9 @@ OPTIONS: dict[str, Option] = {
     ),
     "MaxEnlightenDust": Option(
         "Strange dust per day",
-        "Daily spending cap on enlightenments; resets with the daily shop.",
+        "Daily spending cap on enlightenments; resets with the daily shop. The Decorated "
+        "Heroes event's 3 daily enlightenments (60 dust) are made at x1 even above it and the "
+        "reserve, and count toward the totals.",
         "num",
         zero_means="0 = no limit",
     ),

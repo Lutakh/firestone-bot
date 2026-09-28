@@ -21,6 +21,9 @@ counters:
     EnlightenCountDaily=1 guardian enlightenments since the last reset (event and automation)
     EnlightenDustDaily=20 strange dust they took since the last reset
 
+A blank tavern, crystal or enlightenment limit (a GUI field cleared and left empty) means
+its default, never 0 = no limit (2026-09-28).
+
 While the Decorated Heroes event switch is on ([PythonOptions] EventDecoratedHeroes=1), the
 tavern and crystal limits are raised to the event's daily challenges (12 plays, 15 hits)
 when lower, and the bot enlightens a guardian 3 times a day. The enlightenment automation
@@ -33,7 +36,7 @@ from __future__ import annotations
 
 import logging
 
-from firestone_bot.settings import Settings
+from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP, Settings
 from firestone_bot.state import ahk_now
 
 log = logging.getLogger("firestone_bot.daily")
@@ -42,6 +45,19 @@ log = logging.getLogger("firestone_bot.daily")
 def _int(settings: Settings, name: str) -> int:
     try:
         return int(settings.get(name).strip() or 0)
+    except ValueError:
+        return 0
+
+
+def _limit(settings: Settings, name: str) -> int:
+    """A user's daily limit; a blank field means the key's default, not 0 = no limit
+    (2026-09-28 review: a cleared "Enlightenments per day" field, saved as "MaxEnlighten=",
+    read as no limit and would have spent all the strange dust in one visit)."""
+    raw = settings.get(name).strip()
+    if not raw:
+        raw = {**SETTINGS_MAP, **EXTRA_SETTINGS}.get(name, ("", "0"))[1]
+    try:
+        return int(raw)
     except ValueError:
         return 0
 
@@ -79,7 +95,7 @@ def _event_limit(settings: Settings, key: str, own_switch_on: bool, event: int) 
     """The daily limit in force (0 = no limit): the user's, raised to the event's challenge
     while the event switch is on. With the user's own switch off, the event alone asks for
     exactly its challenge (a stored 0 = "no limit" must not start spending everything)."""
-    limit = _int(settings, key)
+    limit = _limit(settings, key)
     if not event_on(settings):
         return limit
     if not own_switch_on:
@@ -134,7 +150,7 @@ def enlighten_count_left(settings: Settings) -> int | None:
 def enlighten_dust_left(settings: Settings) -> int | None:
     """None = no daily dust cap (or the automation is off), else the strange dust it may
     still spend today."""
-    cap = _int(settings, "MaxEnlightenDust")
+    cap = _limit(settings, "MaxEnlightenDust")
     if not enlighten_on(settings) or cap <= 0:
         return None
     return max(0, cap - _int(settings, "EnlightenDustDaily"))
@@ -142,7 +158,7 @@ def enlighten_dust_left(settings: Settings) -> int | None:
 
 def enlighten_reserve(settings: Settings) -> int:
     """Strange dust the automation always keeps (the event alone keeps none)."""
-    return _int(settings, "EnlightenDustReserve") if enlighten_on(settings) else 0
+    return _limit(settings, "EnlightenDustReserve") if enlighten_on(settings) else 0
 
 
 def enlighten_wanted(settings: Settings) -> bool:
@@ -188,11 +204,12 @@ def plan_enlightenments(
     return max(event_need, own, 0)
 
 
-def enlightenments_allowed(settings: Settings, dust: int | None, unit: int = ENLIGHTEN_DUST) -> int:
-    """plan_enlightenments with today's counters and the user's limits."""
+def enlightenments_allowed(settings: Settings, dust: int | None) -> int:
+    """plan_enlightenments with today's counters and the user's limits, at 20 dust each
+    (never the price a button reads: a misread label or cost must not change the unit)."""
     return plan_enlightenments(
         dust,
-        unit,
+        ENLIGHTEN_DUST,
         event_enlighten_need(settings),
         enlighten_count_left(settings),
         enlighten_dust_left(settings),

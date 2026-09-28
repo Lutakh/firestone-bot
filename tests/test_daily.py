@@ -108,6 +108,30 @@ def test_enlightenment_count_limit_and_the_event(tmp_path):
     assert daily.enlighten_count_left(s) == 1  # the event alone: exactly its need
 
 
+def test_a_blank_limit_means_its_default_not_no_limit(tmp_path):
+    """Review 2026-09-28: a GUI field cleared and left empty is saved as "MaxEnlighten=";
+    read as 0 = no limit, it allowed 525 enlightenments on 10,518 strange dust at once."""
+    s = _enlighten(tmp_path, GuardianEnlighten=1, MaxEnlighten="")
+    assert daily.enlighten_limit(s) == 3 and daily.enlighten_count_left(s) == 3
+    assert daily.enlightenments_allowed(s, 10518) == 3
+    s.save()
+    s2 = Settings.load(str(tmp_path / "settings.ini"))
+    assert s2.get("MaxEnlighten") == "" and daily.enlightenments_allowed(s2, 10518) == 3
+    s.set("MaxEnlightenDust", " ")
+    s.set("EnlightenDustReserve", "")
+    assert daily.enlighten_dust_left(s) is None and daily.enlighten_reserve(s) == 0
+    s.set("EnlightenCountDaily", "")  # a counter still reads blank as 0
+    assert daily.enlighten_count_left(s) == 3
+    # the tavern and crystal limits too: a blank MaxCrystals is its 5, MaxTokens its 0
+    s.set("MaxCrystals", "")
+    s.set("MaxTokens", "")
+    assert daily.crystal_left(s) == 5 and daily.tokens_left(s) is None
+    s.set("EventDecoratedHeroes", 1)
+    s.set("Token", 1)
+    # 5 raised to the event's 15 (it was "no limit"); the tokens' 0 stays no limit
+    assert daily.crystal_limit(s) == 15 and daily.token_limit(s) == 0
+
+
 def test_enlightenment_dust_cap_reserve_and_one_save_per_note(tmp_path):
     s = _enlighten(tmp_path, GuardianEnlighten=1, MaxEnlightenDust=1000, EnlightenDustReserve=2000)
     saves = []

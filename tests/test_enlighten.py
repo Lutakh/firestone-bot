@@ -81,6 +81,7 @@ class FakeGuardian:
         dust_readable=True,
         cost_readable=True,
         wrong_cost=None,
+        blind_reads=0,
     ):
         self.settings = settings
         self.vars = {}
@@ -90,6 +91,7 @@ class FakeGuardian:
         self.mult_readable = mult_readable
         self.label = label  # the label reads this whatever the screen holds
         self.dust_readable = dust_readable
+        self.blind_reads = blind_reads  # the first counter reads fail (a redraw), then it reads
         self.cost_readable = cost_readable
         self.wrong_cost = wrong_cost or {}  # multiplier -> the cost shown instead
         self.pointer = None
@@ -111,6 +113,9 @@ class FakeGuardian:
         return self.mult if self.label is None else self.label
 
     def read_dust(self):
+        if self.blind_reads:
+            self.blind_reads -= 1
+            return None
         return self.dust if self.dust_readable else None
 
     def read_cost(self):
@@ -232,10 +237,13 @@ def test_event_three_at_x1_as_separate_clicks_on_the_trained_guardian_then_x20_b
 
 
 def test_a_click_that_spends_no_dust_is_not_counted(screen):
+    """One of the event's own x1 clicks: not counted, another cycle tries again."""
     g = screen(EVENT, taken=False)
     assert enlighten.enlighten(g) == 0
     assert daily.event_enlighten_need(g.settings) == 3
+    assert g.settings.get("EnlightenDustDaily") == "0"
     assert g.captures == ["enlighten-not-taken.png"]
+    assert g.lines[-1].endswith("the enlightenment spent no strange dust, not counted")
     assert g.mult == 20
 
 
@@ -276,6 +284,29 @@ def test_a_label_read_x1_on_x10_is_caught_by_the_cost_before_any_click(screen):
     assert enlighten.enlighten(g) == 0
     assert g.clicks == [] and g.dust == 8015
     assert "enlighten-cost.png" in g.captures
+
+
+@pytest.mark.parametrize(
+    "settings, counter",
+    [
+        (EVENT, {"blind_reads": 1}),  # the visit's first counter read fails, then it reads
+        (auto(MaxEnlighten=20), {"blind_reads": 3}),  # still blind at the plan: 20 x1 clicks
+        (EVENT, {"dust_readable": False}),  # never read
+        (auto(MaxEnlighten=4), {"dust_readable": False}),
+    ],
+)
+def test_a_label_read_x1_on_x10_is_caught_by_the_cost_with_the_counter_unread(
+    screen, settings, counter
+):
+    """Review 2026-09-28: a visit that had not read the counter took the 200 the button asks
+    for the price of one enlightenment, and every click at the real x10 bought 10 (the event
+    alone: 30 enlightenments, 600 dust, counted 3). The price stays 20: nothing is spent."""
+    g = screen(settings, mult=10, label=1, **counter)
+    assert enlighten.enlighten(g) == 0
+    assert g.clicks == [] and g.dust == 8015
+    assert "enlighten-cost.png" in g.captures
+    assert g.settings.get("EnlightenCountDaily") == "0"
+    assert g.settings.get("EnlightenDustDaily") == "0"
 
 
 @pytest.mark.parametrize(
@@ -330,6 +361,39 @@ def test_the_daily_dust_cap(screen):
     assert not enlighten.due(g)  # the cap is reached: no more trips today
     daily.mark_daily_reset(g.settings)
     assert enlighten.due(g)
+
+
+@pytest.mark.parametrize(
+    "limits, dust_cap, count_cap",
+    [({"MaxEnlighten": 0, "MaxEnlightenDust": 1000}, 1000, None), ({"MaxEnlighten": 20}, None, 20)],
+)
+def test_an_automation_click_the_counter_never_shows_counts_as_spent(
+    screen, clock, monkeypatch, limits, dust_cap, count_cap
+):
+    """Review 2026-09-28: the first x20 click took its 400 dust but the counter never showed
+    it; left uncounted, the next cycle planned the whole cap again (1,400 dust for a cap of
+    1,000). Counted as spent, no cycle ever goes past the cap or the count."""
+    g = screen(auto(**limits))
+    real = token_counter.wait_drop
+    drops = []
+
+    def wait_drop(game, rect, before, timeout_ms):
+        drops.append(before)
+        return None if len(drops) == 1 else real(game, rect, before, timeout_ms)
+
+    monkeypatch.setattr(token_counter, "wait_drop", wait_drop)
+    for _ in range(5):  # cycles, an hour apart
+        enlighten.enlighten(g)
+        clock.now += enlighten.PAUSE_S + 1
+    assert not enlighten.due(g)
+    assert g.clicks[0] == 20 and "enlighten-not-taken.png" in g.captures
+    assert any("never showed the x20 click, counted as spent (400 dust)" in x for x in g.lines)
+    if dust_cap is not None:
+        assert 8015 - g.dust <= dust_cap
+        assert g.settings.get("EnlightenDustDaily") == str(dust_cap)
+    if count_cap is not None:
+        assert g.enlightened <= count_cap
+        assert g.settings.get("EnlightenCountDaily") == str(count_cap)
 
 
 def test_a_count_of_seven_is_one_x5_and_two_x1_from_where_the_label_stands(screen):

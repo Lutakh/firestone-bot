@@ -48,7 +48,7 @@ EDITOR_NOTES = {
     "daily_rewards": "The shop is visited every cycle to detect the daily reset, even when its reward switch is off.",
     "chests": "Oracle's gifts and mystery boxes use their own switches. Celestial chests also need Upgrade blessings in Oracle & blessings.",
     "guardians": "The upgrade order is used during guardian visits and after successful guild chaos-rift hits. Training uses roster positions, not guardian names.",
-    "enlightenment": "Uses the guardian chosen in Guardian training. The limits combine and the strictest wins; the Decorated Heroes event's 3 daily enlightenments are made at x1 and count toward them. The screen's multiplier is put back after each visit.",
+    "enlightenment": "Uses the guardian chosen in Guardian training. The limits combine and the strictest wins, except for the Decorated Heroes event's 3 daily enlightenments (60 dust): they are made at x1 even above the dust cap and the reserve, and count toward the totals. The screen's multiplier is put back after each visit.",
     "oracle": "Upgrade blessings also controls celestial chests in the bag, even when oracle visits are off. The oracle itself requires account level 200.",
     "engineer": "War machine upgrades happen inside the engineer visit. A machine and a blueprint-capable mode must be selected to edit blueprint choices.",
     "map": "Category priority is used only in Coordinates mode. Detection mode reads visible mission icons from the screen.",

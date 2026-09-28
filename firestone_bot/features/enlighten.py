@@ -22,10 +22,13 @@ How the dust is spent:
   happened;
 - before the first click at a multiplier the button's cost must read 20 x N: a label read
   wrong would buy another number. Unreadable or wrong above x1, that multiplier is not used
-  and x1 clicks make up for it; wrong at x1, nothing is spent;
+  and x1 clicks make up for it; wrong at x1, nothing is spent, whether the dust counter
+  reads or not (the unit stays 20: a cost read on the button never becomes the price);
 - before every click the button must be green and the budget must still allow it on a fresh
   dust read; a click counts only by the dust the counter says it took. More than the cost
-  (a multiplier read wrong) stops the enlightenments for the game day.
+  (a multiplier read wrong) stops the enlightenments for the game day. A click the counter
+  never shows is counted as spent when it was made for the automation, so the dust cap and
+  the count are never passed; one of the event's x1 clicks is not counted and tried again.
 
 Trip saver: with GuardianVisit off, the guardian screen is opened only for this. A visit that
 could not spend (the reserve, the dust cap, a grey button, an unreadable counter) makes the
@@ -45,6 +48,7 @@ from firestone_bot.vision import atlas
 
 log = logging.getLogger("firestone_bot")
 
+UNIT = daily.ENLIGHTEN_DUST  # strange dust one enlightenment takes, whatever a button reads
 ENLIGHTEN_TAKEN_MS = 15000  # the counter drops at once (live); patience for a slow server
 MULTIPLIER_CYCLE = (20, 1, 5, 10)  # what the label reads after each click, round and round
 MAX_MULTIPLIER_STEPS = len(MULTIPLIER_CYCLE)
@@ -138,7 +142,6 @@ class _Visit:
     prefix: str
     mult: int | None  # what the label read last; None once a read broke the cycle
     dust: int | None = None  # the counter read last
-    unit: int = daily.ENLIGHTEN_DUST  # dust one enlightenment takes
     checked: set[int] = field(default_factory=set)  # multipliers whose cost was read
     clicks: int = 0
     made: int = 0
@@ -186,7 +189,7 @@ def enlighten(g: Game) -> int:
 def _spend(g: Game, v: _Visit) -> None:
     s = g.settings
     v.dust = token_counter.read_stable(g, atlas.GUARDIAN_DUST_DIGITS)
-    if daily.enlightenments_allowed(s, v.dust, v.unit) <= 0:
+    if daily.enlightenments_allowed(s, v.dust) <= 0:
         _nothing(g, v, v.dust, 1)
         return
     if daily.event_enlighten_need(s):
@@ -199,7 +202,7 @@ def _spend(g: Game, v: _Visit) -> None:
     if not daily.enlighten_on(s):
         return
     dust = v.dust = token_counter.read_stable(g, atlas.GUARDIAN_DUST_DIGITS)
-    n = daily.enlightenments_allowed(s, dust, v.unit)
+    n = daily.enlightenments_allowed(s, dust)
     if n <= 0:
         _nothing(g, v, dust, 1)
         return
@@ -216,7 +219,7 @@ def _spend(g: Game, v: _Visit) -> None:
         for _ in range(count):
             if not _click(g, v, m):
                 return
-    if daily.enlighten_wanted(s) and daily.enlightenments_allowed(s, v.dust, v.unit) <= 0:
+    if daily.enlighten_wanted(s) and daily.enlightenments_allowed(s, v.dust) <= 0:
         v.stop = "spent"  # down to the reserve (or below one): the next trip can wait too
 
 
@@ -241,8 +244,14 @@ def _set_multiplier(g: Game, v: _Visit, m: int) -> bool:
 
 
 def _cost_ok(g: Game, v: _Visit, m: int) -> bool:
-    """Before the first click at x`m`: the button asks `unit` x m strange dust. False with
-    v.stop set: spend nothing more; False alone: do not use this multiplier."""
+    """Before the first click at x`m`: the button asks UNIT x m strange dust. False with
+    v.stop set: spend nothing more; False alone: do not use this multiplier.
+
+    At x1 a readable cost other than 20 stops the visit even with the dust counter unread:
+    until 2026-09-28 a blind visit took the cost read as the price, so a label reading x1 on
+    a real x10 (the button asking 200) passed and every click bought 10. An unreadable cost
+    still passes; the dust a click takes then catches a wrong multiplier once the counter
+    reads (_click)."""
     if m in v.checked:
         return True
     v.checked.add(m)
@@ -250,27 +259,29 @@ def _cost_ok(g: Game, v: _Visit, m: int) -> bool:
     g.sleep(300)
     cost = button_cost(g)
     if m == 1:
-        if cost is None or cost == v.unit:
+        if cost is None or cost == UNIT:
             return True
-        if v.dust is None and cost > 0:
-            v.unit = cost  # blind clicks are counted at the price the button shows
-            return True
-        g.status(
-            f"{v.prefix} the button asks {cost} strange dust at x1, not {v.unit}: nothing spent"
-        )
+        g.status(f"{v.prefix} the button asks {cost} strange dust at x1, not {UNIT}: nothing spent")
         g.save_diagnostic("enlighten-cost.png")
         v.stop = "cost"
         return False
-    if cost == v.unit * m:
+    if cost == UNIT * m:
         return True
     shown = "no readable cost" if cost is None else f"a cost of {cost}"
-    g.status(f"{v.prefix} the button shows {shown} at x{m}, not {v.unit * m}: x1 instead")
+    g.status(f"{v.prefix} the button shows {shown} at x{m}, not {UNIT * m}: x1 instead")
     g.save_diagnostic("enlighten-cost.png")
     return False
 
 
 def _click(g: Game, v: _Visit, m: int) -> bool:
-    """One click at x`m`, counted by the dust it took; False ends the visit."""
+    """One click at x`m`, counted by the dust it took; False ends the visit.
+
+    A click the counter never shows (no drop within ENLIGHTEN_TAKEN_MS: the counter hidden,
+    a capture error) may still have taken its dust. Made for the automation (above x1, or
+    once the event has its 3) it is counted as spent, 20 x m dust (2026-09-28 review: an
+    uncounted x20 click let the next cycle plan the day's cap again, 400 dust over it); the
+    worst case is one click too few that day. One of the event's own x1 clicks is not
+    counted, so another cycle tries again and the event gets its 3."""
     s = g.settings
     if v.clicks >= MAX_CLICKS_PER_VISIT:
         g.status(f"{v.prefix} {v.clicks} clicks this visit, the rest waits for the next one")
@@ -283,33 +294,41 @@ def _click(g: Game, v: _Visit, m: int) -> bool:
         v.stop = "grey"
         return False
     dust = v.dust = token_counter.read_stable(g, atlas.GUARDIAN_DUST_DIGITS)
-    if (dust is None and m > 1) or daily.enlightenments_allowed(s, dust, v.unit) < m:
+    if (dust is None and m > 1) or daily.enlightenments_allowed(s, dust) < m:
         _nothing(g, v, dust, m)
         return False
+    for_event = m == 1 and daily.event_enlighten_need(s) > 0
     g.tap(atlas.GUARDIAN_ENLIGHTEN, 0)
     g.sleep(300)
     g.move_to(atlas.GUARDIAN_CHAOS_PARK)
     v.clicks += 1
     if dust is None:
         g.sleep(1000)
-        daily.note_enlighten(s, 1, v.unit)  # counter unreadable: an x1 click counts as made
+        daily.note_enlighten(s, 1, UNIT)  # counter unreadable: an x1 click counts as made
         v.made += 1
         _report(g, v, 1, None)
         return True
     after = token_counter.wait_drop(g, atlas.GUARDIAN_DUST_DIGITS, dust, ENLIGHTEN_TAKEN_MS)
     if after is None:
-        # not counted (another cycle tries again), but a click the counter never shows
-        # must not turn into one paid enlightenment per cycle all day long
+        # a click the counter never shows must not turn into one paid enlightenment per
+        # cycle all day long: MAX_UNCONFIRMED a game day, then no more
         key = _unconfirmed_key(g)
         g.vars[key] = g.vars.get(key, 0) + 1
-        g.status(f"{v.prefix} the enlightenment spent no strange dust, not counted")
+        if for_event:
+            g.status(f"{v.prefix} the enlightenment spent no strange dust, not counted")
+        else:
+            daily.note_enlighten(s, m, UNIT * m)
+            g.status(
+                f"{v.prefix} the strange dust counter never showed the x{m} click, counted as "
+                f"spent ({UNIT * m} dust)"
+            )
         g.save_diagnostic("enlighten-not-taken.png")
         v.stop = "unconfirmed"
         return False
     v.dust = after
     spent = dust - after
-    cost = v.unit * m
-    count = m if spent == cost else spent // v.unit
+    cost = UNIT * m
+    count = m if spent == cost else spent // UNIT
     daily.note_enlighten(s, count, spent)
     v.made += count
     if spent > cost:
@@ -353,7 +372,7 @@ def _say_once(g: Game, reason: str, text: str) -> None:
 def _nothing(g: Game, v: _Visit, dust: int | None, m: int) -> None:
     """The budget allows no click at x`m`: say why (once a day) and end the visit."""
     s = g.settings
-    need = v.unit * m
+    need = UNIT * m
     reserve = daily.enlighten_reserve(s)
     dust_left = daily.enlighten_dust_left(s)
     count_left = daily.enlighten_count_left(s)
@@ -365,7 +384,7 @@ def _nothing(g: Game, v: _Visit, dust: int | None, m: int) -> None:
         text = f"{dust:,} strange dust, the {reserve:,} kept in reserve are not spent"
     elif dust_left is not None and dust_left < need:
         v.stop = "cap"
-        text = f"today's cap of {daily._int(s, 'MaxEnlightenDust'):,} strange dust is reached"
+        text = f"today's cap of {daily._limit(s, 'MaxEnlightenDust'):,} strange dust is reached"
     elif count_left is not None and count_left < m:
         v.stop = "count"
         text = "today's enlightenments are done"
