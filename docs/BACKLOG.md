@@ -155,3 +155,13 @@
 - Scarab game plays are still counted on any pixel change of the free-coin counter
   (`scarab._wait_counter_change`), the weakness the crystal and the tavern had: read the number
   like `token_counter` does.
+
+- Research priorities and meteorite research (done 2026-09-29): locked firestone boxes and
+  locked meteorite nodes were never seen (every column of the owner's tree XIII is open; the
+  code treats an unseen column past the frontier as locked, and a popup without a green button
+  as locked); the first firestone start by the new code happens under the 24 h watch. Icon
+  references come from the owner's Windows captures (colour-cast correction for the Mac is
+  modelled, not measured). What the meteorite popup does right after Research was handled both
+  ways; one live purchase worked. Meteorite names are the wiki's (Weak Boss, All Attributes...);
+  the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
+  Trees past firestone XIII and meteorite X were never seen (they reuse the same names).

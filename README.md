@@ -378,6 +378,13 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   counter.
 - **Decorated Heroes event**: the switch completes the event's daily challenges and claims its
   stars; the bot turns it off by itself once the event is no longer in the events list.
+- **Research priorities** (Automations > Research): up to five firestone researches the bot
+  starts first, wherever they sit in the tree; one that is not unlocked yet gets a research of
+  the column before it. "Research something else" (on by default) keeps the old choice when no
+  priority can start. Boxes are recognised by their icon and placed in the tree's layout.
+- **Meteorite research** (Automations > Meteorite research, off by default): meteorites spent on
+  up to five priorities, never below the meteorites to keep; a locked priority gets its parent
+  first; each purchase is checked on the meteorite counter.
 - **Per-action switches**: every action the bot performs has its own switch (section
   `[Actions]` of `settings.ini`, all ON by default): guardian visit/evolve/training/chaos
   upgrades, beer tokens, artifact, Pharaoh's token, rituals, engineer tools, alchemy collection,

@@ -365,3 +365,33 @@ captures live in `tests/fixtures` (`tavern-tokens-141`, `guardian-dust-10518`,
 - Decorated heroes page: "Challenges will be renewed in 15:46:45" at 18:13, and the card said
   "Time left: 3d 15:47": the event ends at about 10:00 on 2026-10-02, the moment of the daily
   reset.
+
+## 2026-09-28 — library: firestone and meteorite research trees (Windows, 1920x1009)
+
+Owner's Epic client, new style, logical y = client y + 31. Captures of every firestone tree
+(I..XIII, seven views each) and meteorite tree (I..X) were taken through the trees' arrows;
+the icon references and fixtures come from them.
+
+- Both tabs show "Tree XIII" / "Tree X" (Roman numerals) between two arrows. Only the current
+  tree can be researched: the right arrow on it says "You need to complete tree XIII first";
+  the older trees are all maxed.
+- Firestone tree: columns left to right (column 1 at logical x 225 at the tree start), about
+  459.5 px apart; 1, 2 or 3 boxes per column, box ~383 x 101, box tops by column size 224 /
+  467 / 709 (3), 345 / 588 (2), 467 (1). Box colours: available 0x0D49DE, maxed light blue
+  ~0x35C0FF with "Max level", running gold 0xFFEB99 .. 0xDE9E31. The right-hand tab panel
+  starts at x 1728. The wheel moves the tree 56 px per notch (12 notches = 672 px); tree XIII
+  ends 2478 px from its start. A box's icon (left ~100 px) is the research's icon in every
+  tree: 32 references from the maxed boxes identified all 554 whole boxes of the 102 views
+  (tree by tree left out), dark blue and gold ones included; the HP / DMG enemy and boss
+  icons differ only by their bottom text.
+- The layouts match the wiki (firestone_bot/vision/research_trees.json) except tree V, whose
+  column 1 (Attribute Armor, Attribute Health, Attribute Damage) is missing on the wiki. The
+  game names the wiki's "Weak Boss" / "Weak Enemy" "Expose Weakness" / "Weaklings".
+- Meteorite tab (right panel, logical (1818, 461)): 13 round nodes joined by cyan lines, the
+  level under each node, maxed nodes glowing (disc green 183..199) and the others dark (55..56);
+  counter "1,242" at (1616, 50, 1738, 86) top-right anchored, read with the popup closed (it
+  dims). The start node is the only one with three lines. Popup: round icon, name, "Level
+  6/25", green "Research" button with the cost ("750") at (940, 743, 1075, 779), X at
+  (1238, 296). Wiki errors: tree V layer-4 names rotated between branches, Weak Enemy max 22.
+- Live purchase (23:26): Tank Specialization 6 -> 7 for 750 meteorites, the counter 1,782 ->
+  1,032, counted by the exact drop; the next level waited for the 400 kept in reserve.
