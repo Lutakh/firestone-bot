@@ -796,6 +796,38 @@ RS_BUTTON_MIN_W = 40  # logical; the buttons are ~160 wide and 60-105 high
 RS_BUTTON_MIN_H = 25
 RS_SLOT_COUNT = 2
 
+# --- Meteorite research: the library's Meteorite tab (measured 2026-09-28, Epic 1920x1009) ---
+# The tab shows "Tree X" between two arrows, the meteorite counter top right ("1,242" beside
+# a meteorite icon) and 13 round nodes joined by lines (vision/meteorite_nodes.py reads them
+# from METEORITE_TREE_RECT, wherever they sit). A node opens a centred popup: its round icon
+# top left (drawn 1.15 x the node's), name, "Level 6/25", description, effect, and a green
+# "Research" button with the meteorite cost under its label ("750"); research is instant.
+# Locked nodes were never seen; a popup without the green button is taken as locked.
+METEORITE_TAB = Point(1818, 461)  # "Meteorite" tab of the right-hand panel, above Firestone
+METEORITE_TREE_RECT = (480, 141, 1460, 986)  # centre-anchored: nodes and labels, no title
+# The counter's digits (client x 1645..1704, y 27..48); the meteorite icon's bright pixels at
+# x 1604..1606 stay outside. Dimmed under a popup (a "4" scored 0.67): read with none open.
+METEORITE_COUNTER_DIGITS = (1616, 50, 1738, 86)  # top-right anchored (token_counter.read)
+METEORITE_PARK = Point(1300, 60, (CENTER, TOP))  # empty sky left of the counter, as RS_PARK
+# Popup (centre-anchored). The icon's centre is (708, 351); the rect leaves room for the
+# icon window slid +-4 px at 1.15 x. The cost's digits sit at client x 965..1025, y 719..741.
+METEORITE_POPUP_ICON_RECT = (648, 291, 768, 411)
+METEORITE_POPUP_COST = (940, 743, 1075, 779)
+# The button's lower band (the cost's background) is GREEN_BUTTON, logical y 740..779; the
+# label's band above it is darker (42, 116, 39). The green effect arrow sits at y ~631.
+METEORITE_POPUP_RESEARCH = Probe(
+    845, 745, 1075, 775, GREEN_BUTTON, 20, "meteorite_popup_research", ANCHOR_CENTER
+)
+METEORITE_POPUP_RESEARCH_BUTTON = Point(960, 736, ANCHOR_CENTER)
+# The popup's close button: an orange disc (255, 96, 10) at logical x 1206..1269 with a cream
+# cross (255, 249, 205) at x 1221..1256, y 277..311. Both are required: neither probe fires on
+# the captures of trees I..X without a popup (a node can sit under that spot).
+METEORITE_POPUP_X = Probe(1234, 292, 1242, 300, 0xFFF9CE, 30, "meteorite_popup_x", ANCHOR_CENTER)
+METEORITE_POPUP_X_RING = Probe(
+    1208, 290, 1213, 302, DIALOG_RING, 30, "meteorite_popup_x_ring", ANCHOR_CENTER
+)
+METEORITE_POPUP_CLOSE = Point(1238, 296, ANCHOR_CENTER)
+
 # --- Guild.ahk ------------------------------------------------------------------------------
 MAIN_GUILD_ICON = Point(1857, 481)  # :12
 # The guild map and its dialogs are centred (like the world map): at 16:9 every entry below

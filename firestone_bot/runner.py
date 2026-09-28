@@ -33,6 +33,7 @@ from firestone_bot.features import (
     main_menu,
     map_align,
     map_redeem,
+    meteorite,
     open_chests,
     open_town,
     quests,
@@ -437,6 +438,8 @@ class Runner:
             if not s.flag("Research"):
                 g.heartbeat("GoResearch")
                 self._step("Research", lambda: research.go_research(g), town=True)
+            if s.flag("MeteoriteResearch") and meteorite.due(g):
+                self._step("Meteorite research", lambda: meteorite.visit(g), town=True)
             # FinishTown:
             big_close.big_close(g)
         with self._timed("guild"):
