@@ -386,7 +386,15 @@ class Runner:
             g.focus()
             # always: the shop visit also detects the daily reset (free mystery box)
             g.heartbeat("Shop")
+            reset_before = s.get("LastTokenReset")
             self._step("Daily shop", lambda: shop.shop(g))
+            if daily.event_on(s) and s.get("LastTokenReset") != reset_before:
+                # A new game day: the Decorated Heroes check is due again (event_watch) and
+                # looks at the events list before mail, the town and the guild spend with the
+                # event's limits. The events step above goes by the reset the shop detected
+                # last, hours late after a bot started hours after the reset (review
+                # 2026-09-28).
+                self._step("Events", lambda: claim_events.claim_events(g))
             if s.flag("Mail"):
                 g.heartbeat("CheckMail")
                 self._step("Mail", lambda: check_mail.check_mail(g))

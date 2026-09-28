@@ -176,8 +176,10 @@ EVENTS_CHALLENGES_TAB_BELL = Probe(
 EVENTS_PAGE_CLOSE = Point(1715, 124, (CENTER, CENTER))  # X of the event page (client (1715,93))
 # The orange ring left of that X: 0xFF600A at client x 1684-1700, y 93 on three captures of
 # the owner's basic event pages (1920x1009, 2026-09-26/27), where the list's own ring
-# (EVENTS_CLOSE_X) is covered. Not seen live yet (no basic event ran on 2026-09-28): the
-# Decorated Heroes check only uses it to stop waiting sooner, never as a verdict.
+# (EVENTS_CLOSE_X) is covered. The Decorated Heroes check counts a page as another event's
+# only when this ring shows (a page it does not recognise gives no verdict, review
+# 2026-09-28). Not seen live yet (no basic event ran on 2026-09-28): should it miss, a basic
+# event's card gives no verdict and the switch stays on, the safe side.
 EVENTS_PAGE_CLOSE_X = Probe(
     1688, 121, 1696, 127, DIALOG_RING, 20, "events_page_close_x", (CENTER, CENTER)
 )

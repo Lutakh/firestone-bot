@@ -55,7 +55,9 @@ def claim_events(g: Game) -> None:
     per visit: a card of another kind no longer stops the scan (the Decorated Heroes card,
     active since 2026-09-18, was opened and left at every cycle and hid the cards after it).
     With the switch on, the list is also opened without a bell when the event's presence is
-    due a check (event_watch): the bot turns the switch off once the event is gone."""
+    due a check (event_watch): the bot turns the switch off once the event is not active.
+    The runner calls this again right after a shop visit that detected the daily reset,
+    where the new game day makes that check due."""
     basic = g.settings.flag("Events")
     event = daily.event_on(g.settings)
     g.focus()

@@ -147,16 +147,22 @@ STRIPS = {  # bands across a card slot, captured on the owner's list 2026-09-28
     name: np.load(FIX / f"events-strip-{name}.npy")
     for name in ("active-dh", "upcoming-card", "upcoming-header", "empty")
 }
-PAGES = ("dh", "basic", "unknown")  # card kinds whose tap opens a page over the list
+# card kinds whose tap opens a page over the list
+PAGES = ("dh", "basic", "unknown", "unrecognised")
+DULL = {"upcoming": "upcoming-card", "header": "upcoming-header"}  # drawn without colour
 
 
 class FakeEvents:
     """Events list with cards; by default card 0 is the Decorated Heroes event, card 1 a
     basic event. Card kinds: "dh"; "basic" (its page closes with EVENTS_PAGE_CLOSE, whose X
-    ring it shows); "unknown" (a page nothing here closes); "none" (drawn in colour, opens
-    nothing); "upcoming" (grey, opens nothing). Slots past the cards show the empty list.
+    ring it shows); "unknown" (a page nothing here closes); "unrecognised" (a page no probe
+    recognises that EVENTS_PAGE_CLOSE closes, as a Decorated Heroes page that is_page misses
+    might); "none" (drawn in colour, opens nothing); "upcoming" (grey, opens nothing);
+    "header" (the "Upcoming events" band). Slots past the cards show the empty list.
     `later_cards`: the list from its second opening on; `list_ok=False`: it never shows;
-    `dh_slow`: reads of the event page's X that miss before the page is there."""
+    `dh_slow`: reads of the event page's X that miss before the page is there; `scrolled`:
+    cards the list is scrolled down by, kept across openings until a wheel-up with the
+    pointer over the cards. `trace` holds the focus calls, wheels and strip reads in order."""
 
     def __init__(
         self,
@@ -167,6 +173,7 @@ class FakeEvents:
         later_cards=None,
         list_ok=True,
         dh_slow=0,
+        scrolled=0,
     ):
         self.settings = settings
         self.bells = set(bells)
@@ -175,13 +182,16 @@ class FakeEvents:
         self.later_cards = later_cards
         self.list_ok = list_ok
         self.dh_slow = dh_slow
+        self.scrolled = scrolled
         self.list_open = False
         self.openings = 0
-        self.page = None
+        self.page = None  # the index in `cards` of the open page
+        self.pointer = None
         self.taps = []
         self.lines = []
         self.beats = []
         self.captures = []
+        self.trace = []
         self.slept = 0
         self.vars = {}
         self.style = "new"
@@ -193,7 +203,7 @@ class FakeEvents:
         return layouts.NEW
 
     def focus(self):
-        pass
+        self.trace.append("focus")
 
     def open_screen(self, point, expect, *a, **kw):
         self.taps.append(point)  # the events button
@@ -209,6 +219,11 @@ class FakeEvents:
 
     def _list_shown(self):
         return self.list_open and self.page is None
+
+    def _card(self, slot):
+        """The card drawn at a slot, the list's scroll taken into account."""
+        i = slot + self.scrolled
+        return self.cards[i] if i < len(self.cards) else None
 
     def found(self, probe):
         if probe == atlas.EVENTS_CLOSE_X:
@@ -232,31 +247,38 @@ class FakeEvents:
 
     def region_image(self, rect, anchor=None):
         slot = atlas.EVENTS_CARD_STRIPS.index(rect)
-        kind = self.cards[slot] if self._list_shown() and slot < len(self.cards) else None
+        self.trace.append("read")
+        kind = self._card(slot) if self._list_shown() else None
         if kind is None:
             return STRIPS["empty"]
-        return STRIPS["upcoming-card" if kind == "upcoming" else "active-dh"]
+        return STRIPS[DULL.get(kind, "active-dh")]
 
     def wait_still(self):
         pass
 
     def move_to(self, point):
-        pass
+        self.pointer = point
 
     def sleep(self, ms):
         self.slept += ms
 
+    def wheel(self, notches, interval_ms=200):
+        self.trace.append("wheel")
+        if notches > 0 and self._list_shown() and self.pointer in atlas.EVENTS_CARDS:
+            self.scrolled = 0  # up to its top: the wheel scrolls what is under the pointer
+
     def tap(self, point, settle_ms=1500, expect=None):
         self.taps.append(point)
+        self.pointer = point
         kind = self._kind()
         if point == atlas.DH_CHALLENGES_TAB_BUTTON:
             self.dh_tab = "challenges"
         elif point in atlas.EVENTS_CARDS:
             slot = atlas.EVENTS_CARDS.index(point)
-            if self._list_shown() and slot < len(self.cards) and self.cards[slot] in PAGES:
-                self.page = slot
+            if self._list_shown() and self._card(slot) in PAGES:
+                self.page = slot + self.scrolled
         elif (point == atlas.DH_PAGE_CLOSE and kind == "dh") or (
-            point == atlas.EVENTS_PAGE_CLOSE and kind == "basic"
+            point == atlas.EVENTS_PAGE_CLOSE and kind in ("basic", "unrecognised")
         ):
             self.bells.discard(self.page)
             self.page = None

@@ -1,6 +1,8 @@
 """Decorated Heroes switch turned off by the bot: active cards told apart on real strips of
-the events list (2026-09-28), two looks on two openings before any verdict, no verdict on
-anything unexpected, a look every 30 min or at every cycle near the daily reset."""
+the events list (2026-09-28), read with the list wheeled back to its top, two looks on two
+openings before any verdict, no verdict on anything unexpected (a page not recognised
+either way included), a look every 30 min or at every cycle near the daily reset, a look
+without a verdict retried once and then every 30 min."""
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,9 +18,10 @@ from tests.test_decorated_heroes import FakeEvents, patch_events
 
 FIX = Path(__file__).parent / "fixtures"
 GONE_LINE = (
-    "Decorated Heroes: the event is no longer in the events list (checked twice), switch turned off"
+    "Decorated Heroes: the event is not active in the events list (checked twice), switch "
+    "turned off"
 )
-GONE_BEAT = ("Decorated Heroes event ended: switch turned off", True)
+GONE_BEAT = ("Decorated Heroes event not active: switch turned off", True)
 
 
 def _stamp(hours_ago):
@@ -120,6 +123,36 @@ def test_event_gone_on_two_openings_turns_the_switch_off(watch, tmp_path):
     assert (daily.token_limit(g.settings), daily.crystal_limit(g.settings)) == (10, 5)
     assert not event_watch.check_due(g)
     assert g.taps[-1] == atlas.EVENTS_LIST_CLOSE  # claim_events closes the list as before
+    # each look: the game in front, then the list wheeled to its top, then the strips read
+    assert _looks(g) == [["focus", "wheel", "read"]] * 2
+
+
+def _looks(g):
+    """What each look did before its first strip read (the trace from each wheel back to the
+    focus call before it)."""
+    looks, current = [], []
+    for step in g.trace:
+        if step == "focus":
+            current = ["focus"]
+        elif step == "wheel":
+            current.append("wheel")
+        elif step == "read" and current:
+            looks.append([*current, "read"])
+            current = []
+    return looks
+
+
+def test_a_list_left_scrolled_is_wheeled_back_to_its_top(watch):
+    """The game reopens the list where it was left (the user scrolled down to read the
+    upcoming events): the view then shows the "Upcoming events" header and grey cards only,
+    the event's card above it. Read like that, the list said "gone" twice (review
+    2026-09-28)."""
+    g = watch(cards=("dh", "header", "upcoming", "upcoming", "upcoming"), scrolled=1)
+    claim_events.claim_events(g)
+    assert g.trace.index("wheel") < g.trace.index("read")
+    assert g.openings == 1 and g.card_taps() == [0]
+    assert _stays_on(g) and g.vars[event_watch._seen_key(g)]
+    assert "Decorated Heroes: the event is still in the events list (card 1)" in g.lines
 
 
 @pytest.mark.parametrize("cards", [(), ("upcoming", "upcoming")])
@@ -172,6 +205,23 @@ def test_an_unknown_page_gives_no_verdict(watch):
     assert g.card_taps() == [0]  # nothing more is opened blind
     assert _stays_on(g)
     assert g.captures == ["events-unknown-card-1.png"]
+
+
+def test_a_page_not_recognised_gives_no_verdict_even_when_it_closes(watch):
+    """Only a page that shows another event's X ring counts as another event: a Decorated
+    Heroes page that is_page misses (another client, a new tab colour) may close on that X
+    too, and would have been taken for another event twice (review 2026-09-28)."""
+    g = watch(cards=("unrecognised", "basic"))
+    claim_events.claim_events(g)
+    assert g.openings == 1 and g.card_taps() == [0]
+    assert atlas.EVENTS_PAGE_CLOSE in g.taps  # left the way the other pages are
+    assert _stays_on(g)
+    assert g.captures == ["events-unknown-card-1.png"]
+    assert (
+        "Decorated Heroes check: card 1 opened a page that is not recognised (neither the "
+        "event's nor another event's)"
+    ) in g.lines
+    assert "Decorated Heroes: no verdict from the events list, the switch stays on" in g.lines
 
 
 def test_a_card_that_opens_nothing_gives_no_verdict(watch):
@@ -227,6 +277,57 @@ def test_a_look_at_every_cycle_near_the_reset(watch, now, stamp):
         claim_events.claim_events(g)
         now[0] += 60_000
     assert g.openings == 2 and _stays_on(g)
+
+
+@pytest.mark.parametrize(
+    "cards, captures",
+    [
+        (("basic",) * 4, []),
+        (("none",), ["events-card-1-no-page.png"]),
+        (("unrecognised",), ["events-unknown-card-1.png"]),
+    ],
+)
+def test_a_look_without_a_verdict_is_retried_once_then_every_30_min(watch, now, cards, captures):
+    """No verdict recorded nothing: the list and every active page were opened, and captured,
+    at every cycle all day (review 2026-09-28). A retry at the next cycle (the miss may pass),
+    then the sightings' 30-min pace; the captures once a game day."""
+    g = watch(cards=cards)
+    for _ in range(5):
+        claim_events.claim_events(g)
+        now[0] += 90_000
+    assert g.openings == event_watch.NO_VERDICT_LOOKS == 2
+    assert g.lines[-1] == "Events: no bell on the button, nothing to claim"
+    now[0] += event_watch.RECHECK_MS
+    claim_events.claim_events(g)
+    assert g.openings == 3
+    claim_events.claim_events(g)
+    assert g.openings == 3  # again 30 min apart
+    assert _stays_on(g) and g.captures == captures
+    g.settings.set("LastTokenReset", _stamp(0.01))  # the next game day: looks, captures again
+    claim_events.claim_events(g)
+    assert g.openings == 4 and g.captures == captures * 2
+
+
+def test_near_the_reset_a_look_without_a_verdict_is_retried_at_every_cycle(watch, now):
+    g = watch(settings={"LastTokenReset": _stamp(23.5)}, cards=("none",))
+    for _ in range(4):
+        claim_events.claim_events(g)
+        now[0] += 60_000
+    assert g.openings == 4 and _stays_on(g)
+    assert g.captures == ["events-card-1-no-page.png"]
+
+
+def test_a_verdict_starts_the_retries_over(watch, now):
+    """A miss after a sighting is retried at the next cycle, not 30 min later."""
+    g = watch(cards=("none",))
+    for _ in range(2):
+        claim_events.claim_events(g)
+        now[0] += 60_000
+    assert not event_watch.check_due(g)
+    event_watch.note_seen(g)  # e.g. the event's page opened through its bell
+    now[0] += event_watch.RECHECK_MS
+    claim_events.claim_events(g)  # no verdict again
+    assert g.openings == 3 and event_watch.check_due(g)
 
 
 def test_a_new_game_day_looks_again(watch):
