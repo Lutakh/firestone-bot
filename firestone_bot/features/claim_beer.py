@@ -12,6 +12,12 @@ fewer real plays (owner backlog, 2026-09-28). With the counter at 0 the bot leav
 clicking (whether Play stays green then is not measured). One live play took the counter
 from 141 to 140; it read 140 as soon as the round was over, 5.6 s after the Play click
 (measured 2026-09-28 on the owner's 1920x1009 Epic client).
+
+A dry run sends no input, so its Play never takes a token and the counter never drops: the
+visit stops after the first play shown, with nothing recorded. Counted as ignored, each dry
+play fed the per-day cap of unconfirmed plays, and Dry run and Start share one Game whose
+vars are never cleared, so two dry-run cycles on the tavern screen left the live run that
+followed with no tavern play until the next game day (review 2026-09-28).
 """
 
 from __future__ import annotations
@@ -124,6 +130,11 @@ def play_tokens(g: Game) -> int:
             before = g.region_image(atlas.TAVERN_TOKEN_DIGITS, atlas.ANCHOR_TOP_RIGHT)
         if not use_token(g):
             g.status("Tavern: the Play button is not green, no more plays")
+            break
+        if getattr(g, "dry_run", False):
+            # no input was sent: an 'ignored' play here would count toward MAX_UNCONFIRMED
+            # and block the live run that follows on the same Game
+            g.status("Tavern: dry run, the play is not checked on the token counter, leaving")
             break
         g.move_to(atlas.SPEND_PARK)
         spent = _play_spent(g, count, before)

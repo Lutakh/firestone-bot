@@ -61,6 +61,8 @@ class FakeTavern:
             return
         assert point is atlas.TAVERN_USE_TOKEN, point
         self.taps += 1
+        if getattr(self, "dry_run", False):
+            return  # no input reaches the game: nothing is taken
         if self.tokens == 0:
             self.shop_opens += 1
             return
@@ -194,3 +196,24 @@ def test_tavern_unconfirmed_plays_are_capped_per_game_day(tavern):
     g.settings.set("LastTokenReset", "20260929100000")  # a new game day
     claim_beer.play_tokens(g)
     assert g.taps == claim_beer.MAX_UNCONFIRMED + claim_beer.TAVERN_RETRIES + 1
+
+
+def test_tavern_dry_run_leaves_nothing_for_the_live_run(tavern):
+    """A dry run's Play sends no input, so the counter never drops. Counted as ignored, two
+    dry-run cycles reached MAX_UNCONFIRMED and the live run started next on the same Game
+    made no tavern play until the next game day (review 2026-09-28). The fakes of the other
+    tests have no dry_run attribute: the bot reads it with a default."""
+    g = tavern(tokens=10, max_tokens=12, count=10)
+    g.dry_run = True
+    for visit in range(1, claim_beer.MAX_UNCONFIRMED + 1):
+        start = g.now
+        assert claim_beer.play_tokens(g) == 0
+        assert g.taps == visit  # one Play shown per visit, no retry
+        assert g.now - start < claim_beer.TAVERN_TAKEN_MS  # no wait for a drop that cannot come
+    assert not any(key.startswith("tavern_unconfirmed:") for key in g.vars)
+    assert g.captures == [] and _today(g) == 10 and g.tokens == 10
+    assert g.lines[-1] == "Tavern: dry run, the play is not checked on the token counter, leaving"
+    g.dry_run = False  # Start after the dry run: the same Game, its vars kept
+    assert claim_beer.play_tokens(g) == 2
+    assert g.taps == claim_beer.MAX_UNCONFIRMED + 2
+    assert _today(g) == 12 and g.tokens == 8
