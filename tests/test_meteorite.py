@@ -6,7 +6,9 @@ a layer is locked while the node before it has fewer levels than the layout's un
 research, its cost on a green Research button (grey when locked; with `grey_when_poor`, also
 when the meteorites do not cover it). Research takes the cost from the counter and adds a
 level; the popup then stays (`popup_stays`) or closes: what the game does was not observed.
-The counter is dimmed under a popup: it reads nothing while one is open.
+The counter is dimmed under a popup: it reads nothing while one is open. With
+`hover_misses`, the Research button misses the green probe while the pointer is on it (a
+hovered button is drawn lighter): a node placed there (`at`) shows the bot's parking.
 
 The tab and the popup's pixels are not drawn: read_tab, popup_name and popup_cost return
 what the fake holds (the readers are tested on captures in test_meteorite_nodes.py)."""
@@ -71,18 +73,26 @@ class FakeMeteoriteTab:
         cost_readable=True,
         grey_when_poor=False,
         graph=True,
+        at=None,
+        hover_misses=False,
+        cost_read=None,
     ):
         self.settings = settings
         self.vars = {}
         self.counter = counter
         self.levels = dict(TREE_X_LEVELS if levels is None else levels)
         self.popup_stays = popup_stays
-        self.drop = drop  # meteorites a Research click takes, when not the cost
+        # meteorites a Research click takes, when not the cost (a list: one per click, None
+        # for the cost)
+        self.drop = drop
         self.counter_readable = counter_readable
         self.popup_shows = popup_shows
         self.cost_readable = cost_readable
         self.grey_when_poor = grey_when_poor
         self.graph = graph
+        self.hover_misses = hover_misses
+        self.cost_read = cost_read  # what the popup's cost reads, when not the cost
+        self.pointer = None  # logical (x, y) of the last move
         self.popup = None
         self.tab = None
         self.opened = []  # popups opened, in order
@@ -97,6 +107,7 @@ class FakeMeteoriteTab:
         self.pos = {
             n: (x1 + 100 + 180 * (i % 5), y1 + 100 + 200 * (i // 5)) for i, n in enumerate(RESEARCH)
         }
+        self.pos.update(at or {})
 
     # the game
     def locked(self, name):
@@ -128,6 +139,8 @@ class FakeMeteoriteTab:
             graph_read=self.graph,
             names=meteorite.name_set(keys),
             costs=meteorite.layout_costs(keys),
+            cost_options=meteorite.layout_cost_options(keys),
+            unlock=meteorite.layout_unlock(keys),
         )
         if self.graph:
             tab.parents = {n: RESEARCH[n][2] for n in self.levels}
@@ -147,17 +160,29 @@ class FakeMeteoriteTab:
 
     def popup_cost(self):
         assert self.popup is not None
-        return RESEARCH[self.popup][1] if self.cost_readable else None
+        if not self.cost_readable:
+            return None
+        return RESEARCH[self.popup][1] if self.cost_read is None else self.cost_read
+
+    def on_button(self):
+        """The pointer on the popup's Research button (capture 85: logical x 830..1090,
+        y 688..786)."""
+        return self.pointer is not None and (
+            830 <= self.pointer[0] <= 1090 and 688 <= self.pointer[1] <= 786
+        )
 
     def found(self, probe):
         if probe in (atlas.METEORITE_POPUP_X, atlas.METEORITE_POPUP_X_RING):
             return self.popup is not None
         assert probe is atlas.METEORITE_POPUP_RESEARCH, probe
+        if self.hover_misses and self.on_button():
+            return False  # hovered: drawn lighter than the probe's green
         return self.popup is not None and self.green(self.popup)
 
     # what the bot does
     def tap(self, p, settle_ms=1500, expect=None):
         self.taps.append(p)
+        self.pointer = (p.x, p.y)
         if p == atlas.METEORITE_TAB:
             assert self.library
             self.tab = "meteorite"
@@ -173,7 +198,8 @@ class FakeMeteoriteTab:
             name = self.popup
             cost = RESEARCH[name][1]
             assert self.counter >= cost
-            self.counter -= cost if self.drop is None else self.drop
+            drop = self.drop.pop(0) if isinstance(self.drop, list) else self.drop
+            self.counter -= cost if drop is None else drop
             self.levels[name] += 1
             self.bought.append(name)
             if not self.popup_stays or self.maxed(name):
@@ -202,7 +228,7 @@ class FakeMeteoriteTab:
         return True
 
     def move_to(self, p):
-        pass
+        self.pointer = (p.x, p.y)
 
     def sleep(self, ms):
         pass
@@ -342,6 +368,91 @@ def test_a_lock_two_layers_deep_goes_back_along_the_chain(make):
     assert all(x.endswith("to unlock Attribute Damage") for x in _purchases(g)[:8])
 
 
+UNDER_THE_BUTTON = (971, 737)  # tree X's Rage Heroes on capture M10, logical
+
+
+def test_the_pointer_leaves_a_node_under_the_research_button(make):
+    """Rage Heroes sits under the popup's Research button, which the hovered pointer draws
+    lighter: parked off it, the button reads green and Rage Heroes is bought, not Firestone
+    Effect before it (review 2026-09-29: 10 levels of Firestone Effect a visit)."""
+    levels = dict(TREE_X_LEVELS, **{"Firestone Effect": 10, "Rage Heroes": 0})
+    g = make(
+        ["Rage Heroes"],
+        counter=1600,
+        levels=levels,
+        at={"Rage Heroes": UNDER_THE_BUTTON},
+        hover_misses=True,
+    )
+    assert meteorite.visit(g) == 2
+    assert g.bought == ["Rage Heroes"] * 2
+    assert not any("locked" in x for x in g.lines) and not g.diagnostics
+
+
+def test_a_missing_button_whose_unlock_is_met_buys_nothing_before_it(make, monkeypatch):
+    """The pointer left on the node (no parking): Firestone Effect at 10 unlocks layer 1 in
+    every candidate layout (5 or 6), so the grey popup is not a lock. The visit stops with a
+    capture of the popup instead of buying Firestone Effect."""
+    levels = dict(TREE_X_LEVELS, **{"Firestone Effect": 10, "Rage Heroes": 0})
+    g = make(
+        ["Rage Heroes", "Tank Specialization"],
+        counter=1600,
+        levels=levels,
+        at={"Rage Heroes": UNDER_THE_BUTTON},
+        hover_misses=True,
+    )
+    monkeypatch.setattr(meteorite, "_park", lambda game: None)
+    assert meteorite.visit(g) == 0
+    assert g.bought == [] and g.opened == ["Rage Heroes"] and g.popup is None
+    assert (
+        "Meteorite research: Rage Heroes shows no Research button though Firestone Effect is at "
+        "level 10 (6 unlocks it), nothing more spent"
+    ) in g.lines
+    assert g.diagnostics == ["meteorite-false-lock.png"]
+    assert not _purchases(g)
+
+
+def test_a_locked_priority_dearer_than_the_counter_gets_the_node_before_it(make):
+    """Firestone Finder (900, layer 3) needs 5 to 7 levels of Healer Specialization (at 3) in
+    the candidate layouts: with 800 meteorites it is locked, not saved for, and Healer
+    Specialization (750) is bought (review 2026-09-29)."""
+    levels = dict(TREE_X_LEVELS, **{"Healer Specialization": 3, "Firestone Finder": 0})
+    g = make(["Firestone Finder"], counter=800, levels=levels)
+    assert meteorite.visit(g) == 1
+    assert g.bought == ["Healer Specialization"]
+    assert (
+        "Meteorite research: Firestone Finder is locked, trying Healer Specialization before it"
+        in g.lines
+    )
+    assert not any("Firestone Finder costs" in x for x in g.lines)
+
+
+def test_a_locked_dear_priority_is_not_passed_over_for_other_nodes(make):
+    levels = dict(
+        TREE_X_LEVELS,
+        **{"Healer Specialization": 3, "Firestone Finder": 0, "Damage Specialization": 5},
+    )
+    g = make(["Firestone Finder"], counter=800, levels=levels, any_other=True)
+    assert meteorite.visit(g) == 1
+    assert g.bought == ["Healer Specialization"]
+
+
+def test_the_unlock_levels_follow_the_layer_across_the_candidate_layouts(make):
+    g = make([])
+    g.library, g.tab = True, "meteorite"
+    tab = g.tab_view()
+    assert tab.layer("Firestone Effect") == 0 and tab.unlock_need("Firestone Effect") is None
+    assert tab.layer("Rage Heroes") == 1 and tab.unlock_need("Rage Heroes") == (5, 6)
+    assert tab.layer("All Attributes") == 3 and tab.unlock_need("All Attributes") == (5, 7)
+    # Tank Specialization 6: All Attributes is open in trees 10 and 15 (6), not in tree 6 (7)
+    assert tab.unlock_state("All Attributes") is None
+    assert tab.unlock_state("Attribute Armor") == ("open", "Raining Gold", 30, 6)
+    g.levels["Tank Specialization"] = 4
+    assert g.tab_view().unlock_state("All Attributes") == ("locked", "Tank Specialization", 4, 5)
+    assert not tab.cost_known("Tank Specialization", 0)
+    assert not tab.cost_known("Tank Specialization", 800)
+    assert tab.cost_known("Tank Specialization", 900)
+
+
 def test_a_lock_whose_parent_is_unknown_is_left(make):
     """The lines not read: the four wiki layouts of tree X's names disagree on what
     Attribute Damage needs, so nothing is bought for it; the next priority goes on."""
@@ -370,23 +481,78 @@ def test_the_popup_is_closed_after_research_whether_it_stays_or_not(make, stays)
     assert g.closed == (3 if stays else 1)
 
 
-def test_a_drop_other_than_the_cost_stops_the_visit_uncounted(make):
+def _off_for_the_session(g):
+    """Meteorite research off until the bot is opened again: no pause runs out."""
+    g.clock.now += 100 * meteorite.PAUSE_S
+    return not meteorite.due(g)
+
+
+def test_a_drop_other_than_the_cost_turns_meteorite_research_off(make):
+    """The click was taken (the counter moved) but not by the cost: said with both readings,
+    never as "nothing bought", and no click an hour later (review 2026-09-29: every hourly
+    visit bought a level and said nothing was bought)."""
     g = make(["Tank Specialization"], counter=5000, drop=700)
     assert meteorite.visit(g) == 0
     assert g.bought == ["Tank Specialization"]  # one click, then nothing more
     assert (
-        "Meteorite research: the counter went from 5,000 to 4,300 after the Research click on "
-        "Tank Specialization (750 expected), stopping"
+        "Meteorite research: the Research click on Tank Specialization is not confirmed: the "
+        "counter read 5,000 before it and 4,300 after (750 expected off it)"
     ) in g.lines
+    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE} (see the capture)"
+    assert not any("nothing bought" in x for x in g.lines)
     assert g.diagnostics == ["meteorite-counter-drop.png"]
-    assert not _purchases(g) and _paused(g)
+    assert not _purchases(g) and _off_for_the_session(g)
+    assert meteorite.visit(g) == 0 and g.bought == ["Tank Specialization"]
+    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE}"
 
 
-def test_a_counter_that_never_drops_stops_the_visit(make):
+def test_a_counter_that_never_drops_turns_meteorite_research_off(make):
     g = make(["Tank Specialization"], counter=5000, drop=0)
     assert meteorite.visit(g) == 0
     assert len(g.bought) == 1 and g.diagnostics == ["meteorite-not-taken.png"]
+    assert (
+        "Meteorite research: the Research click on Tank Specialization is not confirmed: the "
+        "counter read 5,000 before it and 5,000 after (750 expected off it)"
+    ) in g.lines
+    assert not any("nothing bought" in x for x in g.lines)
+    assert not _purchases(g) and _off_for_the_session(g)
+
+
+def test_purchases_before_an_unconfirmed_click_still_count(make):
+    g = make(["Tank Specialization"], counter=5000, drop=[None, 700])
+    assert meteorite.visit(g) == 1
+    assert g.bought == ["Tank Specialization"] * 2
+    assert _purchases(g) == [
+        "Meteorite research: Tank Specialization bought (level 7, 750 meteorites, 4,250 left)"
+    ]
+    assert _off_for_the_session(g)
+
+
+@pytest.mark.parametrize("read", [600, 0])
+def test_a_cost_its_tree_does_not_give_is_never_clicked(make, read):
+    """Attribute Armor costs 800 in every layout of tree X's names: 600 (a misread 8) or 0
+    is not clicked, although it fits the budget (review 2026-09-29: the counter ended below
+    the reserve before the drop check saw it)."""
+    g = make(["Attribute Armor"], reserve="800", counter=1500, cost_read=read)
+    assert meteorite.visit(g) == 0
+    assert g.bought == [] and g.counter == 1500 and g.popup is None
+    assert g.diagnostics == ["meteorite-cost.png"]
+    assert (
+        f"Meteorite research: the popup of Attribute Armor reads {read:,} meteorites where its "
+        "tree gives 800, nothing more spent"
+    ) in g.lines
     assert not _purchases(g)
+
+
+def test_a_cost_of_another_candidate_layout_is_clicked_and_the_drop_decides(make):
+    """Tank Specialization is 900 in tree 6 and 750 in trees 10, 15 and C: a 900 read passes,
+    the counter's 750 drop then refuses the purchase."""
+    keys = meteorite.layouts_for(set(TREE_X_LEVELS))
+    assert meteorite.layout_cost_options(keys)["Tank Specialization"] == {750, 900}
+    g = make(["Tank Specialization"], counter=5000, cost_read=900)
+    assert meteorite.visit(g) == 0
+    assert g.bought == ["Tank Specialization"] and g.diagnostics == ["meteorite-counter-drop.png"]
+    assert _off_for_the_session(g)
 
 
 def test_an_unreadable_counter_spends_nothing(make):
@@ -432,8 +598,46 @@ def test_other_nodes_skip_a_locked_one(make):
     assert g.bought == ["Mana Heroes"]
 
 
-def test_other_nodes_after_a_dear_priority(make):
+def test_other_nodes_wait_while_a_priority_saves_up(make):
+    """Attribute Armor (800) with 790 meteorites: Tank Specialization (750, not a priority) is
+    not bought with what Attribute Armor waits for (review 2026-09-29: the other nodes took
+    it every visit, and the priority waited until every cheaper node was maxed)."""
     g = make(["Attribute Armor"], counter=790, any_other=True)
+    assert meteorite.visit(g) == 0
+    assert g.bought == [] and g.opened == ["Attribute Armor"]
+    assert "Meteorite research: Attribute Armor costs 800, 790 meteorites: saving up for it" in (
+        g.lines
+    )
+    assert "Meteorite research: other nodes wait: the meteorites are saved for Attribute Armor" in (
+        g.lines
+    )
+
+
+def test_a_dear_priority_is_bought_first_as_meteorites_trickle_in(make):
+    g = make(["Attribute Armor"], counter=700, any_other=True)
+    for _ in range(5):
+        meteorite.visit(g)
+        if g.bought:
+            break
+        g.counter += 50
+        g.clock.now += meteorite.PAUSE_S
+    assert g.bought == ["Attribute Armor"]
+
+
+def test_other_nodes_wait_for_the_node_a_priority_needs(make):
+    levels = dict(TREE_X_LEVELS, **{"All Attributes": 3, "Attribute Damage": 0})
+    g = make(["Attribute Damage"], counter=850, levels=levels, any_other=True)
+    assert meteorite.visit(g) == 0 and g.bought == []
+    assert (
+        "Meteorite research: other nodes wait: the meteorites are saved for All Attributes "
+        "(before Attribute Damage)"
+    ) in g.lines
+
+
+def test_other_nodes_after_a_priority_whose_lock_is_unknown(make):
+    """Blocked by a node that is not known: the other nodes may spend."""
+    levels = dict(TREE_X_LEVELS, **{"All Attributes": 3, "Attribute Damage": 0})
+    g = make(["Attribute Damage"], counter=800, levels=levels, graph=False, any_other=True)
     assert meteorite.visit(g) == 1
     assert g.bought == ["Tank Specialization"]
 
@@ -447,10 +651,58 @@ def test_the_visit_ends_on_the_firestone_tab(make):
     assert g.big_closed == ["firestone"]
 
 
-def test_nothing_to_buy_skips_the_library(make):
+def test_nothing_to_buy_skips_the_library_and_pauses_nothing(make):
+    """The priorities can only be picked once the switch is on: the ones picked next are used
+    on the next cycle (review 2026-09-29: an hour's pause kept them waiting without a word)."""
     g = make([])
     assert meteorite.visit(g) == 0
-    assert not g.library and not g.taps and _paused(g)
+    assert not g.library and not g.taps and not _paused(g)
+    line = "Meteorite research: no priority chosen and other nodes are off, nothing to buy"
+    assert g.lines == [line]
+    assert meteorite.visit(g) == 0 and g.lines == [line]  # said once a game day
+    g.settings.set("MeteoritePriority1", "Tank Specialization")
+    assert meteorite.due(g)
+    assert meteorite.visit(g) == 1 and g.bought == ["Tank Specialization"]
+
+
+def test_unknown_priority_names_are_said_once_a_game_day(make):
+    g = make(["Expose Weakness"])
+    assert meteorite.visit(g) == 0 and not g.taps and not _paused(g)
+    assert g.lines == [
+        "Meteorite research: priority 1 (Expose Weakness) is an unknown name",
+        "Meteorite research: no known priority and other nodes are off, nothing to buy",
+    ]
+    meteorite.visit(g)
+    assert len(g.lines) == 2
+    g.settings.set("LastTokenReset", "20260930")  # the next game day
+    meteorite.visit(g)
+    assert len(g.lines) == 4
+
+
+def test_an_unknown_name_leaves_the_known_ones(make):
+    g = make(["Expose Weakness", "Tank Specialization"])
+    assert meteorite.visit(g) == 1 and g.bought == ["Tank Specialization"]
+    assert "Meteorite research: priority 1 (Expose Weakness) is an unknown name" in g.lines
+
+
+@pytest.mark.parametrize("raw", ["5000²", "1k", "1.000", "-5"])
+def test_a_reserve_that_is_not_a_number_spends_nothing(make, raw):
+    """A spending guard fails closed (review 2026-09-29: it read as no reserve at all)."""
+    g = make(["Tank Specialization"], reserve=raw, counter=5000, any_other=True)
+    assert meteorite.reserve(g.settings) is None
+    assert meteorite.visit(g) == 0
+    assert not g.taps and not g.bought and not _paused(g)
+    assert g.lines == [
+        f"Meteorite research: Meteorites to keep ({raw}) is not a number, nothing spent"
+    ]
+    meteorite.visit(g)
+    assert len(g.lines) == 1
+
+
+@pytest.mark.parametrize("raw, keep", [("", 0), ("0", 0), ("1 000", 1000), ("1,500", 1500)])
+def test_the_reserve_reads_blank_as_none_and_skips_separators(make, raw, keep):
+    g = make([], reserve=raw)
+    assert meteorite.reserve(g.settings) == keep
 
 
 def test_a_visit_that_bought_nothing_pauses_the_next_one_an_hour(make):

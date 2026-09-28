@@ -280,6 +280,12 @@ def test_the_tab_takes_its_names_from_the_layout_and_its_parents_from_the_lines(
     assert tab.parent("Attribute Armor") == "Raining Gold"
     assert tab.parent("Mana Heroes") == "Firestone Effect"
     assert tab.costs["Tank Specialization"] == 750 and tab.costs["Firestone Effect"] == 900
+    # every cost the candidate layouts give (tree 6 has Tank Specialization at 900), and the
+    # unlock levels of the layer the lines put a node on
+    assert tab.cost_options["Tank Specialization"] == {750, 900}
+    assert tab.cost_options["Attribute Armor"] == {800}
+    assert tab.layer("Attribute Armor") == 4 and tab.unlock_need("Attribute Armor") == (5, 6)
+    assert tab.unlock_need("Firestone Effect") is None  # the start needs nothing
     node = tab.node("tank specialization")  # the game writes "Tank specialization"
     x1, y1 = atlas.METEORITE_TREE_RECT[:2]
     assert tab.point(node) == atlas.Point(
@@ -294,6 +300,10 @@ def test_without_the_lines_the_parents_come_from_the_layouts_that_agree():
     keys = meteorite.layouts_for(set(research_data.meteorite_names_of("10")))
     assert tab.parents == meteorite.layout_parents(keys)
     assert tab.parent("Attribute Damage") is meteorite.UNKNOWN
+    # its layer is not known either: the unlock levels of every layer, and no verdict
+    assert tab.layer("Attribute Damage") is None
+    assert tab.unlock_need("Attribute Damage") == (5, 7)
+    assert tab.unlock_state("Attribute Damage") is None
 
 
 def test_a_tab_with_names_of_no_known_tree_keeps_the_plain_names():

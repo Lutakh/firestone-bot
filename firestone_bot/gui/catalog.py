@@ -368,7 +368,9 @@ OPTIONS: dict[str, Option] = {
     ),
     "MeteoriteAnyOther": Option(
         "Spend on other nodes",
-        "When none of your priorities can be bought, spend on the cheapest other node.",
+        "When no priority is left to buy (each maxed, not in this tree, or locked with no "
+        "known way to unlock it), spend on the cheapest other node. A priority that costs more "
+        "than you have keeps the meteorites for itself.",
         "switch",
     ),
     # -- Guild & tree ----------------------------------------------------------------------
