@@ -174,6 +174,23 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "MaxEnlightenDust": ("CommonOptions", "0"),  # strange dust per game day
     "EnlightenDustReserve": ("CommonOptions", "0"),  # strange dust always kept
     "EnlightenDustDaily": ("CommonOptions", "0"),  # strange dust spent since the reset
+    # Research priorities (owner request 2026-09-28): the researches the bot works on first,
+    # "" = none. With ResearchAnyOther off, a slot no priority can use stays free.
+    "ResearchPriority1": ("PythonOptions", ""),
+    "ResearchPriority2": ("PythonOptions", ""),
+    "ResearchPriority3": ("PythonOptions", ""),
+    "ResearchPriority4": ("PythonOptions", ""),
+    "ResearchPriority5": ("PythonOptions", ""),
+    "ResearchAnyOther": ("PythonOptions", "1"),
+    # Meteorite research (default off: it spends meteorites), within a reserve always kept
+    "MeteoriteResearch": ("PythonOptions", "0"),
+    "MeteoritePriority1": ("PythonOptions", ""),
+    "MeteoritePriority2": ("PythonOptions", ""),
+    "MeteoritePriority3": ("PythonOptions", ""),
+    "MeteoritePriority4": ("PythonOptions", ""),
+    "MeteoritePriority5": ("PythonOptions", ""),
+    "MeteoriteReserve": ("PythonOptions", "0"),
+    "MeteoriteAnyOther": ("PythonOptions", "0"),
 }
 
 ENCODINGS = ("utf-16", "utf-8-sig")

@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from firestone_bot import research_data
 from firestone_bot.runner import END_OF_CYCLE_DELAYS
 from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP
 
@@ -92,6 +93,9 @@ SELL_LABELS = [
     "Sell nothing",
 ]
 PRIORITY_KEYS = [f"Priority{i}" for i in range(1, 6)]
+RESEARCH_PRIORITY_KEYS = [f"ResearchPriority{i}" for i in range(1, 6)]
+METEORITE_PRIORITY_KEYS = [f"MeteoritePriority{i}" for i in range(1, 6)]
+NO_PRIORITY = {"": "(none)"}
 HERO_TARGET_KEYS = ["UpgradeSpecial", "UpgradeGuardian"] + [f"UpgradeH{i}" for i in range(1, 6)]
 TREE_GROUPS: dict[str, list[str]] = {
     "Attributes & heroes": [
@@ -314,6 +318,57 @@ OPTIONS: dict[str, Option] = {
     "Research": Option(
         "Start research",
         "Starts the next research when a slot is free. " + _inv("Research"),
+        "switch",
+    ),
+    **{
+        key: Option(
+            f"Priority {i}",
+            (
+                "The research started first when a slot is free, wherever it sits in the tree; "
+                "not unlocked yet, the bot researches the column before it. A priority that is "
+                "maxed, running or not in your current tree is skipped."
+            )
+            if i == 1
+            else "The next research in your order of priority.",
+            "choice",
+            ("", *research_data.firestone_names()),
+            NO_PRIORITY,
+        )
+        for i, key in enumerate(RESEARCH_PRIORITY_KEYS, start=1)
+    },
+    "ResearchAnyOther": Option(
+        "Research something else",
+        "When none of your priorities can be started, another research is started as before "
+        "(the right-most one); off, the slot stays free until a priority can use it.",
+        "switch",
+    ),
+    "MeteoriteResearch": Option(
+        "Meteorite research",
+        "Spends meteorites on the Meteorite tab of the library (instant, no timer): your "
+        "priorities first; one that is not unlocked yet gets the node before it on its branch. "
+        "Never below the meteorites to keep.",
+        "switch",
+        warn=True,
+    ),
+    **{
+        key: Option(
+            f"Priority {i}",
+            "The meteorite research bought first." if i == 1 else "The next one in your order.",
+            "choice",
+            ("", *research_data.meteorite_choices()),
+            NO_PRIORITY,
+        )
+        for i, key in enumerate(METEORITE_PRIORITY_KEYS, start=1)
+    },
+    "MeteoriteReserve": Option(
+        "Meteorites to keep",
+        "The bot never spends meteorites below this amount.",
+        "num",
+        zero_means="0 = none",
+    ),
+    "MeteoriteAnyOther": Option(
+        "Spend on other nodes",
+        "When none of your priorities can be bought, spend on the cheapest other node.",
         "switch",
     ),
     # -- Guild & tree ----------------------------------------------------------------------
