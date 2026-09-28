@@ -5,8 +5,7 @@ AHK colour literal `0x0F40000` (7 digits) is read as 0xF40000; kept as RED_DOT.
 
 from __future__ import annotations
 
-from firestone_bot import daily
-from firestone_bot.features import decorated_heroes
+from firestone_bot.features import enlighten
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.guardian_chaos import upgrade_on_guardian_screen
 from firestone_bot.game import Game
@@ -14,9 +13,9 @@ from firestone_bot.vision import atlas
 
 
 def guardian(g: Game) -> None:
-    # the Decorated Heroes event also needs the screen for its enlightenments
+    # the enlightenments (automation or Decorated Heroes event) also need the screen
     visit = g.settings.flag("GuardianVisit")
-    if not visit and not daily.enlighten_left(g.settings):
+    if not visit and not enlighten.due(g):
         return
     g.focus()
     # open Magic Quarter
@@ -52,9 +51,9 @@ def guardian(g: Game) -> None:
             g.key_up("right")
             g.sleep(100)
         g.tap(atlas.GUARDIAN_TRAIN_BUTTON, 1000)
-    # Decorated Heroes event: three enlightenments a day (first tab, strange dust)
-    if daily.enlighten_left(g.settings):
-        decorated_heroes.enlighten(g)
+    # strange dust on the trained guardian: the automation and the event (first tab)
+    if enlighten.due(g):
+        enlighten.enlighten(g)
     # Python-only: spend the chaos-rift currency on the third tab when its bell shows
     if visit and g.settings.flag("GuardianChaosUpgrades"):
         upgrade_on_guardian_screen(g)

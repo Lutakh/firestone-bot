@@ -104,6 +104,16 @@ AUTOMATIONS: tuple[AutomationGroup, ...] = (
         independent=("GuardianChaosUpgrades", "ChaosGuardianOrder"),
     ),
     AutomationGroup(
+        id="enlightenment",
+        title="Guardian enlightenment",
+        category="Develop",
+        context="Town",
+        summary="Spend strange dust on the trained guardian, within a daily count, a daily dust "
+        "cap and a dust reserve.",
+        keys=("GuardianEnlighten", "MaxEnlighten", "MaxEnlightenDust", "EnlightenDustReserve"),
+        master="GuardianEnlighten",
+    ),
+    AutomationGroup(
         id="oracle",
         title="Oracle & blessings",
         category="Develop",
@@ -412,8 +422,8 @@ def disabled_reason(
         if key == "ChaosGuardianOrder" and not on("GuardianChaosUpgrades"):
             return "Turn on spending chaos-rift rewards to use the upgrade order."
         return None
-    if key == "GuardianTrain" and on("EventDecoratedHeroes"):
-        return None  # also the guardian the Decorated Heroes event enlightens
+    if key == "GuardianTrain" and (on("EventDecoratedHeroes") or on("GuardianEnlighten")):
+        return None  # also the guardian the enlightenments (event or automation) go to
     if (
         group.master
         and key != group.master

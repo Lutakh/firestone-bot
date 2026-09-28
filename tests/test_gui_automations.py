@@ -96,6 +96,23 @@ def test_guardian_order_can_run_through_either_real_path():
     assert not enabled(model, "guardians", "GuardianTrain")
 
 
+def test_enlightenment_limits_follow_their_switch_and_keep_the_roster_picker():
+    model = settings(GuardianEnlighten=0, GuardianVisit=0, GuardianTraining=0)
+    limits = ("MaxEnlighten", "MaxEnlightenDust", "EnlightenDustReserve")
+    assert enabled(model, "enlightenment", "GuardianEnlighten")
+    assert not any(enabled(model, "enlightenment", key) for key in limits)
+    assert not enabled(model, "guardians", "GuardianTrain")
+    assert group_status(model, GROUPS_BY_ID["enlightenment"]) == "Off"
+    model.set("GuardianEnlighten", "1")
+    assert all(enabled(model, "enlightenment", key) for key in limits)
+    # the guardian it enlightens is the one chosen for training, visits and training off
+    assert enabled(model, "guardians", "GuardianTrain")
+    assert group_status(model, GROUPS_BY_ID["enlightenment"]) == "Enabled"
+    model.set("GuardianEnlighten", "0")
+    model.set("EventDecoratedHeroes", "1")
+    assert enabled(model, "guardians", "GuardianTrain")
+
+
 def test_guild_and_campaign_dependencies_do_not_erase_children():
     model = settings(NoGuild=1, Chaos=1, ChaosBooks=1, MapMissions=1, Campaign=1, Liberation=0)
     before = dict(model.values)
@@ -221,6 +238,14 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
         guardian = page.editors["guardians"]
         assert model.get("GuardianTrain") == "Vermilion"
         assert guardian.rows["GuardianTrain"].control.widget.get() == "(unknown) Vermilion"
+        model.set("EnlightenCountDaily", "25")
+        model.set("EnlightenDustDaily", "500")
+        page.open_group("enlightenment")
+        enlightenment = page.editors["enlightenment"]
+        enlightenment.refresh(None)
+        rows = enlightenment.rows
+        assert rows["MaxEnlighten"].control.live.cget("text") == "25 today"
+        assert rows["MaxEnlightenDust"].control.live.cget("text") == "500 dust today"
         page.open_group("merchant")
         radio = page.editors["merchant"].composites["selling"][0].control
         radio.var.set("SellNoGold")

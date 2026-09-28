@@ -405,9 +405,14 @@ GUARDIAN_TRAIN_BUTTON = Point(1138, 787)  # :64
 # when affordable), and the screen's multiplier label top right of the panel. The label
 # steps x20 -> x1 -> x5 -> x10 -> x20 (measured 2026-09-25) and also sets how many
 # enlightenments one click buys. The strange dust counter sits where the pickaxe counter of
-# the crystal is (GUILD_PICKAXE_DIGITS reads 8015 there).
+# the crystal is (GUILD_PICKAXE_DIGITS reads 8015 there; "10,518" read 10518 on 2026-09-28,
+# the reader drops the thousands separator).
 GUARDIAN_ENLIGHTEN_READY = Probe(1420, 736, 1680, 816, GREEN_BUTTON, 3, "guardian_enlighten")
 GUARDIAN_ENLIGHTEN = Point(1550, 776)
+# The cost under "Enlightenment N", white on the green button next to a dust icon: 20 x N
+# ("1 / 20" ... "20 / 400"); read 20/100/200/400 at x1/x5/x10/x20 with the default anchor
+# (measured 2026-09-28 on the owner's 1920x1009 client, digits at client y 753..775).
+GUARDIAN_ENLIGHTEN_COST = (1540, 776, 1660, 814)
 GUARDIAN_MULTIPLIER_LABEL = (1700, 213, 1810, 273)
 GUARDIAN_MULTIPLIER = Point(1755, 243)
 GUARDIAN_MULTIPLIER_PARK = Point(1300, 300)  # panel text, nothing clickable

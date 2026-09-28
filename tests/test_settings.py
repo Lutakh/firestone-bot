@@ -43,6 +43,32 @@ def test_roundtrip_utf8(tmp_path):
     assert raw.startswith(b"\xef\xbb\xbf[CommonOptions]")
 
 
+def test_enlightenment_keys_defaults_and_sections(tmp_path):
+    """Off by default (it spends a currency), 3 a day once on, no dust cap, no reserve; the
+    keys load back only from their own sections, and defaults are not written."""
+    s = Settings()
+    assert not s.flag("GuardianEnlighten")
+    assert (s.MaxEnlighten, s.MaxEnlightenDust, s.EnlightenDustReserve) == ("3", "0", "0")
+    assert s.EnlightenDustDaily == "0"
+    p = tmp_path / "settings.ini"
+    p.write_text(
+        "[PythonOptions]\nGuardianEnlighten=1\n[CommonOptions]\nMaxEnlighten=0\n"
+        "MaxEnlightenDust=1000\nEnlightenDustReserve=2000\nEnlightenDustDaily=400\n",
+        encoding="utf-8-sig",
+    )
+    s = Settings.load(str(p))
+    assert s.flag("GuardianEnlighten") and s.MaxEnlighten == "0"
+    assert (s.MaxEnlightenDust, s.EnlightenDustReserve, s.EnlightenDustDaily) == (
+        "1000",
+        "2000",
+        "400",
+    )
+    s.set("MaxEnlighten", "3")
+    s.save()
+    text = p.read_text(encoding="utf-8-sig")
+    assert "MaxEnlighten=" not in text and "EnlightenDustReserve=2000" in text
+
+
 def test_missing_file_gives_defaults(tmp_path):
     s = Settings.load(str(tmp_path / "nope.ini"))
     assert s.flag("SellEx")

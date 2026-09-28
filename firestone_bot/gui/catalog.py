@@ -119,6 +119,7 @@ READ_ONLY_KEYS = {
     "MailSweepDaily",
     "CrystalCountDaily",
     "EnlightenCountDaily",
+    "EnlightenDustDaily",
     "LastPlatform",
     "ScarabCountDaily",
     "ClientID",
@@ -171,8 +172,10 @@ OPTIONS: dict[str, Option] = {
         "Decorated Heroes event",
         "Turn on while the Decorated Heroes event runs (two weeks, odd months): each day the "
         "bot plays at least 12 tavern tokens, hits the arcane crystal at least 15 times (with "
-        "guild visits on), enlightens the guardian chosen for training 3 times (60 strange "
-        "dust) and claims the stars of the event's challenges. Turn it off when the event ends.",
+        "guild visits on), enlightens the guardian chosen for training 3 times at x1 (60 "
+        "strange dust, counted in the Guardian enlightenment totals) and claims the stars of "
+        "the event's challenges. The bot turns this switch off by itself once the event is no "
+        "longer in the events list.",
         "switch",
         warn=True,
     ),
@@ -358,6 +361,36 @@ OPTIONS: dict[str, Option] = {
         "Third tab of the guardian screen, whenever a guardian shows a bell, in the order "
         "below; also right after the chaos hits.",
         "switch",
+    ),
+    "GuardianEnlighten": Option(
+        "Enlighten the guardian",
+        "Spends strange dust on the Enlightenment button of the guardian chosen in Guardian "
+        "training, within the limits below (the strictest wins; the x5, x10 and x20 "
+        "multipliers are used for large amounts). With every limit at 0 it spends all the "
+        "strange dust.",
+        "switch",
+        warn=True,
+    ),
+    "MaxEnlighten": Option(
+        "Enlightenments per day",
+        "Counted when the strange dust counter drops (20 dust each); resets with the daily "
+        "shop. The Decorated Heroes event raises it to 3.",
+        "num",
+        zero_means="0 = no limit",
+    ),
+    "MaxEnlightenDust": Option(
+        "Strange dust per day",
+        "Daily spending cap on enlightenments; resets with the daily shop.",
+        "num",
+        zero_means="0 = no limit",
+    ),
+    "EnlightenDustReserve": Option(
+        "Strange dust to keep",
+        "Strange dust the automation never spends: only what is above it may go (read on the "
+        "guardian screen; an unreadable counter spends nothing). The Decorated Heroes "
+        "event's 3 are made anyway.",
+        "num",
+        zero_means="0 = none",
     ),
     "TavernBeerTokens": Option(
         "Buy tavern tokens with beer",
@@ -606,6 +639,7 @@ READ_ONLY_LABELS = {
     "ChaosCountDaily": "Chaos hits today",
     "CrystalCountDaily": "Crystal hits today",
     "EnlightenCountDaily": "Enlightenments today",
+    "EnlightenDustDaily": "Strange dust spent today",
     "LastPlatform": "Store seen last",
     "ScarabCountDaily": "Scarab plays today",
     "ArenaDoneDaily": "Arena done today",

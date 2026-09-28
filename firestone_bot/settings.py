@@ -167,6 +167,13 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     # Timed in-game events (default OFF: turned on by the user while the event runs)
     "EventDecoratedHeroes": ("PythonOptions", "0"),
     "EnlightenCountDaily": ("CommonOptions", "0"),  # guardian enlightenments since the reset
+    # Guardian enlightenment automation (owner request 2026-09-28, see daily.py): default OFF,
+    # it spends a currency. The three limits combine, the strictest wins (0 = no limit/none).
+    "GuardianEnlighten": ("PythonOptions", "0"),
+    "MaxEnlighten": ("CommonOptions", "3"),  # enlightenments per game day
+    "MaxEnlightenDust": ("CommonOptions", "0"),  # strange dust per game day
+    "EnlightenDustReserve": ("CommonOptions", "0"),  # strange dust always kept
+    "EnlightenDustDaily": ("CommonOptions", "0"),  # strange dust spent since the reset
 }
 
 ENCODINGS = ("utf-16", "utf-8-sig")

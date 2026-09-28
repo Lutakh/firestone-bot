@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from firestone_bot import daily
-from firestone_bot.features import claim_events, decorated_heroes, token_counter
+from firestone_bot.features import claim_events, decorated_heroes
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas
 
@@ -47,14 +47,15 @@ def test_event_alone_asks_for_exactly_the_challenge(tmp_path):
 
 def test_enlightenments_three_a_day_and_reset(tmp_path):
     s = _settings(tmp_path)
-    assert daily.enlighten_left(s) == 0  # switch off
+    assert daily.event_enlighten_need(s) == 0 and not daily.enlighten_wanted(s)  # switch off
     s.set("EventDecoratedHeroes", "1")
-    assert daily.enlighten_left(s) == 3
+    assert daily.event_enlighten_need(s) == 3 and daily.enlighten_wanted(s)
     for _ in range(3):
         daily.note_enlighten(s)
-    assert daily.enlighten_left(s) == 0
+    assert daily.event_enlighten_need(s) == 0 and not daily.enlighten_wanted(s)
+    assert s.get("EnlightenDustDaily") == "60"
     daily.mark_daily_reset(s)
-    assert daily.enlighten_left(s) == 3
+    assert daily.event_enlighten_need(s) == 3
 
 
 # -- event page ------------------------------------------------------------------------------
@@ -264,133 +265,4 @@ def test_switch_alone_claims_only_the_event(events):
 
 
 # -- enlightenments --------------------------------------------------------------------------
-
-
-class FakeGuardian:
-    """Guardian screen, first tab: multiplier cycle x20 -> x1 -> x5 -> x10 -> x20, the
-    Enlightenment button green while dust covers the cost, dust counter read as a number."""
-
-    CYCLE = (20, 1, 5, 10)
-
-    def __init__(self, settings, dust=8015, mult=20, taken=True, mult_readable=True, lies_x1=False):
-        self.settings = settings
-        self.vars = {}
-        self.lies_x1 = lies_x1  # the label reads x1 whatever the screen holds
-        self.dust = dust
-        self.mult = mult
-        self.taken = taken
-        self.mult_readable = mult_readable
-        self.pointer = None
-        self.displayed = None
-        self.enlightened = 0
-        self.lines = []
-        self.captures = []
-
-    def found(self, probe):
-        assert probe is atlas.GUARDIAN_ENLIGHTEN_READY
-        hovered = self.pointer == atlas.GUARDIAN_ENLIGHTEN
-        return self.dust >= 20 * self.mult and not hovered
-
-    def tap(self, point, settle_ms=1500, expect=None):
-        self.pointer = point
-        if point == atlas.GUARDIAN_MULTIPLIER:
-            i = self.CYCLE.index(self.mult)
-            self.mult = self.CYCLE[(i + 1) % len(self.CYCLE)]
-        elif point == atlas.GUARDIAN_ENLIGHTEN:
-            assert self.mult == 1 or self.lies_x1, f"enlightened at x{self.mult}"
-            if self.taken:
-                self.dust -= 20 * self.mult
-                self.enlightened += self.mult
-        else:
-            for i, (_, portrait) in enumerate(atlas.GUARDIAN_ROSTER, start=1):
-                if point == portrait:
-                    self.displayed = i
-
-    def move_to(self, point):
-        self.pointer = point
-
-    def sleep(self, ms):
-        pass
-
-    def wait_still(self):
-        pass
-
-    def status(self, text):
-        self.lines.append(text)
-
-    def save_diagnostic(self, name):
-        self.captures.append(name)
-
-
-@pytest.fixture
-def guardian(monkeypatch, tmp_path):
-    def make(**kw):
-        s = _settings(tmp_path, EventDecoratedHeroes="1", GuardianTrain="3")
-        g = FakeGuardian(s, **kw)
-        monkeypatch.setattr(
-            decorated_heroes.multiplier,
-            "read_multiplier",
-            lambda game, rect, anchor: (
-                (1 if game.lies_x1 else game.mult) if game.mult_readable else None
-            ),
-        )
-        monkeypatch.setattr(token_counter, "read", lambda game, rect: game.dust)
-        return g
-
-    return make
-
-
-def test_three_enlightenments_at_x1_on_the_trained_guardian_then_x20_back(guardian):
-    g = guardian()
-    assert decorated_heroes.enlighten(g) == 3
-    assert g.enlightened == 3 and g.dust == 8015 - 60
-    assert g.displayed == 3
-    assert g.mult == 20  # the user's multiplier is put back
-    assert daily.enlighten_left(g.settings) == 0
-    assert decorated_heroes.enlighten(g) == 0  # nothing more today
-
-
-def test_a_click_that_spends_no_dust_is_not_counted(guardian):
-    g = guardian(taken=False)
-    assert decorated_heroes.enlighten(g) == 0
-    assert daily.enlighten_left(g.settings) == 3
-    assert g.captures == ["enlighten-not-taken.png"]
-
-
-def test_not_enough_dust_stops(guardian):
-    g = guardian(dust=30, mult=1)
-    assert decorated_heroes.enlighten(g) == 1
-    assert any("not green" in line for line in g.lines)
-
-
-def test_unreadable_multiplier_never_enlightens(guardian):
-    g = guardian(mult_readable=False)
-    assert decorated_heroes.enlighten(g) == 0
-    assert g.enlightened == 0
-
-
-def test_a_click_that_takes_more_than_one_enlightenment_stops_for_the_day(guardian):
-    """The label read x1 while the screen held x10: one click, then no more today."""
-    g = guardian(mult=10, lies_x1=True)
-    assert decorated_heroes.enlighten(g) == 1
-    assert g.dust == 8015 - 200
-    assert daily.enlighten_left(g.settings) == 0
-    assert "enlighten-multiplier.png" in g.captures
-
-
-def test_a_label_that_breaks_the_cycle_is_not_trusted(guardian, monkeypatch):
-    """x20 -> (click) -> reads x5: not the next step of the cycle, nothing is spent."""
-    g = guardian()
-    reads = iter([20, 20, 5, 5, 5, 5, 5, 5, 5, 5])
-    monkeypatch.setattr(
-        decorated_heroes.multiplier, "read_multiplier", lambda game, rect, anchor: next(reads)
-    )
-    assert decorated_heroes.enlighten(g) == 0
-    assert g.enlightened == 0
-
-
-def test_clicks_the_counter_never_shows_stop_after_two_a_day(guardian):
-    g = guardian(taken=False)
-    for _ in range(4):  # four cycles
-        decorated_heroes.enlighten(g)
-    assert g.captures.count("enlighten-not-taken.png") == decorated_heroes.MAX_UNCONFIRMED
+# The event's three a day are made by features/enlighten.py: see tests/test_enlighten.py.

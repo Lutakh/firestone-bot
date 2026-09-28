@@ -166,6 +166,8 @@ def test_counter_reset_preserves_quotas_and_resets_every_daily_marker(workshop, 
         "ChaosCountDaily",
         "ScarabCountDaily",
         "CrystalCountDaily",
+        "EnlightenCountDaily",
+        "EnlightenDustDaily",
         "ArenaDoneDaily",
         "ChaosBooksDaily",
     )
@@ -173,6 +175,8 @@ def test_counter_reset_preserves_quotas_and_resets_every_daily_marker(workshop, 
         settings.set(key, "3")
     settings.set("MaxTokens", "12")
     settings.set("MaxCrystals", "5")
+    settings.set("MaxEnlightenDust", "1000")
+    settings.set("EnlightenDustReserve", "2000")
     workshop.test_state.flags["running"] = True
     workshop.reset_counters()
     assert not confirmations
@@ -186,6 +190,8 @@ def test_counter_reset_preserves_quotas_and_resets_every_daily_marker(workshop, 
     assert all(reloaded.get(key) == "0" for key in counters)
     assert reloaded.get("MaxTokens") == "12"
     assert reloaded.get("MaxCrystals") == "5"
+    assert reloaded.get("MaxEnlightenDust") == "1000"
+    assert reloaded.get("EnlightenDustReserve") == "2000"
 
 
 def test_sections_are_cached_and_selection_is_restorable(workshop):

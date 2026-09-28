@@ -15,11 +15,18 @@ counters:
     ScarabCountDaily=2    plays since the last reset
     MaxCrystals=5         pickaxe hits on the guild's arcane crystal per game day (0 = no limit)
     CrystalCountDaily=3   hits since the last reset
-    EnlightenCountDaily=1 guardian enlightenments since the last reset (Decorated Heroes event)
+    MaxEnlighten=3        guardian enlightenments per game day (0 = no limit)
+    MaxEnlightenDust=0    strange dust spent on them per game day (0 = no limit)
+    EnlightenDustReserve=0 strange dust always kept (0 = none)
+    EnlightenCountDaily=1 guardian enlightenments since the last reset (event and automation)
+    EnlightenDustDaily=20 strange dust they took since the last reset
 
 While the Decorated Heroes event switch is on ([PythonOptions] EventDecoratedHeroes=1), the
 tavern and crystal limits are raised to the event's daily challenges (12 plays, 15 hits)
-when lower, and the bot enlightens a guardian 3 times a day.
+when lower, and the bot enlightens a guardian 3 times a day. The enlightenment automation
+([PythonOptions] GuardianEnlighten=1, owner request 2026-09-28) spends more strange dust
+within the three limits above, the strictest winning; the event's 3 are made whatever its
+dust cap and reserve say, and count toward its totals.
 """
 
 from __future__ import annotations
@@ -51,6 +58,7 @@ def mark_daily_reset(settings: Settings) -> None:
     settings.set("MailSweepDaily", 0)
     settings.set("CrystalCountDaily", 0)
     settings.set("EnlightenCountDaily", 0)
+    settings.set("EnlightenDustDaily", 0)
     settings.save()
     log.info("daily reset detected: token and arena counters cleared")
 
@@ -87,15 +95,115 @@ def crystal_limit(settings: Settings) -> int:
     return _event_limit(settings, "MaxCrystals", settings.flag("Crystal"), EVENT_CRYSTAL_HITS)
 
 
-def enlighten_left(settings: Settings) -> int:
-    """Guardian enlightenments still to do today (0 unless the event switch is on)."""
+# -- guardian enlightenment ------------------------------------------------------------------
+# One enlightenment costs 20 strange dust; the screen's multiplier buys 1, 5, 10 or 20 at once
+# for 20 x N ("Enlightenment 1 / 20" ... "Enlightenment 20 / 400", measured 2026-09-28).
+# Every limit below is a number of enlightenments or of dust, never of clicks. The helpers
+# return None for "no limit": test them against None, never for truthiness.
+ENLIGHTEN_DUST = 20
+
+
+def enlighten_on(settings: Settings) -> bool:
+    """The enlightenment automation's own switch (the event alone does not turn it on)."""
+    return settings.flag("GuardianEnlighten")
+
+
+def event_enlighten_need(settings: Settings) -> int:
+    """Enlightenments the Decorated Heroes event still needs today (0 when its switch is off)."""
     if not event_on(settings):
         return 0
     return max(0, EVENT_ENLIGHTENMENTS - _int(settings, "EnlightenCountDaily"))
 
 
-def note_enlighten(settings: Settings) -> None:
-    settings.set("EnlightenCountDaily", _int(settings, "EnlightenCountDaily") + 1)
+def enlighten_limit(settings: Settings) -> int:
+    """Enlightenments per game day in force (0 = no limit), raised to 3 by the event."""
+    return _event_limit(settings, "MaxEnlighten", enlighten_on(settings), EVENT_ENLIGHTENMENTS)
+
+
+def enlighten_count_left(settings: Settings) -> int | None:
+    """None = no count limit, else enlightenments still allowed today; with the automation
+    off, only what the event still needs (0 when it is off too)."""
+    if not enlighten_on(settings):
+        return event_enlighten_need(settings)
+    limit = enlighten_limit(settings)
+    if limit <= 0:
+        return None
+    return max(0, limit - _int(settings, "EnlightenCountDaily"))
+
+
+def enlighten_dust_left(settings: Settings) -> int | None:
+    """None = no daily dust cap (or the automation is off), else the strange dust it may
+    still spend today."""
+    cap = _int(settings, "MaxEnlightenDust")
+    if not enlighten_on(settings) or cap <= 0:
+        return None
+    return max(0, cap - _int(settings, "EnlightenDustDaily"))
+
+
+def enlighten_reserve(settings: Settings) -> int:
+    """Strange dust the automation always keeps (the event alone keeps none)."""
+    return _int(settings, "EnlightenDustReserve") if enlighten_on(settings) else 0
+
+
+def enlighten_wanted(settings: Settings) -> bool:
+    """Something may still be enlightened today as far as the counters tell (the dust itself
+    is only read on the guardian screen)."""
+    if event_enlighten_need(settings):
+        return True
+    if not enlighten_on(settings):
+        return False
+    dust_left = enlighten_dust_left(settings)
+    return enlighten_count_left(settings) != 0 and (
+        dust_left is None or dust_left >= ENLIGHTEN_DUST
+    )
+
+
+def plan_enlightenments(
+    dust: int | None,
+    unit: int,
+    event_need: int,
+    count_left: int | None,
+    dust_left: int | None,
+    reserve: int,
+) -> int:
+    """How many enlightenments may be done now (pure). `dust` is the counter (None when
+    unreadable), `unit` the dust one enlightenment takes, `count_left` / `dust_left` None
+    for no limit, `reserve` the dust always kept.
+
+    The event's need is always allowed: whether it is affordable is the button's business
+    (grey without dust), as before the automation. The automation's own allowance needs the
+    counter to honour a dust cap or a reserve; unreadable, it may only make x1 clicks up to
+    a count limit that is its sole limit (a click then counts as made, as the event's did),
+    and with no limit at all it spends nothing it cannot see."""
+    if dust is None:
+        own = 0
+        if count_left is not None and dust_left is None and reserve <= 0:
+            own = count_left
+        return max(event_need, own)
+    own = (dust - max(reserve, 0)) // unit
+    if dust_left is not None:
+        own = min(own, dust_left // unit)
+    if count_left is not None:
+        own = min(own, count_left)
+    return max(event_need, own, 0)
+
+
+def enlightenments_allowed(settings: Settings, dust: int | None, unit: int = ENLIGHTEN_DUST) -> int:
+    """plan_enlightenments with today's counters and the user's limits."""
+    return plan_enlightenments(
+        dust,
+        unit,
+        event_enlighten_need(settings),
+        enlighten_count_left(settings),
+        enlighten_dust_left(settings),
+        enlighten_reserve(settings),
+    )
+
+
+def note_enlighten(settings: Settings, count: int = 1, dust: int = ENLIGHTEN_DUST) -> None:
+    """`count` enlightenments that took `dust` (one x20 click: 20 and 400), one save."""
+    settings.set("EnlightenCountDaily", _int(settings, "EnlightenCountDaily") + count)
+    settings.set("EnlightenDustDaily", _int(settings, "EnlightenDustDaily") + dust)
     settings.save()
 
 
