@@ -6,11 +6,13 @@ many cycles finished, how long they took in total (time spent inside cycles, not
 the window was open) and how long the last one took.
 
 Hours stopped being readable for the total: the owner's 1567397896 ms showed as "435h23m" on
-2026-09-28. A duration of a day or more now shows its two largest units in days, weeks, months
-or years ("2w4d"), at most 7 characters. That fits the Camp "Total time" tile at the 980x680
-minimum window: the widest string, "10mo30d", left 8 px of its 146 px in the widest skin
-(measured 2026-09-28, tests/test_gui_camp.py), where hours alone would have overflowed it
-by 1 to 4 px from 1000 h ("1000h00m").
+2026-09-28, then as "2w4d", which read as a code. A duration of a day or more now reads in
+words, its two largest units: "2 weeks 4 days" on Camp, "2 weeks and 4 days" in Workshop.
+Below a day the stopwatch forms stay ("45s", "2m30s", "3h05m"): cycles last minutes and the
+Camp "Last" and "Average" tiles are narrow. The Camp statistics columns take the width of their
+values (dashboard.py), so the widest string below 100 years, "80 years 10 months" (198 px in
+Retro at heading 18), still fits the 980x680 minimum window in every skin (measured 2026-09-28,
+tests/test_gui_camp.py).
 """
 
 from __future__ import annotations
@@ -47,13 +49,25 @@ def average_cycle_ms(settings: Settings) -> int:
 
 MINUTE, HOUR, DAY, WEEK = 60, 3600, 86_400, 7 * 86_400
 YEAR = 365 * DAY
-MONTH = YEAR // 12  # 30 d 10 h: 12 months make a year, so '12mo' never shows
+MONTH = YEAR // 12  # 30 d 10 h: 12 months make a year, so "12 months" never shows
 
 
-def fmt_ms(value) -> str:
-    """A duration in ms as 45s, 2m30s, 3h05m, 6d10h, 2w4d, 3mo24d or 1y2mo: the two largest
-    units, rounded down (a month is a twelfth of a 365-day year); '-' when there is nothing yet.
-    Months are 'mo', never 'm': minutes only ever sit next to hours or seconds."""
+def _count(n: int, unit: str) -> str:
+    return f"{n} {unit}" if n == 1 else f"{n} {unit}s"
+
+
+def _two_units(s: int, big: int, big_name: str, small: int, small_name: str, joiner: str) -> str:
+    first = _count(s // big, big_name)
+    rest = s % big // small
+    return f"{first}{joiner}{_count(rest, small_name)}" if rest else first
+
+
+def fmt_ms(value, joiner: str = " ") -> str:
+    """A duration in ms: 45s, 2m30s or 3h05m below a day, then its two largest units in words,
+    1 day 3 hours, 2 weeks 4 days, 3 months 24 days or 1 year 2 months; a second unit at zero
+    is left out (1 week, not 1 week 0 days). Rounded down; a month is a twelfth of a 365-day
+    year. `joiner` goes between the two worded units (" and " in Workshop: 2 weeks and 4 days).
+    '-' when there is nothing yet."""
     try:
         ms = int(float(str(value).strip() or 0))
     except (ValueError, TypeError):
@@ -68,9 +82,9 @@ def fmt_ms(value) -> str:
     if s < DAY:
         return f"{s // HOUR}h{s % HOUR // MINUTE:02d}m"
     if s < WEEK:
-        return f"{s // DAY}d{s % DAY // HOUR}h"
+        return _two_units(s, DAY, "day", HOUR, "hour", joiner)
     if s < MONTH:
-        return f"{s // WEEK}w{s % WEEK // DAY}d"
+        return _two_units(s, WEEK, "week", DAY, "day", joiner)
     if s < YEAR:
-        return f"{s // MONTH}mo{s % MONTH // DAY}d"
-    return f"{s // YEAR}y{s % YEAR // MONTH}mo"
+        return _two_units(s, MONTH, "month", DAY, "day", joiner)
+    return _two_units(s, YEAR, "year", MONTH, "month", joiner)

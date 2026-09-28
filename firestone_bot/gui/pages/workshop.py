@@ -363,11 +363,15 @@ class Workshop:
     def _statistics(self, content) -> None:
         card = place_card(Card(content, self.ctx, "Cycle statistics"))
         settings = self.ctx.settings
+
+        def human(ms) -> str:  # a Workshop row has room for "2 weeks and 4 days"
+            return fmt_ms(ms, joiner=" and ")
+
         for key, label, getter in (
             ("CyclesTotal", "Completed cycles", lambda: str(cycles_total(settings))),
-            ("LastCycleMs", "Last cycle", lambda: fmt_ms(settings.get("LastCycleMs"))),
-            ("average_cycle", "Average cycle", lambda: fmt_ms(average_cycle_ms(settings))),
-            ("CycleMsTotal", "Total time in cycles", lambda: fmt_ms(settings.get("CycleMsTotal"))),
+            ("LastCycleMs", "Last cycle", lambda: human(settings.get("LastCycleMs"))),
+            ("average_cycle", "Average cycle", lambda: human(average_cycle_ms(settings))),
+            ("CycleMsTotal", "Total time in cycles", lambda: human(settings.get("CycleMsTotal"))),
         ):
             self._value(card, key, label, getter)
         card.note("Time spent inside completed cycles, retained between launches.")

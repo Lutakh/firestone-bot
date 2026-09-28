@@ -1,5 +1,7 @@
 """Cycle statistics (stats.py) and the green-button finder (vision/buttons.py)."""
 
+import re
+
 import numpy as np
 import pytest
 
@@ -37,26 +39,56 @@ def test_fmt_ms():
     [
         (999, "0s"),
         (86_399_999, "23h59m"),
-        (86_400_000, "1d0h"),
-        (555_555_000, "6d10h"),
-        (604_799_999, "6d23h"),  # rounded down: 6 d 23 h 59 min
-        (604_800_000, "1w0d"),
-        (1_567_397_896, "2w4d"),  # the owner's total on 2026-09-28, "435h23m" before
-        (2_591_999_999, "4w1d"),
-        (2_627_999_999, "4w2d"),
-        (2_628_000_000, "1mo0d"),
-        (10_000_000_000, "3mo24d"),
-        (28_900_000_000, "10mo30d"),  # the widest string in every skin (test_gui_camp)
-        (31_500_000_000, "11mo30d"),
-        (31_535_999_999, "11mo30d"),  # a month is 30 d 10 h, so '12mo' never shows
-        (31_536_000_000, "1y0mo"),
-        (91_980_000_000, "2y11mo"),
+        (86_400_000, "1 day"),  # a second unit at zero is left out
+        (90_000_000, "1 day 1 hour"),
+        (97_200_000, "1 day 3 hours"),
+        (555_555_000, "6 days 10 hours"),
+        (604_799_999, "6 days 23 hours"),  # rounded down: 6 d 23 h 59 min
+        (604_800_000, "1 week"),
+        (691_200_000, "1 week 1 day"),
+        (1_209_600_000, "2 weeks"),
+        (1_567_397_896, "2 weeks 4 days"),  # the owner's total on 2026-09-28: "2w4d", "435h23m"
+        (2_591_999_999, "4 weeks 1 day"),
+        (2_627_999_999, "4 weeks 2 days"),
+        (2_628_000_000, "1 month"),
+        (2_714_400_000, "1 month 1 day"),
+        (10_000_000_000, "3 months 24 days"),
+        (28_900_000_000, "10 months 30 days"),
+        (31_535_999_999, "11 months 30 days"),  # a month is 30 d 10 h, so '12 months' never shows
+        (31_536_000_000, "1 year"),
+        (34_164_000_000, "1 year 1 month"),
+        (36_792_000_000, "1 year 2 months"),
+        (91_980_000_000, "2 years 11 months"),
+        (2_549_160_000_000, "80 years 10 months"),  # the widest string below 100 years (Camp)
     ],
 )
 def test_fmt_ms_long_durations(ms, text):
     assert stats.fmt_ms(ms) == text
     assert stats.fmt_ms(str(ms)) == text  # settings.ini values are strings
-    assert len(text) <= 7 and text.isascii() and " " not in text  # the Camp tile at 980x680
+    # Workshop joins the two worded units with "and"; one unit or a stopwatch form is unchanged
+    worded = re.fullmatch(r"(\d+ [a-z]+) (\d+ [a-z]+)", text)
+    anded = f"{worded[1]} and {worded[2]}" if worded else text
+    assert stats.fmt_ms(ms, joiner=" and ") == anded
+
+
+def test_fmt_ms_words_read_like_english():
+    # the smaller unit after each worded unit and how many of it fit (a month holds 30 d 10 h)
+    after = {"year": ("month", 12), "month": ("day", 31), "week": ("day", 7), "day": ("hour", 24)}
+    words = re.compile(r"(\d+) (year|month|week|day)(s?)(?: (\d+) (month|day|hour)(s?))?")
+    for day in range(1, 3 * 366):  # every day over 3 years: the millisecond before, on, 1 h after
+        for ms in (day * 86_400_000 - 1, day * 86_400_000, day * 86_400_000 + 3_600_000):
+            text = stats.fmt_ms(ms)
+            if ms < 86_400_000:
+                assert text == "23h59m"
+                continue
+            units = words.fullmatch(text)
+            assert units, text
+            for n, plural in ((units[1], units[3]), (units[4], units[6])):
+                if n is not None:  # never "0 days", "1 days" or "2 day"
+                    assert int(n) > 0 and (plural == "s") == (int(n) != 1), text
+            small, fit = after[units[2]]
+            assert units[4] is None or (units[5] == small and int(units[4]) < fit), text
+            assert units[2] != "week" or int(units[1]) <= 4, text  # 5 weeks read as 1 month
 
 
 class FakeGame:

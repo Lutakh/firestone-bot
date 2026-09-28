@@ -317,7 +317,11 @@ class DashboardView:
                 ("total", "Total time"),
             )
         ):
-            statistics.body.grid_columnconfigure(index, weight=1, uniform="statistics")
+            # Each column takes the width of its tile and the spare width is shared evenly.
+            # Equal quarters left the "Total time" value 86 px at the 980x680 minimum window,
+            # too narrow for "2 weeks 4 days" (117 to 154 px at heading 18), while the other
+            # three tiles need 81 to 103 px of their 145 (measured 2026-09-28).
+            statistics.body.grid_columnconfigure(index, weight=1)
             self.stat_values[key] = _metric(statistics.body, index, label, width=100, inline=True)
         self.refresh_today()
         unsubscribe = ctx.register_tick(self.refresh_today)
