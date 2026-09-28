@@ -457,7 +457,8 @@ class Segmented(_Picker):
 
 
 class NumberField(Control):
-    """Digits-only entry; empty is allowed (daily._int treats it as 0)."""
+    """Digits-only entry; empty is allowed (a counter reads it as 0, a daily limit as its
+    default: daily._limit)."""
 
     def __init__(self, parent, ctx: PageContext, name: str, zero_means: str | None) -> None:
         self.var = ctx.binder.var(name)

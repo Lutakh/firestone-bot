@@ -174,8 +174,8 @@ OPTIONS: dict[str, Option] = {
         "bot plays at least 12 tavern tokens, hits the arcane crystal at least 15 times (with "
         "guild visits on), enlightens the guardian chosen for training 3 times at x1 (60 "
         "strange dust, counted in the Guardian enlightenment totals) and claims the stars of "
-        "the event's challenges. The bot turns this switch off by itself once the event is no "
-        "longer in the events list.",
+        "the event's challenges. The bot turns this switch off by itself once the event is not "
+        "active in the events list (also when it was turned on before the event starts).",
         "switch",
         warn=True,
     ),
