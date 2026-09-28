@@ -143,16 +143,47 @@ def test_nothing_green_nothing_clicked():
 # -- events list -----------------------------------------------------------------------------
 
 
-class FakeEvents:
-    """Events list with cards; card 0 is the Decorated Heroes event, card 1 a basic event."""
+STRIPS = {  # bands across a card slot, captured on the owner's list 2026-09-28
+    name: np.load(FIX / f"events-strip-{name}.npy")
+    for name in ("active-dh", "upcoming-card", "upcoming-header", "empty")
+}
+PAGES = ("dh", "basic", "unknown")  # card kinds whose tap opens a page over the list
 
-    def __init__(self, settings, bells=(0, 1), dh_tab="challenges"):
+
+class FakeEvents:
+    """Events list with cards; by default card 0 is the Decorated Heroes event, card 1 a
+    basic event. Card kinds: "dh"; "basic" (its page closes with EVENTS_PAGE_CLOSE, whose X
+    ring it shows); "unknown" (a page nothing here closes); "none" (drawn in colour, opens
+    nothing); "upcoming" (grey, opens nothing). Slots past the cards show the empty list.
+    `later_cards`: the list from its second opening on; `list_ok=False`: it never shows;
+    `dh_slow`: reads of the event page's X that miss before the page is there."""
+
+    def __init__(
+        self,
+        settings,
+        bells=(0, 1),
+        dh_tab="challenges",
+        cards=("dh", "basic"),
+        later_cards=None,
+        list_ok=True,
+        dh_slow=0,
+    ):
         self.settings = settings
         self.bells = set(bells)
         self.dh_tab = dh_tab  # the tab the event page opens on
+        self.cards = tuple(cards)
+        self.later_cards = later_cards
+        self.list_ok = list_ok
+        self.dh_slow = dh_slow
+        self.list_open = False
+        self.openings = 0
         self.page = None
         self.taps = []
         self.lines = []
+        self.beats = []
+        self.captures = []
+        self.slept = 0
+        self.vars = {}
         self.style = "new"
 
     @property
@@ -165,10 +196,30 @@ class FakeEvents:
         pass
 
     def open_screen(self, point, expect, *a, **kw):
-        return True
+        self.taps.append(point)  # the events button
+        self.openings += 1
+        if self.openings > 1 and self.later_cards is not None:
+            self.cards = tuple(self.later_cards)
+        self.list_open = self.list_ok
+        self.page = None
+        return self.list_ok
+
+    def _kind(self):
+        return None if self.page is None else self.cards[self.page]
+
+    def _list_shown(self):
+        return self.list_open and self.page is None
 
     def found(self, probe):
-        if self.page != 0:
+        if probe == atlas.EVENTS_CLOSE_X:
+            return self._list_shown()
+        kind = self._kind()
+        if probe == atlas.EVENTS_PAGE_CLOSE_X:
+            return kind == "basic"
+        if kind != "dh":
+            return False
+        if probe == atlas.DH_PAGE_CLOSE_X and self.dh_slow:
+            self.dh_slow -= 1
             return False
         challenges = self.dh_tab == "challenges"
         return {
@@ -179,6 +230,13 @@ class FakeEvents:
             atlas.DH_MEDALS_TAB_SELECTED: self.dh_tab == "medals",
         }.get(probe, False)
 
+    def region_image(self, rect, anchor=None):
+        slot = atlas.EVENTS_CARD_STRIPS.index(rect)
+        kind = self.cards[slot] if self._list_shown() and slot < len(self.cards) else None
+        if kind is None:
+            return STRIPS["empty"]
+        return STRIPS["upcoming-card" if kind == "upcoming" else "active-dh"]
+
     def wait_still(self):
         pass
 
@@ -186,31 +244,43 @@ class FakeEvents:
         pass
 
     def sleep(self, ms):
-        pass
+        self.slept += ms
 
     def tap(self, point, settle_ms=1500, expect=None):
         self.taps.append(point)
+        kind = self._kind()
         if point == atlas.DH_CHALLENGES_TAB_BUTTON:
             self.dh_tab = "challenges"
         elif point in atlas.EVENTS_CARDS:
-            self.page = atlas.EVENTS_CARDS.index(point)
-        elif point in (atlas.DH_PAGE_CLOSE, atlas.EVENTS_PAGE_CLOSE):
+            slot = atlas.EVENTS_CARDS.index(point)
+            if self._list_shown() and slot < len(self.cards) and self.cards[slot] in PAGES:
+                self.page = slot
+        elif (point == atlas.DH_PAGE_CLOSE and kind == "dh") or (
+            point == atlas.EVENTS_PAGE_CLOSE and kind == "basic"
+        ):
             self.bells.discard(self.page)
             self.page = None
+        elif point == atlas.EVENTS_LIST_CLOSE and self.page is None:
+            self.list_open = False
 
     def status(self, text):
         self.lines.append(text)
+
+    def heartbeat(self, msg, is_stop=False, important=False):
+        self.beats.append((msg, important))
 
     def toast(self, *a):
         pass
 
     def save_diagnostic(self, name):
-        pass
+        self.captures.append(name)
+
+    def card_taps(self):
+        return [atlas.EVENTS_CARDS.index(p) for p in self.taps if p in atlas.EVENTS_CARDS]
 
 
-@pytest.fixture
-def events(monkeypatch, tmp_path):
-    claimed = []
+def patch_events(monkeypatch, claimed):
+    """Bells as the fake holds them, no main-menu check, the event page's claim recorded."""
 
     def bell_in(g, probe):
         if probe is g.ms.events_bell:
@@ -224,6 +294,12 @@ def events(monkeypatch, tmp_path):
     monkeypatch.setattr(
         claim_events.decorated_heroes, "claim_page", lambda g: claimed.append(g.page) or 2
     )
+
+
+@pytest.fixture
+def events(monkeypatch, tmp_path):
+    claimed = []
+    patch_events(monkeypatch, claimed)
 
     def make(**values):
         return FakeEvents(_settings(tmp_path, **values)), claimed
@@ -262,6 +338,22 @@ def test_switch_alone_claims_only_the_event(events):
     claim_events.claim_events(g)
     assert claimed == [0]
     assert atlas.EVENTS_CHALLENGES_TAB not in g.taps
+
+
+def test_a_card_bell_without_a_challenges_bell_is_captured_once_a_game_day(events):
+    """A card whose bell stays lit with nothing on its Challenges tab was logged as "has no
+    Challenges tab" and captured at every cycle (~1000 a day, 2026-09-18..25); the owner's
+    basic event pages do have that tab (captures 2026-09-26/27), only its bell is missing."""
+    g, _ = events(Events="1", EventDecoratedHeroes="0", LastTokenReset="20260928100016")
+    for _ in range(3):
+        g.bells = {1}
+        claim_events.claim_events(g)
+    assert g.captures == ["events-other-card-2.png"]
+    assert "Events: card 2, no bell on its Challenges tab, nothing to claim" in g.lines
+    g.settings.set("LastTokenReset", "20260929100021")  # the next game day
+    g.bells = {1}
+    claim_events.claim_events(g)
+    assert g.captures == ["events-other-card-2.png"] * 2
 
 
 # -- enlightenments --------------------------------------------------------------------------

@@ -93,6 +93,28 @@ def test_runner_changes_refresh_without_saving_or_losing_pending_edits(tmp_path)
     assert not saves
 
 
+def test_bot_turning_the_event_switch_off_shows_and_is_not_reverted(tmp_path):
+    """event_watch turns EventDecoratedHeroes off on the runner's thread, on the Settings
+    object the window shares, while a user edit waits for the bot to stop."""
+    settings, binder, scheduler, saves, states, flags = make(tmp_path, running=True)
+    event = binder.var("EventDecoratedHeroes")
+    event.set("1")
+    binder.var("Mail").set("0")
+    scheduler.fire()
+    assert states[-1][0] == "deferred" and not saves
+    settings.set("EventDecoratedHeroes", "0")  # the bot
+    settings.save()
+    bot_saves = len(saves)
+    binder.refresh_from_settings()
+    assert event.get() == "0"
+    assert len(saves) == bot_saves and not scheduler.pending and states[-1][0] == "deferred"
+    flags["running"] = False
+    binder.flush()  # the bot stopped: the deferred user edit is written with the bot's change
+    assert saves[-1]["EventDecoratedHeroes"] == "0" and saves[-1]["Mail"] == "0"
+    saved = Settings.load(settings.path)
+    assert not saved.flag("EventDecoratedHeroes") and saved.get("Mail") == "0"
+
+
 def test_set_many_writes_exactly_one_sell_flag(tmp_path):
     settings, binder, sched, saves, states, _flags = make(tmp_path)
     keys = ["SellScrolls", "SellNoGold", "SellAll", "SellNone"]

@@ -144,6 +144,14 @@ EVENTS_ICON = Point(583, 961, ANCHOR_BOTTOM_CENTER)
 # centre, not to the screen edge (measured on macOS 2026-09-06: bell 125 px right of the
 # edge-anchored rect).
 EVENTS_CARDS = tuple(Point(960, 359 + i * 175, (CENTER, CENTER)) for i in range(4))
+# A band across each slot's banner art (x 520..1400, 15 px above and below the slot centre),
+# centre-anchored like the cards and read as a share of colourful pixels. Measured
+# 2026-09-28 on the owner's 1920x1009 client (new style): an "Active events" header, the
+# active cards in full colour (Decorated Heroes card at client y 262..415: 44 % of the band
+# with a chroma above 80), then an "Upcoming events" header (client y 458..492) and the
+# upcoming cards drawn in grey with a padlock (7 %, their yellow title); the header bars and
+# the empty list background are lavender (0 %).
+EVENTS_CARD_STRIPS = tuple((520, 344 + i * 175, 1400, 374 + i * 175) for i in range(4))
 EVENTS_CARD_BELLS = tuple(
     Probe(
         1417,
@@ -166,6 +174,13 @@ EVENTS_CHALLENGES_TAB_BELL = Probe(
     1290, 44, 1320, 74, RED_DOT, RED_DOT_VAR, "events_tab_bell", (CENTER, CENTER)
 )
 EVENTS_PAGE_CLOSE = Point(1715, 124, (CENTER, CENTER))  # X of the event page (client (1715,93))
+# The orange ring left of that X: 0xFF600A at client x 1684-1700, y 93 on three captures of
+# the owner's basic event pages (1920x1009, 2026-09-26/27), where the list's own ring
+# (EVENTS_CLOSE_X) is covered. Not seen live yet (no basic event ran on 2026-09-28): the
+# Decorated Heroes check only uses it to stop waiting sooner, never as a verdict.
+EVENTS_PAGE_CLOSE_X = Probe(
+    1688, 121, 1696, 127, DIALOG_RING, 20, "events_page_close_x", (CENTER, CENTER)
+)
 # The Decorated heroes page is another kind of event page: tabs Challenges (yellow when
 # selected) / Medals / Stars exchange / Skins / Market under the title, eight daily
 # challenge cards in two rows, each with a Claim button (grey until a tier is reached), a
