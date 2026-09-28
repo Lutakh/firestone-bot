@@ -31,7 +31,9 @@ def camp_window(tmp_path_factory):
     settings = Settings(path=str(folder / "settings.ini"), loaded=True)
     for key, value in {
         "CyclesTotal": "12345",
-        "CycleMsTotal": "555555000",
+        # "10mo30d": the widest total fmt_ms writes below 100 years in all three skins,
+        # measured 2026-09-28 (Georgia 76 px, Courier New bold 77, Segoe UI bold 78 at 18)
+        "CycleMsTotal": "28900000000",
         "LastCycleMs": "75000",
         "TokenCountDaily": "4",
         "MaxTokens": "10",
@@ -132,6 +134,7 @@ def test_camp_values_fit_without_scrolling(camp_window, skin, geometry):
                 # A parent card must not clip a label that is otherwise inside the window.
                 _assert_visible(widget, widget.master)
         assert view.stat_values["cycles"].cget("text") == "12345"
+        assert view.stat_values["total"].cget("text") == "10mo30d"
         assert view.cycle_value.cget("text") == "1m15s"
         assert view.meter_tokens.value.cget("text") == "4 / 10"
         assert view.level_values["account_level"].cget("text") == ("45" if missing else "200")

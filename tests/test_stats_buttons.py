@@ -1,6 +1,7 @@
 """Cycle statistics (stats.py) and the green-button finder (vision/buttons.py)."""
 
 import numpy as np
+import pytest
 
 from firestone_bot import stats
 from firestone_bot.settings import Settings
@@ -25,6 +26,37 @@ def test_fmt_ms():
     assert stats.fmt_ms(45_000) == "45s"
     assert stats.fmt_ms(150_000) == "2m30s"
     assert stats.fmt_ms(11_100_000) == "3h05m"
+    assert stats.fmt_ms(-5) == "-"
+    assert stats.fmt_ms("abc") == "-"
+    assert stats.fmt_ms(None) == "-"
+    assert stats.fmt_ms(" 45000.7 ") == "45s"
+
+
+@pytest.mark.parametrize(
+    "ms, text",
+    [
+        (999, "0s"),
+        (86_399_999, "23h59m"),
+        (86_400_000, "1d0h"),
+        (555_555_000, "6d10h"),
+        (604_799_999, "6d23h"),  # rounded down: 6 d 23 h 59 min
+        (604_800_000, "1w0d"),
+        (1_567_397_896, "2w4d"),  # the owner's total on 2026-09-28, "435h23m" before
+        (2_591_999_999, "4w1d"),
+        (2_627_999_999, "4w2d"),
+        (2_628_000_000, "1mo0d"),
+        (10_000_000_000, "3mo24d"),
+        (28_900_000_000, "10mo30d"),  # the widest string in every skin (test_gui_camp)
+        (31_500_000_000, "11mo30d"),
+        (31_535_999_999, "11mo30d"),  # a month is 30 d 10 h, so '12mo' never shows
+        (31_536_000_000, "1y0mo"),
+        (91_980_000_000, "2y11mo"),
+    ],
+)
+def test_fmt_ms_long_durations(ms, text):
+    assert stats.fmt_ms(ms) == text
+    assert stats.fmt_ms(str(ms)) == text  # settings.ini values are strings
+    assert len(text) <= 7 and text.isascii() and " " not in text  # the Camp tile at 980x680
 
 
 class FakeGame:
