@@ -113,6 +113,30 @@ def test_enlightenment_limits_follow_their_switch_and_keep_the_roster_picker():
     assert enabled(model, "guardians", "GuardianTrain")
 
 
+def test_decorated_heroes_switch_is_read_only_while_the_bot_turns_it_on_and_off():
+    """The auto switch (2026-09-29): the event switch keeps showing its state, but a hand
+    turning it off during the event would be undone at the bot's next look."""
+    group = GROUPS_BY_ID["daily_rewards"]
+    keys = group.keys
+    assert keys.index("EventDecoratedHeroesAuto") == keys.index("EventDecoratedHeroes") - 1
+    model = settings(EventDecoratedHeroes=1, EventDecoratedHeroesAuto=0)
+    assert enabled(model, "daily_rewards", "EventDecoratedHeroes")
+    assert enabled(model, "daily_rewards", "EventDecoratedHeroesAuto")
+    model.set("EventDecoratedHeroesAuto", "1")
+    before = dict(model.values)
+    reason = disabled_reason(model, group, "EventDecoratedHeroes")
+    assert reason == (
+        "Turned on and off by the bot while 'Turn Decorated Heroes on when the event starts' is on."
+    )
+    assert OPTIONS["EventDecoratedHeroesAuto"].label in reason
+    assert enabled(model, "daily_rewards", "EventDecoratedHeroesAuto")
+    assert model.values == before  # the switch's own value is kept (and shown)
+    model.set("EventDecoratedHeroes", "0")  # the same while the event switch is off
+    assert not enabled(model, "daily_rewards", "EventDecoratedHeroes")
+    model.set("EventDecoratedHeroesAuto", "0")
+    assert enabled(model, "daily_rewards", "EventDecoratedHeroes")
+
+
 def test_guild_and_campaign_dependencies_do_not_erase_children():
     model = settings(NoGuild=1, Chaos=1, ChaosBooks=1, MapMissions=1, Campaign=1, Liberation=0)
     before = dict(model.values)

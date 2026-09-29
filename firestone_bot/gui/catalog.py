@@ -172,6 +172,14 @@ OPTIONS: dict[str, Option] = {
     "Events": Option(
         "Claim basic events", "Collects the event rewards shown on the main screen.", "switch"
     ),
+    "EventDecoratedHeroesAuto": Option(
+        "Turn Decorated Heroes on when the event starts",
+        "The bot looks at the events list after each daily reset and every 3 h, and turns the "
+        "Decorated Heroes event switch on when the event is active (and off once it is over). "
+        "Off: turn the Decorated Heroes event switch on by hand while the event runs.",
+        "switch",
+        warn=True,
+    ),
     "EventDecoratedHeroes": Option(
         "Decorated Heroes event",
         "Turn on while the Decorated Heroes event runs (two weeks, odd months): each day the "
@@ -179,7 +187,9 @@ OPTIONS: dict[str, Option] = {
         "guild visits on), enlightens the guardian chosen for training 3 times at x1 (60 "
         "strange dust, counted in the Guardian enlightenment totals) and claims the stars of "
         "the event's challenges. The bot turns this switch off by itself once the event is not "
-        "active in the events list (also when it was turned on before the event starts).",
+        "active in the events list (also when it was turned on before the event starts). With "
+        "'Turn Decorated Heroes on when the event starts' on, the bot also turns it on when "
+        "the event starts, and this switch only shows its state.",
         "switch",
         warn=True,
     ),

@@ -166,6 +166,9 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "BattlePass": ("Actions", "1"),
     # Timed in-game events (default OFF: turned on by the user while the event runs)
     "EventDecoratedHeroes": ("PythonOptions", "0"),
+    # the bot turns EventDecoratedHeroes on when the event starts (owner request 2026-09-29,
+    # features/event_watch.py); default OFF: the user turns the event switch on by hand
+    "EventDecoratedHeroesAuto": ("PythonOptions", "0"),
     "EnlightenCountDaily": ("CommonOptions", "0"),  # guardian enlightenments since the reset
     # Guardian enlightenment automation (owner request 2026-09-28, see daily.py): default OFF,
     # it spends a currency. The three limits combine, the strictest wins (0 = no limit/none).

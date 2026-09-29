@@ -56,18 +56,29 @@ def claim_events(g: Game) -> None:
     active since 2026-09-18, was opened and left at every cycle and hid the cards after it).
     With the switch on, the list is also opened without a bell when the event's presence is
     due a check (event_watch): the bot turns the switch off once the event is not active.
-    The runner calls this again right after a shop visit that detected the daily reset,
-    where the new game day makes that check due."""
+    With the switch off and EventDecoratedHeroesAuto on, it is opened when a look for the
+    event's start is due, and the event's page, seen that way or through its bell, turns the
+    switch on (owner request 2026-09-29); through the bell, its challenges are claimed in the
+    same visit. The runner calls this again right after a shop visit that detected the daily
+    reset, where the new game day makes either look due (the event starts and ends at the
+    reset)."""
     basic = g.settings.flag("Events")
     event = daily.event_on(g.settings)
+    auto = event_watch.auto_on(g.settings)
     g.focus()
     check = event_watch.check_due(g)
+    start = event_watch.start_due(g)
     if bells.bell_in(g, g.ms.events_bell):
         g.status("Events: bell found, opening the events list")
     elif check:
         g.status(
             "Events: no bell on the button, opening the events list to check that the "
             "Decorated Heroes event is still on"
+        )
+    elif start:
+        g.status(
+            "Events: no bell on the button, opening the events list to see whether the "
+            "Decorated Heroes event has started"
         )
     else:
         g.status("Events: no bell on the button, nothing to claim")
@@ -87,6 +98,9 @@ def claim_events(g: Game) -> None:
         if decorated_heroes.is_page(g):
             seen = True
             event_watch.note_seen(g)
+            if not event and auto:
+                event_watch.switch_on(g, idx)
+                event = True  # its challenges are claimed right away
             if event and decorated_heroes.open_challenges(g):
                 total += decorated_heroes.claim_page(g)
             elif event:
@@ -118,6 +132,8 @@ def claim_events(g: Game) -> None:
             g.tap(atlas.EVENTS_PAGE_CLOSE)
     if check and not seen:
         event_watch.check_list(g)
+    elif start and not seen and not daily.event_on(g.settings):
+        event_watch.look_for_start(g)
     g.tap(atlas.EVENTS_LIST_CLOSE)
     g.toast("Main Menu Check", "Checking to ensure we are on main screen after claiming events", 2)
     main_menu(g)

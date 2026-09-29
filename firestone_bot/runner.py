@@ -23,6 +23,7 @@ from firestone_bot.features import (
     claim_engineer,
     claim_events,
     claim_rituals,
+    event_watch,
     exotic_merchant,
     game_launch,
     go_map,
@@ -371,7 +372,9 @@ class Runner:
             self._style_seen = g.style
             g.status(f"Interface style: {g.style}")
             self._progress_checks()
-            if s.flag("Events") or daily.event_on(s):
+            # the Decorated Heroes auto switch alone also runs it: the events list is looked
+            # at for the event's start (event_watch)
+            if s.flag("Events") or daily.event_on(s) or event_watch.auto_on(s):
                 self._step("Events", lambda: claim_events.claim_events(g))
             if s.flag("BattlePass"):
                 self._step("Battle pass", lambda: battle_pass.battle_pass(g))
@@ -389,12 +392,15 @@ class Runner:
             g.heartbeat("Shop")
             reset_before = s.get("LastTokenReset")
             self._step("Daily shop", lambda: shop.shop(g))
-            if daily.event_on(s) and s.get("LastTokenReset") != reset_before:
+            event_step = daily.event_on(s) or event_watch.auto_on(s)
+            if event_step and s.get("LastTokenReset") != reset_before:
                 # A new game day: the Decorated Heroes check is due again (event_watch) and
                 # looks at the events list before mail, the town and the guild spend with the
                 # event's limits. The events step above goes by the reset the shop detected
                 # last, hours late after a bot started hours after the reset (review
-                # 2026-09-28).
+                # 2026-09-28). With the auto switch on and the event switch off, the look for
+                # the event's start is due the same way: the event starts at the reset, and
+                # the rest of the day's first cycle then spends with its limits (2026-09-29).
                 self._step("Events", lambda: claim_events.claim_events(g))
             if s.flag("Mail"):
                 g.heartbeat("CheckMail")

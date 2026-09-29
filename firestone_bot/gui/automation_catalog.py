@@ -38,7 +38,14 @@ AUTOMATIONS: tuple[AutomationGroup, ...] = (
         context="Main screen",
         summary="Claim available event, battle pass, quest, daily check-in and free shop rewards, "
         "and complete the Decorated Heroes event challenges.",
-        keys=("Events", "EventDecoratedHeroes", "BattlePass", "Quests", "Shop"),
+        keys=(
+            "Events",
+            "EventDecoratedHeroesAuto",
+            "EventDecoratedHeroes",
+            "BattlePass",
+            "Quests",
+            "Shop",
+        ),
     ),
     AutomationGroup(
         id="mail",
@@ -448,6 +455,11 @@ def disabled_reason(
         if key == "ChaosGuardianOrder" and not on("GuardianChaosUpgrades"):
             return "Turn on spending chaos-rift rewards to use the upgrade order."
         return None
+    if key == "EventDecoratedHeroes" and on("EventDecoratedHeroesAuto"):
+        # read-only, still showing its state: a hand turned off during the event would be
+        # turned on again at the bot's next look (event_watch, 2026-09-29)
+        auto = OPTIONS["EventDecoratedHeroesAuto"].label
+        return f"Turned on and off by the bot while '{auto}' is on."
     if key == "GuardianTrain" and (on("EventDecoratedHeroes") or on("GuardianEnlighten")):
         return None  # also the guardian the enlightenments (event or automation) go to
     if (

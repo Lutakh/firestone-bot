@@ -2,7 +2,9 @@
 so the Decorated Heroes check of the new game day turns the switch off before mail, the town
 and the guild spend with the event's limits. LastTokenReset is when the shop detected the
 reset: after a bot started hours after a reset, the events step before the shop is not near
-the next one and a recent sighting keeps it from looking (review 2026-09-28)."""
+the next one and a recent sighting keeps it from looking (review 2026-09-28). The auto
+switch alone runs the events step too, and its re-run after the reset: the event starts at
+the reset, the switch goes on before the rest of the cycle (2026-09-29)."""
 
 from __future__ import annotations
 
@@ -166,3 +168,51 @@ def test_switch_off_no_second_events_step(cycle):
     r._cycle()
     assert "Events" not in _names(steps)
     assert _names(steps)[:2] == ["Daily shop", "Mail"]
+
+
+def _auto_alone(g):
+    """The auto switch on, the event switch and the basic events off (2026-09-29)."""
+    g.settings.set("EventDecoratedHeroes", "0")
+    g.settings.set("Events", "0")
+    g.settings.set("EventDecoratedHeroesAuto", "1")
+
+
+def test_the_event_starting_at_the_reset_turns_the_switch_on_before_the_town(cycle):
+    """The events step before the shop looks for the start (none yet today since the bot
+    started): not there. The shop detects the reset, the events step runs again and the new
+    game day's look finds it: mail, the town and the guild spend with the event's limits."""
+    r, g, steps = cycle(reset=True, cards=("basic",), later_cards=("dh", "basic"))
+    _auto_alone(g)
+    r._cycle()
+    assert steps[:4] == [
+        ("Events", False),
+        ("Daily shop", False),
+        ("Events", False),
+        ("Mail", True),
+    ]
+    assert g.openings == 2
+    assert all(on for _, on in steps[3:])
+    assert ("Guardian", True) in steps and ("Guild", True) in steps
+    assert g.settings.flag("EventDecoratedHeroes")
+    assert ("Decorated Heroes event active: switch turned on", True) in g.beats
+
+
+def test_auto_alone_runs_the_events_step_without_a_look_when_none_is_due(cycle):
+    r, g, steps = cycle(reset=False, cards=("dh",))
+    _auto_alone(g)
+    event_watch._note_start_look(g)  # a look for the start just made
+    r._cycle()
+    assert _names(steps)[:3] == ["Events", "Daily shop", "Mail"]
+    assert _names(steps).count("Events") == 1
+    assert g.openings == 0 and not g.settings.flag("EventDecoratedHeroes")
+
+
+def test_auto_alone_looks_again_after_a_detected_reset(cycle):
+    """A look for the start made this game day does not hold the look of the next one."""
+    r, g, steps = cycle(reset=True, cards=("dh",))
+    _auto_alone(g)
+    event_watch._note_start_look(g)
+    r._cycle()
+    assert _names(steps)[:4] == ["Events", "Daily shop", "Events", "Mail"]
+    assert g.openings == 1 and g.card_taps() == [0]
+    assert g.settings.flag("EventDecoratedHeroes")

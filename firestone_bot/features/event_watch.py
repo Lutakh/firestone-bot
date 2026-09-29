@@ -42,6 +42,19 @@ sighting (every cycle still near the reset), and its captures are kept once a ga
 list that never gives one (four other active events, a card that opens nothing) was opened,
 walked and captured at every cycle (review 2026-09-28). What was seen is kept in memory
 (Game.vars); the switch is the only thing written (settings.ini, which the GUI mirrors).
+
+Turned on by the bot when the event starts (owner request 2026-09-29), with its own switch
+EventDecoratedHeroesAuto (off by default: a user who wants to decide keeps turning the event
+switch on by hand). The event starts at a daily reset, as it ends: with the auto switch on and
+the event switch off, the list is looked at once a game day (the runner runs the events step
+again right after the shop detected the reset, the new game day makes the look due; at each
+bot start too), then every START_RECHECK_MS in case the reset was detected late or the look
+missed (a look opens the list and every active card, as the switch-off check does). One
+look is enough: the event's page must be positively recognised (is_page), and a miss only
+delays the switch to the next look, the day's limits then catch up. The event's page opened through its
+card's bell turns the switch on as well, and its challenges are claimed in the same visit. A
+look without a verdict waits START_RECHECK_MS like a miss: the switch simply stays off. Once
+the bot turned the switch off, the absence it confirmed counts as the day's start look.
 """
 
 from __future__ import annotations
@@ -53,10 +66,12 @@ import numpy as np
 from firestone_bot import daily
 from firestone_bot.features import decorated_heroes
 from firestone_bot.game import Game
+from firestone_bot.settings import Settings
 from firestone_bot.state import hours_since
 from firestone_bot.vision import atlas
 
 RECHECK_MS = 30 * 60 * 1000  # a look at the list while the event's page is not seen
+START_RECHECK_MS = 3 * 60 * 60 * 1000  # a look for the event's start, the switch off
 NEAR_RESET_HOURS = 23  # from then on, a look at every cycle (the shop's rule)
 NO_VERDICT_LOOKS = 2  # looks without a verdict at consecutive cycles, then RECHECK_MS apart
 POLL_MS = 500
@@ -119,6 +134,30 @@ def check_due(g: Game) -> bool:
         return False
     misses, last = g.vars.get(_no_verdict_key(g), (0, 0))
     return misses < NO_VERDICT_LOOKS or now - last >= RECHECK_MS
+
+
+def auto_on(settings: Settings) -> bool:
+    """The bot turns the Decorated Heroes switch on when the event starts."""
+    return settings.flag("EventDecoratedHeroesAuto")
+
+
+def _start_key(g: Game) -> str:
+    # per game day: a new day (LastTokenReset changed by the shop) always looks once
+    return f"dh_start:{g.settings.get('LastTokenReset')}"
+
+
+def _note_start_look(g: Game) -> None:
+    g.vars[_start_key(g)] = _now_ms()
+
+
+def start_due(g: Game) -> bool:
+    """The auto switch is on, the event switch off, and the list should be looked at for the
+    event's start: no look yet this game day (since the bot started), or the last one
+    START_RECHECK_MS ago."""
+    if not auto_on(g.settings) or daily.event_on(g.settings):
+        return False
+    last = g.vars.get(_start_key(g))
+    return last is None or _now_ms() - last >= START_RECHECK_MS
 
 
 def colourful_share(img: np.ndarray) -> float:
@@ -199,29 +238,37 @@ def _page_kind(g: Game) -> str:
     return "unknown" if covered else "none"
 
 
-def _walk(g: Game) -> bool | None:
+def _walk(g: Game, start: bool = False) -> bool | None:
     """One look through the open list: True = an active card opened the event's page,
     False = no active card is the event (or there is none), None = no verdict (a status line
-    says why). Every active card is opened: nothing else tells them apart."""
+    says why). Every active card is opened: nothing else tells them apart. `start`: the look
+    for the event's start (the switch off, the auto switch on): its own status wording, and
+    the event's page turns the switch on."""
+    what = "Decorated Heroes start check" if start else "Decorated Heroes check"
     g.focus()  # another window over the game would read as a list without active cards
     active = _active_slots(g)
     if active is None:
-        g.status("Decorated Heroes check: the events list is not on screen")
+        g.status(f"{what}: the events list is not on screen")
         return None
     for slot in active:
         if not _list_shown(g):
-            g.status("Decorated Heroes check: the events list is not on screen")
+            g.status(f"{what}: the events list is not on screen")
             return None
         g.tap(atlas.EVENTS_CARDS[slot])
         g.wait_still()  # the page scales in
         kind = _page_kind(g)
         if kind == "dh":
+            if start:
+                switch_on(g, slot)  # the page still open: its capture shows what was seen
+            else:
+                g.status(
+                    f"Decorated Heroes: the event is still in the events list (card {slot + 1})"
+                )
             g.tap(atlas.DH_PAGE_CLOSE)
             note_seen(g)
-            g.status(f"Decorated Heroes: the event is still in the events list (card {slot + 1})")
             return True
         if kind == "none":
-            g.status(f"Decorated Heroes check: card {slot + 1} opened nothing")
+            g.status(f"{what}: card {slot + 1} opened nothing")
             _diagnostic_once(g, f"events-card-{slot + 1}-no-page.png")
             return None
         if kind == "unknown":
@@ -231,13 +278,13 @@ def _walk(g: Game) -> bool | None:
             g.tap(atlas.EVENTS_PAGE_CLOSE)
             if _list_shown(g):
                 g.status(
-                    f"Decorated Heroes check: card {slot + 1} opened a page that is not "
-                    "recognised (neither the event's nor another event's)"
+                    f"{what}: card {slot + 1} opened a page that is not recognised (neither "
+                    "the event's nor another event's)"
                 )
             else:
                 g.status(
-                    f"Decorated Heroes check: card {slot + 1} opened a page that is not the "
-                    "event's and the list did not come back"
+                    f"{what}: card {slot + 1} opened a page that is not the event's and the "
+                    "list did not come back"
                 )
             return None
         # another event's page: its X must bring the list back (the event's own page is
@@ -245,13 +292,13 @@ def _walk(g: Game) -> bool | None:
         g.tap(atlas.EVENTS_PAGE_CLOSE)
         if not _list_shown(g):
             g.status(
-                f"Decorated Heroes check: card {slot + 1} opened a page that is not the "
-                "event's and the list did not come back"
+                f"{what}: card {slot + 1} opened a page that is not the event's and the list "
+                "did not come back"
             )
             _diagnostic_once(g, f"events-unknown-card-{slot + 1}.png")
             return None
     if len(active) == len(atlas.EVENTS_CARDS):
-        g.status("Decorated Heroes check: every card slot holds an active event, more may follow")
+        g.status(f"{what}: every card slot holds an active event, more may follow")
         return None
     return False
 
@@ -268,6 +315,41 @@ def _switch_off(g: Game) -> None:
         "switch turned off"
     )
     g.heartbeat("Decorated Heroes event not active: switch turned off", important=True)
+    # the absence just confirmed is the day's look for a start (auto switch): the next one
+    # waits START_RECHECK_MS instead of opening the list again at the next cycle
+    _note_start_look(g)
+
+
+def switch_on(g: Game, slot: int) -> None:
+    """The event's page is open (card `slot` of the list) and the switch is off with the auto
+    switch on: turn the switch on (claim_events or look_for_start)."""
+    g.save_diagnostic("decorated-heroes-started.png")  # the page as the bot recognised it
+    # the runner's shared Settings, as _switch_off: the GUI switch follows
+    g.settings.set("EventDecoratedHeroes", "1")
+    g.settings.save()
+    g.status(
+        f"Decorated Heroes: the event is active in the events list (card {slot + 1}), "
+        "switch turned on"
+    )
+    g.heartbeat("Decorated Heroes event active: switch turned on", important=True)
+
+
+def look_for_start(g: Game) -> None:
+    """The events list is open (claim_events), the switch off with the auto switch on, and
+    the event's page was not seen in this visit: one look through the active cards; the
+    event's page turns the switch on. The look is recorded whatever it gave (start_due)."""
+    _note_start_look(g)
+    found = _walk(g, start=True)
+    if found:
+        return
+    if found is None:
+        g.status("Decorated Heroes: no verdict from the events list, the switch stays off")
+        return
+    # a look every START_RECHECK_MS all day before the event: its line once a game day
+    key = f"dh_start_miss:{g.settings.get('LastTokenReset')}"
+    if not g.vars.get(key):
+        g.vars[key] = 1
+        g.status("Decorated Heroes: not active in the events list yet, the switch stays off")
 
 
 def check_list(g: Game) -> None:

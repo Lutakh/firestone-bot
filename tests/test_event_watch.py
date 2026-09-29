@@ -2,7 +2,9 @@
 the events list (2026-09-28), read with the list wheeled back to its top, two looks on two
 openings before any verdict, no verdict on anything unexpected (a page not recognised
 either way included), a look every 30 min or at every cycle near the daily reset, a look
-without a verdict retried once and then every 30 min."""
+without a verdict retried once and then every 30 min. Turned on by the bot with the auto
+switch (2026-09-29): one look once a game day and every 3 h while the switch is off, the
+event's page seen through its bell turning it on and claimed in the same visit."""
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -344,3 +346,140 @@ def test_switch_off_keeps_the_early_return(watch):
     assert g.openings == 0 and g.taps == []
     assert g.lines == ["Events: no bell on the button, nothing to claim"]
     assert not event_watch.check_due(g)
+
+
+# -- start (EventDecoratedHeroesAuto, owner request 2026-09-29) ------------------------------
+
+AUTO = {"EventDecoratedHeroes": "0", "EventDecoratedHeroesAuto": "1"}
+START_LINE = (
+    "Events: no bell on the button, opening the events list to see whether the Decorated "
+    "Heroes event has started"
+)
+ON_BEAT = ("Decorated Heroes event active: switch turned on", True)
+NOT_YET_LINE = "Decorated Heroes: not active in the events list yet, the switch stays off"
+
+
+def test_event_active_without_a_bell_turns_the_switch_on(watch, tmp_path, now):
+    g = watch(settings={**AUTO, "Token": "1", "MaxTokens": "10"}, cards=("basic", "dh"))
+    assert event_watch.start_due(g) and not event_watch.check_due(g)
+    assert daily.token_limit(g.settings) == 10
+    claim_events.claim_events(g)
+    assert g.lines[0] == START_LINE
+    assert g.openings == 1 and g.card_taps() == [0, 1]  # one look: every active card opened
+    assert g.settings.flag("EventDecoratedHeroes")
+    assert _saved(tmp_path).flag("EventDecoratedHeroes")  # the GUI and the next start follow
+    assert (
+        "Decorated Heroes: the event is active in the events list (card 2), switch turned on"
+    ) in g.lines
+    assert g.beats == [ON_BEAT]
+    assert g.captures == ["decorated-heroes-started.png"]
+    assert g.taps[-2:] == [atlas.DH_PAGE_CLOSE, atlas.EVENTS_LIST_CLOSE]
+    # the rest of the cycle spends with the event's limits; no look of either kind is due
+    assert daily.token_limit(g.settings) == 12
+    assert not event_watch.start_due(g) and not event_watch.check_due(g)
+    assert g.vars[event_watch._seen_key(g)] == now[0]
+
+
+def test_no_event_keeps_the_switch_off_and_looks_again_in_3_h(watch, now):
+    g = watch(settings=AUTO, cards=("basic",))
+    claim_events.claim_events(g)
+    assert g.openings == 1 and g.card_taps() == [0]
+    assert not g.settings.flag("EventDecoratedHeroes") and g.beats == [] and g.captures == []
+    assert g.vars[event_watch._start_key(g)] == now[0]  # the look recorded
+    assert g.lines.count(NOT_YET_LINE) == 1
+    now[0] += event_watch.START_RECHECK_MS - 60_000
+    claim_events.claim_events(g)
+    assert g.openings == 1
+    assert g.lines[-1] == "Events: no bell on the button, nothing to claim"
+    now[0] += 60_000
+    claim_events.claim_events(g)
+    assert g.openings == 2 and not g.settings.flag("EventDecoratedHeroes")
+    assert g.lines.count(NOT_YET_LINE) == 1  # its line once a game day
+    g.settings.set("LastTokenReset", _stamp(0.01))  # the shop detected the reset
+    assert event_watch.start_due(g)
+    claim_events.claim_events(g)
+    assert g.openings == 3 and g.lines.count(NOT_YET_LINE) == 2
+
+
+def test_a_start_look_without_a_verdict_keeps_the_switch_off_for_3_h(watch, now):
+    g = watch(settings=AUTO, list_ok=False)
+    claim_events.claim_events(g)
+    assert g.openings == 1 and not g.settings.flag("EventDecoratedHeroes")
+    assert "Decorated Heroes start check: the events list is not on screen" in g.lines
+    assert "Decorated Heroes: no verdict from the events list, the switch stays off" in g.lines
+    assert NOT_YET_LINE not in g.lines
+    assert not event_watch.start_due(g)
+    now[0] += event_watch.START_RECHECK_MS
+    assert event_watch.start_due(g)
+
+
+def test_an_unknown_page_on_a_start_look_has_its_own_wording(watch):
+    g = watch(settings=AUTO, cards=("unrecognised", "dh"))
+    claim_events.claim_events(g)
+    assert g.card_taps() == [0] and not g.settings.flag("EventDecoratedHeroes")
+    assert (
+        "Decorated Heroes start check: card 1 opened a page that is not recognised (neither "
+        "the event's nor another event's)"
+    ) in g.lines
+    assert g.captures == ["events-unknown-card-1.png"]
+
+
+def test_event_seen_through_its_bell_turns_the_switch_on_and_claims_at_once(
+    watch, monkeypatch, tmp_path
+):
+    """The card's bell: the switch turned on and the stars claimed in the same visit, even
+    with no look for the start due (one just made)."""
+    claimed = []
+    patch_events(monkeypatch, claimed)
+    g = watch(settings=AUTO, bells=(0,), cards=("dh", "basic"))
+    event_watch._note_start_look(g)
+    assert not event_watch.start_due(g)
+    claim_events.claim_events(g)
+    assert g.lines[0] == "Events: bell found, opening the events list"
+    assert g.openings == 1 and g.card_taps() == [0]
+    assert claimed == [0]  # on the event's page, before its X
+    assert _saved(tmp_path).flag("EventDecoratedHeroes") and g.beats == [ON_BEAT]
+    assert (
+        "Decorated Heroes: the event is active in the events list (card 1), switch turned on"
+    ) in g.lines
+    assert "Events: card 1 is the Decorated Heroes event (switch off)" not in g.lines
+    assert g.taps[-1] == atlas.EVENTS_LIST_CLOSE
+
+
+def test_auto_off_the_bell_path_leaves_the_switch_off(watch, monkeypatch):
+    claimed = []
+    patch_events(monkeypatch, claimed)
+    g = watch(settings={"EventDecoratedHeroes": "0"}, bells=(0,), cards=("dh", "basic"))
+    assert not event_watch.start_due(g)
+    claim_events.claim_events(g)
+    assert claimed == [] and not g.settings.flag("EventDecoratedHeroes") and g.beats == []
+    assert "Events: card 1 is the Decorated Heroes event (switch off)" in g.lines
+
+
+def test_auto_off_never_looks_for_the_start(watch):
+    g = watch(settings={"EventDecoratedHeroes": "0"}, cards=("dh",))
+    claim_events.claim_events(g)
+    assert g.openings == 0 and g.lines == ["Events: no bell on the button, nothing to claim"]
+    assert not g.settings.flag("EventDecoratedHeroes")
+
+
+def test_auto_on_with_the_switch_on_checks_that_the_event_is_still_on(watch):
+    """The auto switch changes nothing while the event switch is on: the switch-off check."""
+    g = watch(settings={"EventDecoratedHeroesAuto": "1"}, cards=("dh",))
+    assert not event_watch.start_due(g) and event_watch.check_due(g)
+    claim_events.claim_events(g)
+    assert g.openings == 1 and _stays_on(g)
+    assert "Decorated Heroes: the event is still in the events list (card 1)" in g.lines
+
+
+def test_the_switch_turned_off_counts_as_the_days_start_look(watch, now):
+    """The absence just confirmed twice: no look for a start at the next cycle."""
+    g = watch(settings={"EventDecoratedHeroesAuto": "1"}, cards=("basic",))
+    claim_events.claim_events(g)
+    assert g.openings == 2 and not g.settings.flag("EventDecoratedHeroes")
+    assert g.beats == [GONE_BEAT]
+    now[0] += 60_000
+    claim_events.claim_events(g)
+    assert g.openings == 2 and not event_watch.start_due(g)
+    now[0] += event_watch.START_RECHECK_MS
+    assert event_watch.start_due(g)
