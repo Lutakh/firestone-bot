@@ -156,6 +156,12 @@
   (`scarab._wait_counter_change`), the weakness the crystal and the tavern had: read the number
   like `token_counter` does.
 
+- Game launch held by the store (done 2026-09-29, a35aea8): the Epic launcher is closed and
+  reopened when a launch does not start the game, and a failed launch is retried every 10 min
+  instead of stopping the bot. Not seen live yet: the next Firestone update installed at a
+  scheduled restart shows whether a fresh launcher clears the "Application is busy" window
+  (closing Epic during a long download interrupts it; Epic is expected to resume it).
+
 - Research priorities and meteorite research (done 2026-09-29): locked firestone boxes and
   locked meteorite nodes were never seen (every column of the owner's tree XIII is open; the
   code treats an unseen column past the frontier as locked, and a popup without a green button
