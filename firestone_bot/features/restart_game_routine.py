@@ -76,6 +76,15 @@ def restart_game_routine(g: Game) -> bool:
             process.kill_game()
             if not g.dry_run:
                 process.restart_steam()
+        elif platform == "epic" and process.find_game_process() is None:
+            # the game never started: a window of the launcher holds the launch (an update
+            # installed while the game was closed, 2026-09-29, "Application is busy")
+            g.status(
+                "Game restart: the game did not start, closing the Epic launcher before the "
+                "next attempt, this is expected"
+            )
+            if not g.dry_run:
+                process.close_epic()
         if cap and attempts >= cap:
             g.status(f"RestartGameRoutine: safety cap of {cap} attempts reached")
             return True

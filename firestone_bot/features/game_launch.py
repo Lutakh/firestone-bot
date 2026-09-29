@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import time
 
-from firestone_bot.game import Game
+from firestone_bot.game import BotStopped, Game
 from firestone_bot.platform import process
 from firestone_bot.platform.window import GameWindowNotFound, find_game_window
 from firestone_bot.vision import atlas
@@ -36,6 +36,20 @@ def wait_for_start_button(g: Game, timeout_s: float = START_BUTTON_TIMEOUT_S) ->
     return False
 
 
+def wait_for_game(g: Game, timeout_s: float = WINDOW_TIMEOUT_S) -> bool:
+    """Wait for the game process; a Stop ends the wait (the Epic path waits twice, up to 6
+    min: a Stop pressed meanwhile still closed the launcher and relaunched the game, review
+    2026-09-29)."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if process.find_game_process() is not None:
+            return True
+        if g.stop_event.is_set():
+            raise BotStopped
+        time.sleep(1)
+    return process.find_game_process() is not None
+
+
 def launch_game(g: Game) -> bool:
     """Launch the game through the store and wait for its start screen. False on timeout."""
     platform = process.choose_platform(
@@ -47,9 +61,21 @@ def launch_game(g: Game) -> bool:
     g.status(f"Game not running: launching it through {platform}")
     if not g.dry_run:
         process.launch_game(platform)
-    if process.wait_for_game(timeout=WINDOW_TIMEOUT_S) is None:
-        g.status("Game launch: the process did not appear, giving up")
-        return False
+    if not wait_for_game(g):
+        if platform != "epic" or g.dry_run:
+            g.status("Game launch: the process did not appear, giving up")
+            return False
+        # a window of the launcher can hold the launch ("Application is busy" after an
+        # update installed while the game was closed, 2026-09-29): a fresh launcher, once
+        g.status(
+            "Game launch: the game did not start, closing and reopening the Epic launcher "
+            "(about a minute), this is expected"
+        )
+        process.close_epic()
+        process.launch_game(platform)
+        if not wait_for_game(g):
+            g.status("Game launch: the process did not appear after the Epic restart, giving up")
+            return False
     g.settings.set("LastPlatform", platform)
     g.settings.save()
     if wait_for_start_button(g):
@@ -65,7 +91,7 @@ def launch_game(g: Game) -> bool:
         if not g.dry_run:
             process.restart_steam()
             process.launch_game(platform)
-        if process.wait_for_game(timeout=WINDOW_TIMEOUT_S) is not None and wait_for_start_button(g):
+        if wait_for_game(g) and wait_for_start_button(g):
             g.status("Game launch: start button clicked after a Steam restart, resuming")
             return True
     g.status("Game launch: start button not found in time")

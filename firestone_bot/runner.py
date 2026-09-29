@@ -53,6 +53,7 @@ from firestone_bot.vision import atlas, layouts
 
 log = logging.getLogger("firestone_bot.runner")
 
+LAUNCH_RETRY_S = 600  # the game did not start: next try (the bot no longer stops)
 END_OF_CYCLE_DELAYS = {"0": 0, "30": 30, "60": 60, "90": 90, "120": 120, "300": 300, "600": 600}
 
 
@@ -203,6 +204,7 @@ class Runner:
         self._last_arena = 0
         self._last_restart = _ms()
         self._last_request = 0
+        self._launch_failures = 0
         self._restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
         while True:  # loop:
             try:
@@ -211,6 +213,37 @@ class Runner:
             except UserInterrupted:
                 g.status("New cycle requested after mouse / keyboard activity")
                 self._back_to_main_screen()
+
+    def _launch_failed(self, g: Game) -> bool:
+        """The game did not start: wait and try again rather than stop, unless it is a dry
+        run, a run of N cycles or no store is known. A store can hold a launch for a while (an update, a window of its own): on
+        2026-09-29 the bot stopped at 12:39 and the game was back at 12:56."""
+        s = self.settings
+        if (
+            g.dry_run  # never launches the game: a retry cannot succeed
+            or self.max_cycles  # a run of N cycles (tools) ends
+            or process.choose_platform(s.get("GamePlatform"), s.get("LastPlatform")) is None
+        ):
+            g.status("The game could not be started; stopping")
+            return False
+        self._launch_failures = getattr(self, "_launch_failures", 0) + 1
+        if self._launch_failures == 1:
+            g.heartbeat(
+                f"Game could not be started, next try in {LAUNCH_RETRY_S // 60} min",
+                important=True,
+            )
+        closed = ""
+        if process.find_game_process() is not None:
+            # up, but its start screen never came: the next cycle would run on the loading
+            # screen (ensure_game_running only checks the window), so it launches afresh
+            process.kill_game()
+            closed = " (the game is closed first: its start screen did not come)"
+        g.status(f"The game could not be started; next try in {LAUNCH_RETRY_S // 60} min{closed}")
+        try:
+            g.sleep(LAUNCH_RETRY_S * 1000)
+        except UserInterrupted:
+            pass  # no game on screen to go back to: the next cycle launches it
+        return True
 
     def _back_to_main_screen(self) -> None:
         """After a pause ended in "new cycle": close whatever is open, reach the main screen.
@@ -346,8 +379,8 @@ class Runner:
                 g.status("Game restart test done; RestartGameTest switched off")
         # Python-only: launch the game if it is closed, restore it if minimised
         if not game_launch.ensure_game_running(g):
-            g.status("The game could not be started; stopping")
-            return False
+            return self._launch_failed(g)
+        self._launch_failures = 0
         g.focus()
         with self._timed("main screen"):
             # do main screen sections

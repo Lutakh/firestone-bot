@@ -204,6 +204,36 @@ def choose_platform(setting: str, last: str = "") -> str | None:
     return installed[0] if installed else None
 
 
+# -- Epic launcher ----------------------------------------------------------------------------
+EPIC_PROCESS_NAMES = ("epicgameslauncher.exe", "epicwebhelper.exe")
+
+
+def close_epic(timeout: float = 20.0) -> bool:
+    """End the Epic Games Launcher so that the next game launch starts it afresh (Windows:
+    Epic has no macOS client). Returns True when none of its processes is left.
+
+    2026-09-29 12:20: Epic installed a Firestone update the moment the scheduled restart closed
+    the game; the launch landed on its "Application is busy" window, which then held every
+    launch (still at 12:36, the update done at 12:21) until it was dismissed, and the bot
+    stopped. The launcher has no quit command: its processes are ended; an update still
+    running resumes when it starts again."""
+    procs = [
+        p
+        for p in psutil.process_iter(["name"])
+        if (p.info["name"] or "").lower() in EPIC_PROCESS_NAMES
+    ]
+    for p in procs:
+        try:
+            p.kill()
+        except psutil.Error:
+            pass
+    try:
+        _, alive = psutil.wait_procs(procs, timeout=timeout)
+    except psutil.Error:  # a launcher of another user, access denied
+        return False
+    return not alive
+
+
 # -- Steam client -----------------------------------------------------------------------------
 STEAM_PROCESS_NAMES = ("steam.exe", "steam_osx", "steam")
 
