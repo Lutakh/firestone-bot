@@ -394,8 +394,11 @@ CELESTIAL_CHEST_START: dict[str, int | None] = {
     "Exclude All": None,
     "Don't Exclude Any": 0,
     "Solar and Higher": 4,
-    "Nebula and Higher": 0,  # AHK jumps to Galaxy (sic)
-    "Cosmic and Higher": 0,  # AHK jumps to Galaxy (sic)
+    # The AHK ladder jumped to Galaxy for these two, so "keep Nebula and higher" opened every
+    # celestial chest, Galaxy included (a user's report, 2026-09-29). Fixed: the chests below
+    # the kept rarity only, like the gear and jewel groups.
+    "Nebula and Higher": 3,
+    "Cosmic and Higher": 2,
     "Galaxy": 1,
 }
 

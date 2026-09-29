@@ -3,8 +3,9 @@
 The AHK code is a ladder of labels with `Goto`s that fall through to the end of each rarity
 group; here each group is an ordered table and the setting picks the START index. Unknown
 setting values fall into the first label exactly as in AHK (e.g. GearChestExclude="Emerald"
-opens every gear chest). The "Nebula and Higher" / "Cosmic and Higher" cases both jump to
-Galaxy in the AHK source (probably a bug); reproduced for parity.
+opens every gear chest). The "Nebula and Higher" / "Cosmic and Higher" cases both jumped to
+Galaxy in the AHK source, which opened every celestial chest; fixed 2026-09-29 (a user kept
+losing the Nebula chests they transmute into Cosmic ones).
 """
 
 from __future__ import annotations
