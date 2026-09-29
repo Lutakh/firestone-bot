@@ -54,7 +54,9 @@ look is enough: the event's page must be positively recognised (is_page), and a 
 delays the switch to the next look, the day's limits then catch up. The event's page opened through its
 card's bell turns the switch on as well, and its challenges are claimed in the same visit. A
 look without a verdict waits START_RECHECK_MS like a miss: the switch simply stays off. Once
-the bot turned the switch off, the absence it confirmed counts as the day's start look.
+the bot turned the switch off, the absence it confirmed counts as that game day's start look;
+when the switch-off came just before the reset that ends the event, the new day still gets its
+own look (once per event).
 """
 
 from __future__ import annotations
@@ -315,8 +317,8 @@ def _switch_off(g: Game) -> None:
         "switch turned off"
     )
     g.heartbeat("Decorated Heroes event not active: switch turned off", important=True)
-    # the absence just confirmed is the day's look for a start (auto switch): the next one
-    # waits START_RECHECK_MS instead of opening the list again at the next cycle
+    # the absence just confirmed is this game day's look for a start (auto switch): the next
+    # one waits START_RECHECK_MS (a reset detected right after starts a new day and its look)
     _note_start_look(g)
 
 

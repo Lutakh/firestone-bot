@@ -68,7 +68,11 @@ def claim_events(g: Game) -> None:
     g.focus()
     check = event_watch.check_due(g)
     start = event_watch.start_due(g)
-    if bells.bell_in(g, g.ms.events_bell):
+    # The bell opens the list only for what claims there. With the auto switch alone, the
+    # basic events stay unclaimed and their bell stays lit: the list was opened at every
+    # cycle for weeks between two events (review 2026-09-29). The start looks find the event.
+    lit = bells.bell_in(g, g.ms.events_bell)
+    if lit and (basic or event):
         g.status("Events: bell found, opening the events list")
     elif check:
         g.status(
@@ -80,6 +84,9 @@ def claim_events(g: Game) -> None:
             "Events: no bell on the button, opening the events list to see whether the "
             "Decorated Heroes event has started"
         )
+    elif lit:
+        g.status("Events: bell on the button, but basic events are off: nothing to claim")
+        return
     else:
         g.status("Events: no bell on the button, nothing to claim")
         return

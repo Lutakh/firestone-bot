@@ -111,6 +111,10 @@ def test_enlightenment_limits_follow_their_switch_and_keep_the_roster_picker():
     model.set("GuardianEnlighten", "0")
     model.set("EventDecoratedHeroes", "1")
     assert enabled(model, "guardians", "GuardianTrain")
+    # the auto switch: the guardian is chosen before the bot turns the event on
+    model.set("EventDecoratedHeroes", "0")
+    model.set("EventDecoratedHeroesAuto", "1")
+    assert enabled(model, "guardians", "GuardianTrain")
 
 
 def test_decorated_heroes_switch_is_read_only_while_the_bot_turns_it_on_and_off():

@@ -483,3 +483,18 @@ def test_the_switch_turned_off_counts_as_the_days_start_look(watch, now):
     assert g.openings == 2 and not event_watch.start_due(g)
     now[0] += event_watch.START_RECHECK_MS
     assert event_watch.start_due(g)
+
+
+def test_auto_alone_leaves_the_basic_events_bell_alone(watch):
+    """Events off, the event switch off, the auto switch on and today's start look made: the
+    lit bell of the unclaimed basic events does not open the list at every cycle (review
+    2026-09-29); the start looks find the event."""
+    g = watch(
+        settings={"EventDecoratedHeroes": "0", "Events": "0", "EventDecoratedHeroesAuto": "1"},
+        bells=(0,),
+        cards=("basic",),
+    )
+    event_watch._note_start_look(g)
+    claim_events.claim_events(g)
+    assert g.openings == 0 and g.card_taps() == []
+    assert "Events: bell on the button, but basic events are off: nothing to claim" in g.lines

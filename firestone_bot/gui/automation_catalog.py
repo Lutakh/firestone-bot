@@ -460,7 +460,10 @@ def disabled_reason(
         # turned on again at the bot's next look (event_watch, 2026-09-29)
         auto = OPTIONS["EventDecoratedHeroesAuto"].label
         return f"Turned on and off by the bot while '{auto}' is on."
-    if key == "GuardianTrain" and (on("EventDecoratedHeroes") or on("GuardianEnlighten")):
+    # the event's enlightenments use it too: pickable before the auto switch turns it on
+    if key == "GuardianTrain" and (
+        on("EventDecoratedHeroes") or on("EventDecoratedHeroesAuto") or on("GuardianEnlighten")
+    ):
         return None  # also the guardian the enlightenments (event or automation) go to
     if (
         group.master
