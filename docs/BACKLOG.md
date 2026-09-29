@@ -165,3 +165,10 @@
   ways; one live purchase worked. Meteorite names are the wiki's (Weak Boss, All Attributes...);
   the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
   Trees past firestone XIII and meteorite X were never seen (they reuse the same names).
+
+- Celestial chests (fixed 2026-09-29, a user's report): "Nebula and Higher" / "Cosmic and Higher"
+  opened every celestial chest (AHK ladder). On the user's bag screenshot the signature colours
+  at variation 1 land on the right icons (Solar on the sun chest, Nebula on the purple one). The
+  owner's CelestialChestExclude was set to "Exclude All" to collect Solar and Nebula chests: once
+  both are in the bag, check "Nebula and Higher" live (Solar opened, Nebula kept), record chest
+  references for them, then put the owner's setting back ("Don't Exclude Any" before).
