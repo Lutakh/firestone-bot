@@ -84,8 +84,9 @@ python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 ```
 
 or double-click `firestone-bot-mac.command` (creates `.venv` on first use). Build the bundle
-with `pyinstaller firestone-bot.spec`: `dist/FirestoneBot.app` (ad-hoc signed, not
-notarised: see the step-by-step below for the Gatekeeper warning). `settings.ini` is read
+with `.venv/bin/python -m firestone_bot.tools.build_exe`: `dist/FirestoneBot.app`, signed with
+the project's certificate when this Mac has its keychain (`tools/mac_codesign.py`), ad-hoc
+otherwise; not notarised either way (see the step-by-step below for the Gatekeeper warning). `settings.ini` is read
 from the current directory when run from source and from
 `~/Library/Application Support/FirestoneBot` when the bundle is launched (see the
 step-by-step below).
@@ -131,9 +132,31 @@ step-by-step below).
    banner (see Updates below) and keep the same signature, so the permissions are not asked
    again; a manually downloaded new version goes through steps 2 and 3 again.
 
+### macOS: testing a build before its release
+
+Every push to `python-rework` builds the three archives in GitHub Actions, without a tag or a
+release: open the latest run of the *build* workflow on
+[the Actions page](https://github.com/Lutakh/firestone-bot/actions/workflows/build.yml?query=branch%3Apython-rework)
+(signed in to GitHub) and download the `FirestoneBot-macos.zip` artifact (a zip wrapping the
+zip; `gh run download <run id> -R Lutakh/firestone-bot -n FirestoneBot-macos.zip` unwraps it).
+That bundle is signed with the project's certificate like a release, so the Screen Recording
+and Accessibility grants carry over. Or build it from a clone:
+`git pull --rebase origin python-rework`, `.venv/bin/pip install -e '.[dev]'`,
+`.venv/bin/python -m firestone_bot.tools.build_exe` (never `mac_codesign create` for that: a
+new certificate loses the grants).
+
+Install it by replacing the bundle, never by copying onto it (a merged bundle breaks the
+signature): quit the bot, keep the installed one aside, then
+`mv /Applications/FirestoneBot.app ~/FirestoneBot-kept.app && ditto <new>/FirestoneBot.app /Applications/FirestoneBot.app`.
+A browser download is quarantined: steps 2 and 3 below apply again. Settings stay in
+`~/Library/Application Support/FirestoneBot`. A test build carries the number of the last
+release, so the updater offers nothing until a newer release exists, and "Restore previous
+version" restores what the last in-app update kept, not the bundle you set aside: go back by
+moving that one into place again.
+
 ### Sharing your own macOS build
 
-Build it (`pyinstaller firestone-bot.spec`) and zip `dist/FirestoneBot.app` (zip keeps the
+Build it (`python -m firestone_bot.tools.build_exe`) and zip `dist/FirestoneBot.app` (zip keeps the
 signature; do not copy the bare folder through a cloud drive). The other person follows the
 steps above. The CI bundle is signed with the project's self-signed certificate ("Firestone
 Bot", see `tools/mac_codesign.py`) so the identity, and with it the Screen Recording /
@@ -422,9 +445,10 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
 
 ## Development
 
-`ruff check .`, `pytest -q`, `pyinstaller firestone-bot.spec`. GitHub Actions runs the tests
-and builds the Windows ZIP and Linux tarball on every push; tagged `v*` releases get the
-archives attached. Plan, progress and measurements: `docs/`.
+`ruff check .`, `pytest -q`, `python -m firestone_bot.tools.build_exe` (keeps the user files
+next to the exe; on macOS it replaces `dist/FirestoneBot.app` and signs it). GitHub Actions
+runs the tests and builds the Windows ZIP, the Linux tarball and the macOS ZIP on every push
+(downloadable from the run's artifacts); tagged `v*` releases get the archives attached. Plan, progress and measurements: `docs/`.
 
 ## Icon
 
