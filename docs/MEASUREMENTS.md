@@ -395,3 +395,22 @@ the icon references and fixtures come from them.
   (1238, 296). Wiki errors: tree V layer-4 names rotated between branches, Weak Enemy max 22.
 - Live purchase (23:26): Tank Specialization 6 -> 7 for 750 meteorites, the counter 1,782 ->
   1,032, counted by the exact drop; the next level waited for the 400 kept in reserve.
+
+## 2026-10-01 — celestial chests in the bag (Windows, 1920x1009, new style)
+
+Owner's Chests tab after the wheel of `open_bless_chests` (rows at the default 216/341/461):
+Uncommon x2, Opal x29, Emerald x48 / Comet x27, Lunar x30, Solar x30 / Nebula x4.
+
+- Icon references (chest_grid): Uncommon 0.1, Opal 8.1, Emerald 5.7, Comet 9.1, Lunar 6.2
+  levels (limit 10, runner-up 19 to 27). The Lunar reference fits exactly 10 px above the slot
+  centre and Comet 12 px above and 3 px right: the classifier's 4 px slide reaches them at -8.
+- Colour search, variation 1, in the chest grid: Solar 0xFEF343 hit (1856, 334), the sun chest
+  in slot (2, 1); Nebula 0x5B1D84 hit (1571, 469), the purple chest in slot (0, 2), and
+  (1570, 346) once it moved up to slot (0, 1). Galaxy 0xFF82FF and Cosmic 0xD326C0: no hit (none
+  in the bag), no false positive on the gear and jewel chests.
+- Thumbnails of Solar and Nebula centred on their slots: nearest known reference 31 (Solar,
+  Mythic) and 26 (Nebula, Mythic) levels, so either could be told apart; a 2 px shift off the
+  slide grid costs 11 levels (Solar) and 9 (Nebula).
+- `open_bless_chests` with "Nebula and Higher": Solar, Lunar and Comet opened (x50 then "open
+  more"), the four Nebula chests stayed.
+

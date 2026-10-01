@@ -172,9 +172,11 @@
   the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
   Trees past firestone XIII and meteorite X were never seen (they reuse the same names).
 
-- Celestial chests (fixed 2026-09-29, a user's report): "Nebula and Higher" / "Cosmic and Higher"
-  opened every celestial chest (AHK ladder). On the user's bag screenshot the signature colours
-  at variation 1 land on the right icons (Solar on the sun chest, Nebula on the purple one). The
-  owner's CelestialChestExclude was set to "Exclude All" to collect Solar and Nebula chests: once
-  both are in the bag, check "Nebula and Higher" live (Solar opened, Nebula kept), record chest
-  references for them, then put the owner's setting back ("Don't Exclude Any" before).
+- Celestial chests (fixed 2026-09-29, a user's report; verified live 2026-10-01): "Nebula and
+  Higher" / "Cosmic and Higher" opened every celestial chest (AHK ladder). On the owner's game
+  "Nebula and Higher" opened Solar x30, Lunar x30 and Comet x27 and kept Nebula x4 (the owner's
+  setting is back to "Don't Exclude Any"). Solar and Nebula keep the colour search (it hit the
+  right slots, docs/MEASUREMENTS.md 2026-10-01); icon references for them are not added: the
+  chest grid slides its window by 4 px, and 2 px off that grid Solar reads 11 levels away (the
+  limit is 10). Comet matched at 9.1 that day: a finer slide (2 px) would make every chest icon
+  sturdier. Galaxy and Cosmic were never in the owner's bag.
