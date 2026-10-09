@@ -40,12 +40,16 @@ A visit (MeteoriteResearch, default off):
    2026-09-29 the other nodes also took the meteorites a dear priority was saving up for, so
    that priority waited until every cheaper node was maxed.
 
-A purchase counts only when the counter, read again with the popup closed, dropped by exactly
-the popup's cost. The counter read 1,278 for 1,276 on a capture resized to 1152 px wide: a
-misread must stop the bot, never let it go on blind. A Research click the counter does not
-confirm (another drop, or none) is said with the counter before and after, kept in a capture,
-and turns meteorite research off until the bot is opened again (before 2026-09-29 the visit
-said "nothing bought" and the next one clicked again an hour later). What the game does right
+A purchase counts when the counter, read again with the popup closed, dropped by exactly the
+popup's cost, or by less (meteorites came in meanwhile: 810 read before an 800 level, 29 after,
+2026-10-04) when the node's level, read again, went up by one. The counter read 1,278 for 1,276
+on a capture resized to 1152 px wide: a misread must stop the bot, never let it go on blind, so
+a drop larger than the cost is never confirmed. A Research click neither confirms (no drop,
+another drop with the level not up by one) is said with the counter before and after, kept in
+a capture and sent as an important heartbeat: meteorite research waits 6 h, and the third
+such click in a row turns it off until the bot is opened again (before 2026-09-29 the visit said
+"nothing bought" and the next one clicked again an hour later; until 2026-10-09 the first one
+turned it off, and a click the game took stopped meteorite research for five days). What the game does right
 after Research was not observed (the popup may stay with the next level's cost, or close): a
 popup still open is closed. At most MAX_PURCHASES a visit; the Firestone tab is selected
 again at the end, where the research step expects it. A visit that bought nothing makes the
@@ -91,12 +95,18 @@ TAKEN_MS = 5000  # research is instant: the counter drops at once, patience for 
 POLL_MS = 150
 PAUSE_S = 3600  # after a visit that bought nothing
 PAUSE_KEY = "meteorite_pause_until"  # Game.vars, time.monotonic() seconds
-# Game.vars: set when a Research click was not confirmed by the counter. Game lives as long
-# as the app, so meteorite research stays off until the bot is closed and opened again.
+# A Research click the counter did not confirm pauses meteorite research for 6 h; the third
+# in a row (a confirmed purchase starts the count again) turns it off until the bot is closed
+# and opened again (Game lives as long as the app). Off at the first one, a click the game took (810 -> 29 for an 800 level, the
+# node's level up by one) stopped meteorite research for five days (owner, 2026-10-09).
+UNCONFIRMED_PAUSE_S = 6 * 3600
+MAX_UNCONFIRMED = 3
+UNCONFIRMED_KEY = "meteorite_unconfirmed"  # Game.vars: unconfirmed clicks in a row
 OFF_KEY = "meteorite_off"
+PAUSE_LINE = "a Research click was not confirmed by the counter: the next visit is in 6 h"
 OFF_LINE = (
-    "a Research click was not confirmed by the counter: meteorite research is off until "
-    "the bot is closed and opened again"
+    f"{MAX_UNCONFIRMED} Research clicks in a row were not confirmed by the counter: "
+    "meteorite research is off until the bot is closed and opened again"
 )
 UNKNOWN = object()  # Tab.parent(): the node before this one is not known
 
@@ -459,10 +469,19 @@ def visit(g: Game) -> int:
     g.wait_still()
     big_close(g)
     if v.unconfirmed:
-        # the counter or the cost does not read true: no more meteorites spent this session
-        g.vars[OFF_KEY] = 1
-        g.status(f"{PREFIX} {OFF_LINE} (see the capture)")
-    elif not v.bought and v.stop != "dry run":  # a dry run leaves the live run its visit
+        # the counter or the cost does not read true: a long pause, then off for the run
+        g.vars[UNCONFIRMED_KEY] = g.vars.get(UNCONFIRMED_KEY, 0) + 1
+        if g.vars[UNCONFIRMED_KEY] >= MAX_UNCONFIRMED:
+            g.vars[OFF_KEY] = 1
+            line = OFF_LINE
+        else:
+            g.vars[PAUSE_KEY] = monotonic() + UNCONFIRMED_PAUSE_S
+            line = PAUSE_LINE
+        g.status(f"{PREFIX} {line} (see the capture)")
+        g.heartbeat(f"Meteorite research: {line}", important=True)
+    elif v.bought:
+        g.vars.pop(UNCONFIRMED_KEY, None)  # confirmed purchases: only clicks in a row count
+    elif v.stop != "dry run":  # a dry run leaves the live run its visit
         g.vars[PAUSE_KEY] = monotonic() + PAUSE_S
         g.status(f"{PREFIX} nothing bought this visit, next visit in 1 h")
     return len(v.bought)
@@ -698,10 +717,21 @@ def _attempt(g: Game, v: _Visit, node: Node, goal: str) -> str:
         return "fail"
     _park(g)
     after = token_counter.wait_drop(g, atlas.METEORITE_COUNTER_DIGITS, before, TAKEN_MS)
-    if after is None or before - after != cost:
+    level_says = ""
+    rescanned = False
+    if after is not None and before - after < cost and node.level is not None:
+        # The counter moved by less than the cost (meteorites came in meanwhile, 2026-10-04:
+        # 810 read before an 800 level, 29 after): the node's level, read again, settles it.
+        # More than the cost is a misread (a cost or a counter read wrong), never confirmed.
+        rescanned = _rescan(g, v)
+        again = v.tab.node(name) if rescanned and v.tab is not None else None
+        if again is not None and again.level == node.level + 1:
+            level_says = f"; the counter went from {before:,}, its level confirms it"
+    if after is None or (before - after != cost and not level_says):
         # The click was sent: the game may have taken it (another drop: the counter moved).
-        # Said plainly with both readings, never as "nothing bought", and meteorite research
-        # goes off for the session (review 2026-09-29: each hourly visit clicked again).
+        # Said plainly with both readings, never as "nothing bought"; meteorite research then
+        # waits 6 h, off at the third in a row (review 2026-09-29: each hourly visit clicked
+        # again).
         now = after if after is not None else read_counter(g)
         seen = f"{now:,}" if now is not None else "an unreadable value"
         g.status(
@@ -718,8 +748,11 @@ def _attempt(g: Game, v: _Visit, node: Node, goal: str) -> str:
     v.bought.append(name)
     level = f"level {node.level + 1}, " if node.level is not None else ""
     why = f" to unlock {goal}" if goal != name else ""
-    g.status(f"{PREFIX} {name} bought ({level}{cost:,} meteorites, {after:,} left){why}")
-    _rescan(g, v)
+    g.status(
+        f"{PREFIX} {name} bought ({level}{cost:,} meteorites, {after:,} left{level_says}){why}"
+    )
+    if not rescanned:
+        _rescan(g, v)
     return "bought"
 
 

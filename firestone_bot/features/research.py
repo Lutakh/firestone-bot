@@ -40,7 +40,8 @@ sat right-most in the tree; they choose up to five researches, in their order):
 - Choice, for each priority in order: seen and available, it is started; seen maxed or
   running, the next priority. In the layout but unseen (a locked column: locked boxes were
   never seen live) or its popup offers no Research button: the research that unlocks it, an
-  available box of the nearest seen column before it (a priority first, else the top one),
+  available box of the nearest seen column before it (a priority first, else the one busy
+  longest ago in this run, the top one on a tie),
   the column before that one when all of its boxes are locked too; nothing to start there
   (maxed or running), the next priority. Unseen in a column that shows (columns unlock as a
   whole: the box was missed), absent from the tree (said once per game day and tree): the
@@ -48,8 +49,10 @@ sat right-most in the tree; they choose up to five researches, in their order):
   end before the tree's last column makes the scan incomplete, and a column past its reach
   is unknown, never locked (its priority is the next one, no unlock walks over it). No
   priority started: with "Research something else"
-  (ResearchAnyOther, on by default) the choice of old, the right-most available box first and
-  every one in turn; off, the slot stays free.
+  (ResearchAnyOther, on by default) the right-most column first, within it the research busy
+  longest ago in this run (seen running or started; a restart begins again from the top), every
+  one in turn; off, the slot stays free. A column unlocks once every research of the column
+  before it reaches a level (tree XIV, 2026-10-09), so the top box alone never opens it.
 - Start. The view goes back to a stop where the box's icon is whole (from the tree's start,
   the scan's own stops), the box is found again by its place and icon, tapped, and the
   popup's Research button pressed. A popup without it is closed; a tap whose popup did not
@@ -79,6 +82,13 @@ log = logging.getLogger("firestone_bot")
 
 NO_NODE_PAUSE_S = 15 * 60  # after a search that started nothing, the next one waits
 NO_NODE_UNTIL = "research_no_node_until"  # Game.vars: monotonic second of the next search
+# Game.vars: {box key: monotonic second it was last seen running or started}. A column
+# unlocks once EVERY research of the column before it reaches a level (tree XIV, 2026-10-09:
+# "Requires: Attribute armor level 6, Attribute health level 6, Attribute damage level 6"); the
+# right-most-then-top choice started Armor and Health every time, Damage never, and column 2
+# stayed locked for 31 h. Within a column the research busy longest ago goes first: the box
+# that just finished was seen running at the previous scan, so the idle one goes before it.
+STARTED = "research_started"
 SLOT_ANCHOR = (atlas.LEFT, atlas.BOTTOM)
 PRIORITY_KEYS = tuple(f"ResearchPriority{i}" for i in range(1, 6))
 
@@ -701,6 +711,10 @@ def summary(boxes: list[Box], cands: list[Layout], complete: bool = True) -> str
     return line if complete else line + ", the end of the tree was out of reach"
 
 
+def started_key(box: Box) -> str:
+    return box.name.lower() if box.name else f"column {box.col} row {box.row}"
+
+
 @dataclass
 class Choice:
     box: Box | None  # the research started
@@ -710,7 +724,8 @@ class Choice:
 class Chooser:
     """The choice of a research for a free slot, over what the scan saw (pure: a tap on a
     box is `attempt`, a status line said once a game day `say_once`; `reach`: the right-most
-    column the scan saw whole, None for no limit)."""
+    column the scan saw whole, None for no limit; `started`: when each box was last seen
+    running or started, by started_key)."""
 
     def __init__(
         self,
@@ -721,6 +736,7 @@ class Chooser:
         attempt: Callable[[Box], str],
         say_once: Callable[[str, str], None],
         reach: int | None = None,
+        started: dict[str, float] | None = None,
     ) -> None:
         self.boxes = boxes
         self.cands = cands
@@ -729,6 +745,7 @@ class Chooser:
         self.attempt = attempt
         self.say_once = say_once
         self.reach = reach
+        self.started = started or {}
         self.by_name = {b.name.lower(): b for b in boxes if b.name}
         self.at_place = {(b.col, b.row): b for b in boxes if b.name is None}
         self.results: dict[tuple[int, int], str] = {}
@@ -747,10 +764,16 @@ class Chooser:
                 return i
         return len(self.priorities)
 
+    def _since(self, box: Box) -> float:
+        """When `box` was last seen running or started (0: never), to take turns
+        within a column."""
+        return self.started.get(started_key(box), 0.0)
+
     def unlock(self, col: int) -> Box | None:
         """Start an available box of the nearest seen column before `col` (a priority first,
-        else the top one); the column before when every one of them is locked too. A column
-        without boxes is locked only when the scan saw it: past its reach it is unknown."""
+        else the one busy longest ago); the column before when every one of them is
+        locked too. A column without boxes is locked only when the scan saw it: past its
+        reach it is unknown."""
         for c in range(col - 1, 0, -1):
             here = [b for b in self.boxes if b.col == c]
             if not here:
@@ -759,7 +782,7 @@ class Chooser:
                 continue  # a locked column
             available = sorted(
                 (b for b in here if b.state == "available"),
-                key=lambda b: (self._rank(b.name), b.row),
+                key=lambda b: (self._rank(b.name), self._since(b), b.row),
             )
             if not available:
                 return None  # maxed or running: nothing to start there
@@ -855,7 +878,8 @@ class Chooser:
             )
         kind = "other research" if self.priorities else "any research"
         for b in sorted(
-            (b for b in self.boxes if b.state == "available"), key=lambda b: (-b.col, b.row)
+            (b for b in self.boxes if b.state == "available"),
+            key=lambda b: (-b.col, self._since(b), b.row),
         ):
             if self._try(b) == "started":
                 return Choice(b, f"Research: {b.label} started ({kind}, {self.reason()})")
@@ -897,6 +921,11 @@ def start_research(g: Game, busy: int) -> bool:
         # wheels the game did not take
         scan.complete = False
     g.status(summary(scan.boxes, cands, scan.complete))
+    started = g.vars.setdefault(STARTED, {})
+    now = time.monotonic()
+    for b in scan.boxes:
+        if b.state == "running":
+            started[started_key(b)] = now
     chooser = Chooser(
         scan.boxes,
         cands,
@@ -905,10 +934,12 @@ def start_research(g: Game, busy: int) -> bool:
         lambda box: try_box(g, scan, box, busy),
         lambda key, text: _say_once(g, key, text),
         scan.reach_col,
+        started,
     )
     choice = chooser.choose()
     close_late_popup(g, scan)  # before the tree is wheeled back
     if choice.box is not None:
+        g.vars[STARTED][started_key(choice.box)] = time.monotonic()
         g.status(choice.line)
         to_start(g, scan)
         return True

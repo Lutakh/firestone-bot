@@ -230,7 +230,9 @@ BP_BELL = Probe(470, 894, 500, 924, RED_DOT, RED_DOT_VAR, "bp_bell", ANCHOR_BOTT
 BP_REWARDS_TAB = Point(1085, 79)  # tab (client (1085,48))
 BP_REWARDS_BADGE = Probe(1198, 46, 1228, 76, RED_DOT, RED_DOT_VAR, "bp_rewards_badge")
 BP_REWARD_COLUMNS = (360, 1830)  # logical x range of the milestone track
-BP_REWARD_ROWS = ((525, 565), (945, 985))  # logical y bands of the Golden / Free Claim rows
+# logical y bands of the Golden / Free Claim rows: a button sits at 530..577, or 552..599
+# under a tile with a label ("100%", Qualitas 2026-10-09); the milestone track starts at 655
+BP_REWARD_ROWS = ((515, 640), (920, 1025))
 BP_PARK = Point(960, 1015)
 BP_SCROLL_HOVER = Point(1100, 700)
 BP_CLOSE = Point(1815, 126)  # X of the battle pass (client (1815,95))

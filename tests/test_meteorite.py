@@ -76,8 +76,13 @@ class FakeMeteoriteTab:
         at=None,
         hover_misses=False,
         cost_read=None,
+        levels_readable=True,
+        level_step=1,
     ):
         self.settings = settings
+        self.levels_readable = levels_readable  # the level labels under the nodes
+        self.level_step = level_step  # levels a Research click adds
+        self.beats = []
         self.vars = {}
         self.counter = counter
         self.levels = dict(TREE_X_LEVELS if levels is None else levels)
@@ -131,7 +136,8 @@ class FakeMeteoriteTab:
             if name not in self.levels:
                 continue
             m = self.maxed(name)
-            nodes.append(Node(x - x1, y - y1, 1.0, m, 190 if m else 55, self.levels[name], name))
+            level = self.levels[name] if self.levels_readable else None
+            nodes.append(Node(x - x1, y - y1, 1.0, m, 190 if m else 55, level, name))
         keys = meteorite.layouts_for(set(self.levels))
         tab = meteorite.Tab(
             nodes,
@@ -200,7 +206,7 @@ class FakeMeteoriteTab:
             assert self.counter >= cost
             drop = self.drop.pop(0) if isinstance(self.drop, list) else self.drop
             self.counter -= cost if drop is None else drop
-            self.levels[name] += 1
+            self.levels[name] += self.level_step
             self.bought.append(name)
             if not self.popup_stays or self.maxed(name):
                 self.popup = None
@@ -217,6 +223,9 @@ class FakeMeteoriteTab:
 
     def status(self, text):
         self.lines.append(text)
+
+    def heartbeat(self, msg, is_stop=False, important=False):
+        self.beats.append((msg, is_stop, important))
 
     def save_diagnostic(self, name):
         self.diagnostics.append(name)
@@ -487,26 +496,52 @@ def _off_for_the_session(g):
     return not meteorite.due(g)
 
 
-def test_a_drop_other_than_the_cost_turns_meteorite_research_off(make):
-    """The click was taken (the counter moved) but not by the cost: said with both readings,
-    never as "nothing bought", and no click an hour later (review 2026-09-29: every hourly
-    visit bought a level and said nothing was bought)."""
-    g = make(["Tank Specialization"], counter=5000, drop=700)
+def _paused_for_6_hours(g):
+    """Not due for 6 h after an unconfirmed click, due again afterwards."""
+    if meteorite.due(g):
+        return False
+    g.clock.now += meteorite.UNCONFIRMED_PAUSE_S - 60
+    if meteorite.due(g):
+        return False
+    g.clock.now += 120
+    return meteorite.due(g)
+
+
+def test_a_drop_other_than_the_cost_is_confirmed_by_the_nodes_level(make):
+    """2026-10-04: 810 read before an 800 level, 29 after (meteorites came in meanwhile); the
+    node's level went up by one, so the purchase was real: meteorite research went off for
+    five days for nothing."""
+    g = make(["Tank Specialization"], counter=1600, drop=[700, None])
+    assert meteorite.visit(g) == 2
+    assert _purchases(g) == [
+        (
+            "Meteorite research: Tank Specialization bought (level 7, 750 meteorites, 900 left; "
+            "the counter went from 1,600, its level confirms it)"
+        ),
+        "Meteorite research: Tank Specialization bought (level 8, 750 meteorites, 150 left)",
+    ]
+    assert not g.diagnostics and not g.beats and meteorite.due(g)
+
+
+def test_a_drop_other_than_the_cost_without_a_level_pauses_meteorite_research(make):
+    """The click was taken (the counter moved) but not by the cost, and no level label says
+    more: said with both readings, never as "nothing bought", and no click for 6 h (review
+    2026-09-29: every hourly visit bought a level and said nothing was bought)."""
+    g = make(["Tank Specialization"], counter=5000, drop=700, levels_readable=False)
     assert meteorite.visit(g) == 0
     assert g.bought == ["Tank Specialization"]  # one click, then nothing more
     assert (
         "Meteorite research: the Research click on Tank Specialization is not confirmed: the "
         "counter read 5,000 before it and 4,300 after (750 expected off it)"
     ) in g.lines
-    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE} (see the capture)"
+    assert g.lines[-1] == f"Meteorite research: {meteorite.PAUSE_LINE} (see the capture)"
+    assert g.beats == [(f"Meteorite research: {meteorite.PAUSE_LINE}", False, True)]
     assert not any("nothing bought" in x for x in g.lines)
     assert g.diagnostics == ["meteorite-counter-drop.png"]
-    assert not _purchases(g) and _off_for_the_session(g)
-    assert meteorite.visit(g) == 0 and g.bought == ["Tank Specialization"]
-    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE}"
+    assert not _purchases(g) and _paused_for_6_hours(g)
 
 
-def test_a_counter_that_never_drops_turns_meteorite_research_off(make):
+def test_a_counter_that_never_drops_pauses_meteorite_research(make):
     g = make(["Tank Specialization"], counter=5000, drop=0)
     assert meteorite.visit(g) == 0
     assert len(g.bought) == 1 and g.diagnostics == ["meteorite-not-taken.png"]
@@ -515,17 +550,31 @@ def test_a_counter_that_never_drops_turns_meteorite_research_off(make):
         "counter read 5,000 before it and 5,000 after (750 expected off it)"
     ) in g.lines
     assert not any("nothing bought" in x for x in g.lines)
-    assert not _purchases(g) and _off_for_the_session(g)
+    assert not _purchases(g) and _paused_for_6_hours(g)
+
+
+def test_the_third_unconfirmed_click_turns_meteorite_research_off(make):
+    g = make(["Tank Specialization"], counter=50000, drop=0)
+    for _ in range(meteorite.MAX_UNCONFIRMED - 1):
+        assert meteorite.visit(g) == 0
+        assert g.lines[-1] == f"Meteorite research: {meteorite.PAUSE_LINE} (see the capture)"
+        assert _paused_for_6_hours(g)
+    assert meteorite.visit(g) == 0
+    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE} (see the capture)"
+    assert g.beats[-1] == (f"Meteorite research: {meteorite.OFF_LINE}", False, True)
+    assert len(g.bought) == meteorite.MAX_UNCONFIRMED and _off_for_the_session(g)
+    assert meteorite.visit(g) == 0 and len(g.bought) == meteorite.MAX_UNCONFIRMED
+    assert g.lines[-1] == f"Meteorite research: {meteorite.OFF_LINE}"
 
 
 def test_purchases_before_an_unconfirmed_click_still_count(make):
-    g = make(["Tank Specialization"], counter=5000, drop=[None, 700])
+    g = make(["Tank Specialization"], counter=5000, drop=[None, 0])
     assert meteorite.visit(g) == 1
     assert g.bought == ["Tank Specialization"] * 2
     assert _purchases(g) == [
         "Meteorite research: Tank Specialization bought (level 7, 750 meteorites, 4,250 left)"
     ]
-    assert _off_for_the_session(g)
+    assert _paused_for_6_hours(g)
 
 
 @pytest.mark.parametrize("read", [600, 0])
@@ -545,14 +594,17 @@ def test_a_cost_its_tree_does_not_give_is_never_clicked(make, read):
 
 
 def test_a_cost_of_another_candidate_layout_is_clicked_and_the_drop_decides(make):
-    """Tank Specialization is 900 in tree 6 and 750 in trees 10, 15 and C: a 900 read passes,
-    the counter's 750 drop then refuses the purchase."""
+    """Tank Specialization is 900 in tree 6 and 750 in trees 10, 15 and C: a 900 read passes;
+    the counter's 750 drop refuses the purchase unless the node's level confirms it."""
     keys = meteorite.layouts_for(set(TREE_X_LEVELS))
     assert meteorite.layout_cost_options(keys)["Tank Specialization"] == {750, 900}
-    g = make(["Tank Specialization"], counter=5000, cost_read=900)
+    g = make(["Tank Specialization"], counter=5000, cost_read=900, levels_readable=False)
     assert meteorite.visit(g) == 0
     assert g.bought == ["Tank Specialization"] and g.diagnostics == ["meteorite-counter-drop.png"]
-    assert _off_for_the_session(g)
+    assert _paused_for_6_hours(g)
+    g = make(["Tank Specialization"], counter=5000, cost_read=900)
+    assert meteorite.visit(g) >= 1
+    assert "its level confirms it" in _purchases(g)[0] and not g.diagnostics
 
 
 def test_an_unreadable_counter_spends_nothing(make):
@@ -737,7 +789,7 @@ def test_a_visit_that_bought_does_not_pause(make):
 def test_status_lines_only_count_real_purchases(make):
     """Every failure line says so plainly: none of them passes for a purchase."""
     for kw in (
-        {"drop": 700},
+        {"drop": 700, "levels_readable": False},
         {"drop": 0},
         {"counter_readable": False},
         {"popup_shows": "Precision"},
@@ -747,3 +799,46 @@ def test_status_lines_only_count_real_purchases(make):
         g = make(["Tank Specialization"], **kw)
         meteorite.visit(g)
         assert not _purchases(g), kw
+
+
+@pytest.mark.parametrize("step", [0, 2])
+def test_a_drop_its_level_does_not_confirm_pauses(make, step):
+    """The counter dropped by less than the cost but the level did not go up by exactly one
+    (unchanged, or two levels: another node's label read): not confirmed."""
+    g = make(["Tank Specialization"], counter=5000, drop=700, level_step=step)
+    assert meteorite.visit(g) == 0
+    assert g.bought == ["Tank Specialization"]
+    assert not _purchases(g) and g.diagnostics == ["meteorite-counter-drop.png"]
+    assert _paused_for_6_hours(g)
+
+
+def test_a_drop_larger_than_the_cost_is_never_confirmed_by_the_level(make):
+    """More than the cost off the counter is a misread (a cost read low, a counter read high),
+    which would spend below the reserve: never confirmed, whatever the level says."""
+    g = make(["Tank Specialization"], counter=1700, reserve="900", drop=[900])
+    assert meteorite.visit(g) == 0
+    assert not _purchases(g)
+    assert (
+        "Meteorite research: the Research click on Tank Specialization is not confirmed: the "
+        "counter read 1,700 before it and 800 after (750 expected off it)"
+    ) in g.lines
+    assert g.lines[-1] == f"Meteorite research: {meteorite.PAUSE_LINE} (see the capture)"
+    assert g.diagnostics == ["meteorite-counter-drop.png"] and _paused_for_6_hours(g)
+
+
+def test_a_confirmed_purchase_starts_the_unconfirmed_count_again(make):
+    """Only clicks in a row turn meteorite research off: isolated incidents over weeks of a
+    24/7 run only pause it."""
+    g = make(["Tank Specialization"], counter=50000, drop=0)
+    assert meteorite.visit(g) == 0
+    assert _paused_for_6_hours(g)
+    g.drop = None
+    assert meteorite.visit(g) > 0
+    assert meteorite.UNCONFIRMED_KEY not in g.vars
+    g.drop = 0
+    for _ in range(meteorite.MAX_UNCONFIRMED - 1):
+        g.clock.now += meteorite.PAUSE_S  # past the hour a visit that bought nothing waits
+        assert meteorite.visit(g) == 0
+        assert g.lines[-1] == f"Meteorite research: {meteorite.PAUSE_LINE} (see the capture)"
+        assert _paused_for_6_hours(g)
+    assert not g.vars.get(meteorite.OFF_KEY)

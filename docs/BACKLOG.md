@@ -162,15 +162,28 @@
   scheduled restart shows whether a fresh launcher clears the "Application is busy" window
   (closing Epic during a long download interrupts it; Epic is expected to resume it).
 
-- Research priorities and meteorite research (done 2026-09-29): locked firestone boxes and
-  locked meteorite nodes were never seen (every column of the owner's tree XIII is open; the
-  code treats an unseen column past the frontier as locked, and a popup without a green button
-  as locked); the first firestone start by the new code happens under the 24 h watch. Icon
+- Research priorities and meteorite research (done 2026-09-29): locked firestone boxes were
+  first seen on 2026-10-09 (tree XIV, grey boxes reading "Locked", not counted by the scan; their
+  popup: "Research is locked / Requires:" each research of the column before at the unlock
+  level, no Research button). The right-most-then-top choice never started the third box of
+  column 1 and column 2 stayed locked for 31 h: within a column the research busy longest ago
+  (seen running or started; session memory) now goes first. Locked meteorite
+  nodes were never seen. The 24 h watch (2026-09-29) counted 25 starts and no error. Icon
   references come from the owner's Windows captures (colour-cast correction for the Mac is
   modelled, not measured). What the meteorite popup does right after Research was handled both
   ways; one live purchase worked. Meteorite names are the wiki's (Weak Boss, All Attributes...);
   the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
   Trees past firestone XIII and meteorite X were never seen (they reuse the same names).
+
+- Meteorite purchases (fixed 2026-10-09): 2026-10-04 00:10, "810" read when the tab opened,
+  an 800 level bought, 29 left (the node's level up by one): the exact-drop check called it
+  unconfirmed and meteorite research stayed off for five days. A drop other than the cost is
+  confirmed by the node's level when it is smaller than the cost (never when larger); an
+  unconfirmed click pauses 6 h (Discord heartbeat), the third in a row turns it off.
+
+- Battle pass Claim buttons under a labelled tile ("100%", "5%") sit 22 px lower (Qualitas,
+  2026-10-09, Windows 1080p): fixed (bands widened, click in the button's middle, a claim counts
+  once the button is gone), awaiting Qualitas's confirmation.
 
 - Celestial chests (fixed 2026-09-29, a user's report; verified live 2026-10-01): "Nebula and
   Higher" / "Cosmic and Higher" opened every celestial chest (AHK ladder). On the owner's game

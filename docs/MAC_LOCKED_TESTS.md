@@ -61,7 +61,7 @@ copy a settings.ini over an existing one; a source run reads the clone's own set
    (`vision/research_trees.json`, "unlock").
 
 Retesting at once needs a bot restart: research waits 15 min after a search that started
-nothing, meteorite research 1 h after a visit that bought nothing and stays off after an
+nothing, meteorite research 1 h after a visit that bought nothing and 6 h after an
 unconfirmed click; some lines are written once per game day.
 
 ## Bug signs
@@ -77,8 +77,8 @@ unconfirmed click; some lines are written once per game day.
   meteorites: saving up for it` on a node that is locked, not too expensive;
   `shows no Research button though <parent> is at level <L> (<need> unlocks it)` on a truly
   locked node (wrong wiki unlock level); `the popup shows ... instead of <name>` on a locked
-  node; `the Research click on <name> is not confirmed` (meteorite research then stays off
-  until restart).
+  node; `the Research click on <name> is not confirmed` (meteorite research then waits 6 h,
+  off at the third in a row).
 - Counters measured on 1920x1009 only: `the meteorite counter is not readable`, `Tavern: the
   token counter is not readable`, `the guardian multiplier is not readable`.
 

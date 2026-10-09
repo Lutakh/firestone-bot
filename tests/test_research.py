@@ -705,3 +705,45 @@ def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
     g.vars[research.NO_NODE_UNTIL] = 0  # 15 min later
     research.go_research(g)
     assert len(g.wheels) > wheels
+
+
+def test_a_column_takes_turns_so_the_next_one_unlocks(fake):
+    """Tree XIV, 2026-10-09: column 2 needs every column 1 research at level 6; the bot
+    started the same two boxes at every visit and never the third. The research started
+    longest ago (never first) now goes first within a column."""
+    later = {n: "hidden" for n, (col, _, _) in XIII.items() if col >= 4}
+    col3 = {n: "available" for n, (col, _, _) in XIII.items() if col == 3}
+    earlier = {n: "maxed" for n, (col, _, _) in XIII.items() if col < 3}
+    tree = xiii(**later, **col3, **earlier)
+    g = fake([None, None], tree=tree)
+    research.go_research(g)
+    assert g.popups == ["Attribute Health", "Attribute Armor"]  # the top ones, as before
+    for node in tree:
+        if node.state == "running":
+            node.state = "available"  # both finished
+    g.panels = ["green", "green"]
+    g._canvas = None
+    g.popups.clear()
+    research.go_research(g)
+    assert g.popups == ["Attribute Damage", "Attribute Health"]
+
+
+def test_a_box_seen_running_after_a_restart_goes_after_the_idle_one(fake):
+    """The memory is empty after a restart: the box seen running at the first look is
+    stamped, so when it finishes the idle third box goes before it (review 2026-10-09: by
+    start times alone, Damage waited for the third free slot after every restart)."""
+    later = {n: "hidden" for n, (col, _, _) in XIII.items() if col >= 4}
+    earlier = {n: "maxed" for n, (col, _, _) in XIII.items() if col < 3}
+    col3 = {"Attribute Health": "running", "Attribute Armor": "available"}
+    col3["Attribute Damage"] = "available"
+    tree = xiii(**later, **col3, **earlier)
+    g = fake(["orange", None], tree=tree)
+    assert research.start_research(g, 1)
+    assert g.popups == ["Attribute Armor"]  # nothing known yet: the top idle one
+    health = next(n for n in tree if n.name == "Attribute Health")
+    health.state = "available"  # Health finished and was claimed
+    g.panels = ["orange", None]
+    g._canvas = None
+    g.popups.clear()
+    assert research.start_research(g, 1)
+    assert g.popups == ["Attribute Damage"]

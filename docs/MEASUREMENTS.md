@@ -414,3 +414,20 @@ Uncommon x2, Opal x29, Emerald x48 / Comet x27, Lunar x30, Solar x30 / Nebula x4
 - `open_bless_chests` with "Nebula and Higher": Solar, Lunar and Comet opened (x50 then "open
   more"), the four Nebula chests stayed.
 
+## 2026-10-09 — locked research boxes, meteorite counter, battle pass Claim rows (Windows)
+
+- Firestone tree XIV (owner, 1920x1009): column 1 Attribute armor 13/60 and Attribute health
+  13/60 (gold, running), Attribute damage 0/60 (dark blue); column 2 Healer / Tank
+  specialization and column 3 Damage specialization are grey-blue boxes whose second line
+  reads "Locked" (no progress bar). The locked popup: title, "Level 0/50", description,
+  "Research is locked", "Requires:" then the icon and "Level 6" of each column 1 research; no
+  Research button. The wiki's `unlock` [[2, 6], ...] is that level for every research of the
+  column before (not a sum).
+- Meteorite tab, 2026-10-04 00:10: the counter read 810 when the tab opened; Attribute armor
+  (popup cost 800) bought; the counter then read 29 and the node's label 8 (7 before). The
+  hourly counter readings that day rose by 73 to 140.
+- Battle pass, Qualitas's video (Windows 11, 1920x1080 screen, game windowed and maximized,
+  client at screen y 23, logical y = screen y + 8): Golden-row Claim buttons screen y 522..569
+  under a plain tile, 544..591 under a tile with a label ("100%", "5%"), 160 px wide; Free row
+  926..976; the milestone track's green hexagons 647..686 (83 px wide) and line 661..672. The
+  button is a flat green (10, 159, 5) with a white "Claim".

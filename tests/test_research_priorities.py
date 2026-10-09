@@ -49,14 +49,25 @@ class Run:
     """A Chooser over synthetic boxes; `outcomes` = what a tap on each box gives (default
     "started")."""
 
-    def __init__(self, boxes, priorities, any_other=True, outcomes=None, reach=None, cands=None):
+    def __init__(
+        self,
+        boxes,
+        priorities,
+        any_other=True,
+        outcomes=None,
+        reach=None,
+        cands=None,
+        started=None,
+    ):
         self.tapped = []
         self.said = []
         self.outcomes = outcomes or {}
         self.boxes = boxes
         cands = research.matching_layouts(boxes) if cands is None else cands
         prios = [(i, n) for i, n in enumerate(priorities, start=1) if n]
-        self.chooser = Chooser(boxes, cands, prios, any_other, self.attempt, self.say, reach)
+        self.chooser = Chooser(
+            boxes, cands, prios, any_other, self.attempt, self.say, reach, started
+        )
 
     def attempt(self, box):
         self.tapped.append(box.name or (box.col, box.row))
@@ -459,3 +470,76 @@ def test_priorities_from_the_settings():
     g.settings.set("LastTokenReset", "20260929000000")
     research.priorities(g)
     assert len(g.statuses) == 2
+
+
+# --- taking turns within a column (tree XIV, 2026-10-09) ---------------------------------------
+
+
+def xiv_column_1(armor="available", health="available", damage="available"):
+    """Tree XIV on 2026-10-09: column 1 open (Armor and Health at 13/60, Damage at 0/60),
+    column 2 "Locked" (Healer / Tank specialization need all three at level 6): the scan
+    sees only column 1."""
+    return [
+        Box(1, 0, "Attribute Armor", armor),
+        Box(1, 2, "Attribute Health", health),
+        Box(1, 4, "Attribute Damage", damage),
+    ]
+
+
+def test_without_starts_known_the_top_box_as_before():
+    run = Run(xiv_column_1(), [])
+    assert run.choose().box.name == "Attribute Armor"
+
+
+def test_the_research_never_started_goes_before_the_ones_started_already():
+    """Armor and Health were started at every turn and Damage never: column 2 stayed locked
+    for a day and a half."""
+    started = {"attribute armor": 100.0, "attribute health": 101.0}
+    run = Run(xiv_column_1(), [], started=started)
+    choice = run.choose()
+    assert choice.box.name == "Attribute Damage"
+    assert choice.line == (
+        "Research: Attribute Damage started (any research, the priority list is empty)"
+    )
+
+
+def test_then_the_one_started_longest_ago():
+    started = {"attribute armor": 100.0, "attribute health": 101.0, "attribute damage": 200.0}
+    run = Run(xiv_column_1(damage="running"), [], started=started)
+    assert run.choose().box.name == "Attribute Armor"
+    started["attribute armor"] = 300.0
+    run = Run(xiv_column_1(damage="running"), [], started=started)
+    assert run.choose().box.name == "Attribute Health"
+
+
+def test_the_right_most_column_still_comes_first():
+    started = {"rage heroes": 1.0}
+    run = Run(xiii(), [], started=started)
+    # column 2: Energy Heroes and Mana Heroes never started, the top one of them
+    assert run.choose().box.name == "Energy Heroes"
+
+
+def test_an_unlock_takes_turns_too():
+    """A priority in the locked column 2: what unlocks it is the column 1 research started
+    longest ago, not the top one again."""
+    started = {"attribute armor": 100.0, "attribute health": 101.0}
+    run = Run(xiv_column_1(), ["Healer Specialization"], started=started)
+    choice = run.choose()
+    assert choice.box.name == "Attribute Damage"
+    assert choice.line == (
+        "Research: Attribute Damage started to unlock Healer Specialization (priority 1)"
+    )
+
+
+def test_a_priority_still_goes_before_a_box_started_longer_ago():
+    started = {"attribute armor": 100.0, "attribute health": 101.0}
+    run = Run(xiv_column_1(), ["Attribute Health"], started=started)
+    assert run.choose().box.name == "Attribute Health"
+
+
+def test_unidentified_boxes_take_turns_by_their_place():
+    boxes = [Box(1, 0, None, "available"), Box(1, 2, None, "available")]
+    started = {research.started_key(boxes[0]): 5.0}
+    assert research.started_key(boxes[1]) == "column 1 row 2"
+    run = Run(boxes, [], started=started, cands=[])
+    assert run.choose().box is boxes[1]
