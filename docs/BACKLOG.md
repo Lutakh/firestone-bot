@@ -167,8 +167,12 @@
   popup: "Research is locked / Requires:" each research of the column before at the unlock
   level, no Research button). The right-most-then-top choice never started the third box of
   column 1 and column 2 stayed locked for 31 h: within a column the research busy longest ago
-  (seen running or started; session memory) now goes first. Locked meteorite
-  nodes were never seen. The 24 h watch (2026-09-29) counted 25 starts and no error. Icon
+  (seen running or started; session memory) now goes first. Locked meteorite nodes
+  were first seen on 2026-10-09 (tree XI, after tree X was maxed: grey icons, a dark ring,
+  dark lines, "0"): the bot finds only the cyan-ringed nodes ("4 nodes"), so a locked
+  priority is "not found in this tree" and its unlock path is never walked; the next
+  priorities are bought instead. To do: detect the grey nodes and name them by the
+  layout, then let a locked priority buy the node before it. The 24 h watch (2026-09-29) counted 25 starts and no error. Icon
   references come from the owner's Windows captures (colour-cast correction for the Mac is
   modelled, not measured). What the meteorite popup does right after Research was handled both
   ways; one live purchase worked. Meteorite names are the wiki's (Weak Boss, All Attributes...);

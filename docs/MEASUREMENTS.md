@@ -431,3 +431,8 @@ Uncommon x2, Opal x29, Emerald x48 / Comet x27, Lunar x30, Solar x30 / Nebula x4
   under a plain tile, 544..591 under a tile with a label ("100%", "5%"), 160 px wide; Free row
   926..976; the milestone track's green hexagons 647..686 (83 px wide) and line 661..672. The
   button is a flat green (10, 159, 5) with a white "Claim".
+- Meteorite tree XI (owner, 14:28, right after tree X was maxed by the bot): Firestone Effect
+  (the start node, level 16) and Attribute health / damage / armor (level 0) wear the cyan ring
+  on a blue disc; the nine other nodes are grey icons on a dark disc with a dark ring, joined by
+  dark lines, each labelled "0". The bot read "4 nodes, 4 to research" and "Raining Gold is not
+  found in this tree".
