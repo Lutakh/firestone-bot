@@ -15,16 +15,16 @@ from datetime import datetime
 
 def ahk_now() -> str:
     """AHK A_Now: LOCAL time, YYYYMMDDHHMMSS."""
-    return datetime.now().strftime("%Y%m%d%H%M%S")  # noqa: DTZ005
+    return datetime.now().strftime("%Y%m%d%H%M%S")
 
 
 def hours_since(stamp: str) -> float:
     """AHK `EnvSub, TimeDiff, %SessionStart%, Hours` (truncated to whole hours there)."""
     try:
-        t = datetime.strptime(stamp.strip(), "%Y%m%d%H%M%S")  # noqa: DTZ007
+        t = datetime.strptime(stamp.strip(), "%Y%m%d%H%M%S")
     except ValueError:
         return 0.0
-    return (datetime.now() - t).total_seconds() / 3600  # noqa: DTZ005
+    return (datetime.now() - t).total_seconds() / 3600
 
 
 @dataclass

@@ -740,7 +740,7 @@ def format_ahk_stamp(stamp: str, empty: str = "never") -> str:
     if not stamp:
         return empty
     try:
-        return datetime.strptime(stamp, "%Y%m%d%H%M%S").strftime("%Y-%m-%d %H:%M")  # noqa: DTZ007
+        return datetime.strptime(stamp, "%Y%m%d%H%M%S").strftime("%Y-%m-%d %H:%M")
     except ValueError:
         return empty
 

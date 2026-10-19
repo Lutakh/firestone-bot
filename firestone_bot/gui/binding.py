@@ -180,7 +180,7 @@ class Binder:
                 self.on_save_error(str(e))
             return
         self.dirty = False
-        stamp = datetime.now().strftime("%H:%M:%S")  # noqa: DTZ005
+        stamp = datetime.now().strftime("%H:%M:%S")
         self.on_state("saved", "Saved (settings.ini created)" if created else f"Saved {stamp}")
 
     def reload(self) -> None:

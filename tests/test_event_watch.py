@@ -28,7 +28,7 @@ GONE_BEAT = ("Decorated Heroes event not active: switch turned off", True)
 
 def _stamp(hours_ago):
     """A LastTokenReset `hours_ago` (local time, AHK A_Now format, as state.hours_since)."""
-    past = datetime.now() - timedelta(hours=hours_ago)  # noqa: DTZ005
+    past = datetime.now() - timedelta(hours=hours_ago)
     return past.strftime("%Y%m%d%H%M%S")
 
 
