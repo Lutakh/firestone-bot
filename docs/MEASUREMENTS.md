@@ -436,3 +436,22 @@ Uncommon x2, Opal x29, Emerald x48 / Comet x27, Lunar x30, Solar x30 / Nebula x4
   on a blue disc; the nine other nodes are grey icons on a dark disc with a dark ring, joined by
   dark lines, each labelled "0". The bot read "4 nodes, 4 to research" and "Raining Gold is not
   found in this tree".
+
+## 2026-10-21 — research popup, the "slots occupied" window, the tree's position (Windows)
+
+Owner's game, client 1920x1009 (logical y = client y + 31):
+- The research popup: icon, name, "Level 22/60", description, "Research effect" (now ->
+  next), "Original time" / "Real time", then a green "Research" (client 652..948 x 625..720,
+  pressed at logical (800, 704)) beside an orange "Complete instantly" with its gem price
+  (client 972..1268). No firestone cost. The popup dims the screen a little: the library's
+  close glyph reads (191, 187, 154) under it against (255, 249, 206) without it.
+- Research pressed with no free slot (two finished researches not claimed): a cream window
+  (client 495..1425 x 272..735, an angel on its left) "Your current research slots are
+  occupied. Wait until a research completes.", its X ring centred at client (1370, 324),
+  cream about (232, 209, 183) at client (1100, 620). The screen under it is dimmed: the
+  research popup's X ring and the library's close glyph do not read, and the slot panels read
+  empty. Closing its X leaves the research popup open.
+- Both slots free: one panel "Select a firestone research" at slot 1's place, nothing at
+  slot 2's (as in Qualitas's video).
+- The library reopens the firestone tree where it was left (scrolled to its end, closed,
+  reopened: still at its end).

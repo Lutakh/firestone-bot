@@ -179,6 +179,17 @@
   the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
   Trees past firestone XIII and meteorite X were never seen (they reuse the same names).
 
+- Research idle for whole nights (several users, 2026-10-21; Qualitas's video: Tree III left
+  at its end, both slots free, the paused visits saying only "slot 1 free / slot 2 free").
+  Found live: a Research press with no free slot (a finished research not claimed counts as
+  busy) opens "Your current research slots are occupied" over a dimmed screen; the bot did
+  not know it, closed nothing, and every tap and wheel after it went to that window. Fixed:
+  the window is closed and the search stops, any other window ends the search with a
+  capture, every box tried is listed in the "no research could start" line, failed searches
+  are retried in 3 min (three times) with an important heartbeat at the fourth, paused visits
+  say why. Why the users' bots took a busy slot for a free one is still unknown: their
+  `Research:` log lines and `research-*.png` captures will tell.
+
 - Meteorite purchases (fixed 2026-10-09): 2026-10-04 00:10, "810" read when the tab opened,
   an 800 level bought, 29 left (the node's level up by one): the exact-drop check called it
   unconfirmed and meteorite research stayed off for five days. A drop other than the cost is

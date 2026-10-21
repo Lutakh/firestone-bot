@@ -785,6 +785,15 @@ RS_POPUP_RESEARCH = Probe(700, 690, 900, 716, 0x0EA10C, 20, "rs_popup_research",
 RS_POPUP_RESEARCH_BUTTON = Point(800, 704, ANCHOR_CENTER)
 RS_POPUP_CLOSE_X = Probe(1215, 200, 1263, 248, DIALOG_RING, 30, "rs_popup_close_x", ANCHOR_CENTER)
 RS_POPUP_CLOSE = Point(1239, 224, ANCHOR_CENTER)
+# Research pressed with no free slot (a finished research not claimed counts as busy): the
+# game puts a cream window "Your current research slots are occupied. Wait until a research
+# completes." over a dimmed screen; the popup's and the library's close buttons no longer
+# read, and the slot panels read empty (owner's game, 2026-10-21, client 1920x1009)
+RS_SLOTS_FULL_X = Probe(1346, 331, 1394, 379, DIALOG_RING, 30, "rs_slots_full_x", ANCHOR_CENTER)
+RS_SLOTS_FULL_CREAM = Probe(
+    1090, 641, 1110, 661, 0xE8D1B7, 25, "rs_slots_full_cream", ANCHOR_CENTER
+)
+RS_SLOTS_FULL_CLOSE = Point(1370, 355, ANCHOR_CENTER)
 # Slot panels (bottom-left anchored). The two fixed button zones of 2026-09-08 were measured
 # on the Mac's own aspect and missed at 2560x1302: the bot read the running slot as finished
 # and clicked its orange "Speed up" gem button (2026-09-09). The buttons are now looked up as

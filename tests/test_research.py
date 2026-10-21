@@ -144,6 +144,12 @@ class FakeLibrary:
         self.late = 0  # the next box tap's popup opens at this look for its close button
         self.pending = None  # [node, looks left] of a popup still to open
         self.orange_x = False  # the tree shows the close button's orange where it is looked for
+        # a window over a dimmed library: "full" ("Your current research slots are occupied",
+        # a Research press with no free slot) or "other" (one the bot does not know): it takes
+        # every tap and wheel, and the panels and close buttons under it do not read
+        self.window = None
+        self.press_window = None  # a Research press opens this window instead of starting
+        self.press_ignored = 0  # Research presses the game does not take
         self.vp = Viewport(client)
         self._canvas = None
         self._screen = None
@@ -157,7 +163,8 @@ class FakeLibrary:
 
     def _start(self, node):
         if None not in self.panels:
-            return  # a full queue takes nothing
+            self.window = "full"  # a full queue: the game's window
+            return
         node.state = "running"
         self._canvas = None
         self._version += 1
@@ -240,6 +247,10 @@ class FakeLibrary:
 
     def tap(self, p, settle_ms=1500, expect=None):
         self.taps.append((p.x, p.y))
+        if self.window is not None:
+            if self.window == "full" and p is atlas.RS_SLOTS_FULL_CLOSE:
+                self.window = None
+            return  # the window takes the tap
         if p.anchor == research.SLOT_ANCHOR:
             i = 0 if p.x < atlas.RS_SLOT_SPLIT else 1
             assert self.panels[i] == "green", f"a click on a {self.panels[i]} panel"
@@ -249,8 +260,16 @@ class FakeLibrary:
                 self._claim(i)
         elif p is atlas.RS_POPUP_RESEARCH_BUTTON:
             assert self.popup is not None and self.popup.startable
+            if self.press_ignored:
+                self.press_ignored -= 1
+                return
+            if self.press_window:
+                self.window = self.press_window
+                self.at_window = (len(self.taps), len(self.wheels))
+                return
             self._start(self.popup)
-            self.popup = None
+            if self.window is None:
+                self.popup = None
         elif p is atlas.RS_POPUP_CLOSE:
             self.popup = None
         elif p is not atlas.RS_FIRESTONE_TREE:
@@ -277,6 +296,8 @@ class FakeLibrary:
 
     def wheel(self, n):
         self.wheels.append(n)
+        if self.window is not None:
+            return  # the window takes the wheel
         if n < 0:
             self.downs += 1
             if self.downs in self.dropped or (self.stuck_from and self.downs >= self.stuck_from):
@@ -287,6 +308,14 @@ class FakeLibrary:
         self.offset = max(0, min(self.tree_end, self.offset - n * PX_PER_NOTCH))
 
     def found(self, probe):
+        if probe in (atlas.RS_SLOTS_FULL_X, atlas.RS_SLOTS_FULL_CREAM):
+            return self.window == "full"
+        if probe is atlas.DIALOG_CLOSE_X:
+            # the library's close button: dimmed by a window, and by a research popup too
+            # (measured on the owner's captures, 2026-10-21)
+            return self.window is None and self.popup is None
+        if self.window is not None:
+            return False  # dimmed
         if probe is atlas.RS_POPUP_RESEARCH:
             return self.popup is not None and self.popup.startable
         if probe is atlas.RS_POPUP_CLOSE_X:
@@ -305,6 +334,9 @@ class FakeLibrary:
     def save_diagnostic(self, name):
         self.statuses.append(f"diag:{name}")
 
+    def heartbeat(self, msg, is_stop=False, important=False):
+        self.statuses.append(f"heartbeat:{msg}:{important}")
+
 
 @pytest.fixture
 def fake(monkeypatch):
@@ -319,6 +351,8 @@ def fake(monkeypatch):
                 if g.reads > g.claim_lag:
                     g._claim(g.pending_claim)
                     g.pending_claim = None
+            if g.window is not None:
+                return []  # dimmed under the window
             want = "green" if color in atlas.RS_SLOT_DONE else "orange"
             return [
                 blobs.Blob(cx - 80, 920, cx + 80, 980, 1)
@@ -636,9 +670,10 @@ def test_a_tap_that_opens_no_popup_is_no_locked_box(fake):
     assert "Research: the popup of Mana Heroes did not open, skipped" in g.statuses
     assert "diag:research-popup.png" in g.statuses
     assert not any("to unlock" in s for s in g.statuses)
+    # a tap the game swallowed is a miss: the next search comes sooner
     assert g.statuses[-1] == (
         "Research: slot left free (priorities: Mana Heroes lost; Research something else is "
-        "off), next search in 15 min"
+        "off), next search in 3 min"
     )
 
 
@@ -690,9 +725,13 @@ def test_popups_without_a_research_button_are_closed(fake):
     assert g.popups == ["Energy Heroes", "Mana Heroes", "Rage Heroes"]  # each once
     assert g.taps[-1] == close
     assert any(s.startswith("diag:research-no-node") for s in g.statuses)
-    assert "Research: a slot is free but no research could start, next search in 15 min" in (
-        g.statuses
-    )
+    assert (
+        "Research: a slot is free but no research could start (Energy Heroes: no Research "
+        "button; Mana Heroes: no Research button; Rage Heroes: no Research button), next "
+        "search in 15 min"
+    ) in g.statuses
+    assert "Research: the popup of Energy Heroes shows no Research button" in g.statuses
+    assert g.statuses.count("diag:research-no-button.png") == 1  # one a search
     assert _starts(g) == [] and g.offset == 0
 
 
@@ -747,3 +786,126 @@ def test_a_box_seen_running_after_a_restart_goes_after_the_idle_one(fake):
     g.popups.clear()
     assert research.start_research(g, 1)
     assert g.popups == ["Attribute Damage"]
+
+
+# --- windows over the library (users with no research for a whole night, 2026-10-21) ---------
+
+
+def _no_node_wait(g):
+    return g.vars[research.NO_NODE_UNTIL] - int(research.time.monotonic())
+
+
+def test_a_press_with_no_free_slot_closes_the_games_window_and_stops(fake):
+    """The bot took a busy slot for a free one: the game answers "Your current research slots
+    are occupied" over a dimmed library. The window and the popup are closed, nothing else is
+    tapped, the tree goes back to its start, and the next search waits 15 min."""
+    g = fake(["orange", "orange"], tree=xiii(**{"Firestone Effect": "available"}))
+    assert not research.start_research(g, 1)
+    assert g.window is None and g.popup is None
+    assert g.popups == ["Firestone Effect"]  # at the tree's end; no other box tapped
+    assert "diag:research-slots-full.png" in g.statuses
+    assert (
+        'Research: the game says every research slot is busy ("Your current research slots '
+        'are occupied"), the search stops'
+    ) in g.statuses
+    assert g.statuses[-1] == (
+        "Research: a slot is free but no research could start (Firestone Effect: the game "
+        "says the slots are busy), next search in 15 min"
+    )
+    assert g.offset == 0
+    assert 14 * 60 < _no_node_wait(g) <= 15 * 60
+
+
+def test_an_unknown_window_stops_the_search_without_a_wheel(fake):
+    """A window the bot does not know takes every tap and wheel after it: the search stops at
+    once, with a capture, instead of going on blind and leaving the tree at its end."""
+    g = fake([None, None], offset=TREE_END)
+    g.press_window = "other"
+    assert not research.start_research(g, 0)
+    taps, wheels = g.at_window
+    assert g.popups == ["Energy Heroes"]
+    assert "diag:research-window.png" in g.statuses
+    assert "Research: a window stays over the library after Energy Heroes, the search stops" in (
+        g.statuses
+    )
+    assert len(g.wheels) == wheels  # nothing wheeled into the window
+    assert len(g.taps) == taps  # nor tapped
+    assert g.statuses[-1].endswith("next search in 3 min")
+
+
+def test_presses_the_game_does_not_take_are_retried_sooner_then_said(fake):
+    """Every box pressed, nothing started: three quick retries (3 min), then 15 min; the
+    fourth search in a row that went wrong sends an important heartbeat."""
+    g = fake([None, None])
+    g.press_ignored = 10**6
+    waits = []
+    for _ in range(5):
+        assert not research.start_research(g, 0)
+        waits.append(round(_no_node_wait(g) / 60))
+        assert g.popup is None and g.offset == 0
+    assert waits == [3, 3, 3, 15, 15]
+    beats = [s for s in g.statuses if s.startswith("heartbeat:")]
+    assert beats == ["heartbeat:Research: 4 searches in a row started nothing (see the log):True"]
+    assert "Research: the Research button of Energy Heroes did not start a research" in (g.statuses)
+    assert any(
+        s.startswith(
+            "Research: a slot is free but no research could start (Energy Heroes: "
+            "pressed, nothing started;"
+        )
+        for s in g.statuses
+    )
+
+
+def test_a_start_ends_the_streak(fake):
+    g = fake([None, None])
+    g.vars[research.FAILED_SEARCHES] = 3
+    g.press_ignored = 0
+    assert research.start_research(g, 0)
+    assert g.vars[research.FAILED_SEARCHES] == 0
+
+
+def test_paused_visits_say_why_once(fake):
+    g = fake([None, None])
+    g.press_ignored = 10**6
+    research.go_research(g)
+    first = len(g.statuses)
+    research.go_research(g)
+    research.go_research(g)
+    paused = [s for s in g.statuses[first:] if "the last search started nothing" in s]
+    assert paused == ["Research: the last search started nothing, the next one in 3 min"]
+
+
+@pytest.mark.parametrize("window", [None, "other"])
+def test_a_tree_that_does_not_follow_the_wheel_back_is_said(fake, window):
+    g = fake([None, None])
+    start = research.tree_profile(g)
+    g.offset = 560
+    scan = research.Scan(boxes=[], shifts=[0.0, 560.0], profiles=[start], at=1)
+    g.window = window  # "other" takes the wheels
+    research.to_start(g, scan)
+    said = "Research: the tree did not follow the wheel back to its start" in g.statuses
+    assert said == (window is not None)
+    assert ("diag:research-not-rewound.png" in g.statuses) == said
+    assert scan.at == 0 and g.offset == (560 if window else 0)
+
+
+def test_a_view_already_at_the_start_is_not_said(fake):
+    """A WheelDown the game did not take left the view at the start although the scan
+    counted a stop: wheeling back moves nothing, and that is no window."""
+    g = fake([None, None])
+    start = research.tree_profile(g)
+    scan = research.Scan(boxes=[], shifts=[0.0, 560.0], profiles=[start], at=1)
+    research.to_start(g, scan)
+    assert not any("did not follow" in s for s in g.statuses)
+
+
+def test_one_press_the_game_ignored_moves_on_to_the_next_box(fake):
+    """The box's own popup dims the library's close button: a press that started nothing is
+    no foreign window. The popup is closed and the next box starts in the same search."""
+    g = fake([None, None])
+    g.press_ignored = 1
+    assert research.start_research(g, 0)
+    assert g.popup is None and g.popups == ["Energy Heroes", "Mana Heroes"]
+    assert "Research: the Research button of Energy Heroes did not start a research" in g.statuses
+    assert "diag:research-press.png" in g.statuses
+    assert not any("window stays" in s for s in g.statuses)

@@ -82,6 +82,15 @@ log = logging.getLogger("firestone_bot")
 
 NO_NODE_PAUSE_S = 15 * 60  # after a search that started nothing, the next one waits
 NO_NODE_UNTIL = "research_no_node_until"  # Game.vars: monotonic second of the next search
+# A search whose tries went wrong (a press that started nothing, a popup that did not
+# open, a window left over the library) is tried again sooner, three times in a row, then
+# every 15 min; the fourth in a row sends an important heartbeat. Users had no research
+# for a whole night, the 15 min pauses saying nothing (2026-10-21).
+RETRY_PAUSE_S = 3 * 60
+MAX_QUICK_RETRIES = 3
+FAIL_ALERT = 4
+FAILED_SEARCHES = "research_failed_searches"  # Game.vars: searches in a row gone wrong
+PAUSE_SAID = "research_pause_said"  # Game.vars: the pause the paused visits named
 # Game.vars: {box key: monotonic second it was last seen running or started}. A column
 # unlocks once EVERY research of the column before it reaches a level (tree XIV, 2026-10-09:
 # "Requires: Attribute armor level 6, Attribute health level 6, Attribute damage level 6"); the
@@ -332,6 +341,7 @@ class Scan:
     origin: float = atlas.RS_COLUMN1_X  # column 1's left edge, tree px
     reach: float = 0.0  # tree px up to which a box's icon was whole at one stop at least
     popup_late: bool = False  # a tapped box's popup had not opened: it may open late
+    captured: set[str] = field(default_factory=set)  # diagnostics taken this search
 
     @property
     def reach_col(self) -> int:
@@ -497,11 +507,19 @@ def _goto(g: Game, scan: Scan, k: int) -> float | None:
 
 
 def to_start(g: Game, scan: Scan) -> None:
-    """Leave the tree at its start (the tree reopens where it was left)."""
+    """Leave the tree at its start (the tree reopens where it was left: a tree found at its
+    end means the last search could not wheel it back). From a stop past the start, a
+    view the wheels did not move is said, with a capture (a window takes the wheels)."""
     if scan.at == 0:
         return
+    before = tree_profile(g)
     if scan.at > 0:
         rewind(g, math.ceil(scan.shifts[scan.at] / atlas.RS_PX_PER_NOTCH) + 2)
+        after = tree_profile(g)
+        at_start = bool(scan.profiles) and _still(scan.profiles[0], after)
+        if _still(before, after) and not at_start:  # (a dropped wheel left it there)
+            g.status("Research: the tree did not follow the wheel back to its start")
+            _diagnostic_once(g, scan, "research-not-rewound.png")
     else:
         rewind(g, atlas.RS_REWIND_NOTCHES)
     scan.at = 0
@@ -595,12 +613,24 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
     g.tap(Point(blob.cx, blob.cy, atlas.ANCHOR_CENTER), 800)
     g.wait_still()
     if not _popup_open(g):
+        window = blocking_window(g)
+        if window == "window" and _popup_open(g):
+            window = ""  # a popup that dims before its close button shows: a late one
+            _close_popup(g)
+            window = blocking_window(g)
+            if not window:
+                g.status(f"Research: the popup of {box.label} opened late, closed")
+                return "missing"
+        if window:
+            return _window_left(g, box, window)
         g.status(f"Research: the popup of {box.label} did not open, skipped")
-        g.save_diagnostic("research-popup.png")
+        _diagnostic_once(g, scan, "research-popup.png")
         scan.popup_late = True
         g.move_to(atlas.RS_PARK)
         return "missing"
     g.wait_still()  # the popup has scaled in
+    g.move_to(atlas.RS_PARK)  # a hovered Research button is drawn lighter
+    g.sleep(PARK_MS)
     result = "locked"
     if g.found(atlas.RS_POPUP_RESEARCH):
         g.tap(atlas.RS_POPUP_RESEARCH_BUTTON, 1000)
@@ -608,10 +638,60 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
         if _started(g, busy):
             box.state = "running"
             return "started"
-        g.status("Research: the Research button did not start a research")
+        if blocking_window(g) == "full":  # the box's own popup dims the library's X
+            return _window_left(g, box, "full")
+        g.status(f"Research: the Research button of {box.label} did not start a research")
+        _diagnostic_once(g, scan, "research-press.png")
         result = "failed"
+    else:
+        g.status(f"Research: the popup of {box.label} shows no Research button")
+        _diagnostic_once(g, scan, "research-no-button.png")
     _close_popup(g)
+    window = blocking_window(g)
+    if window:
+        return _window_left(g, box, window)
     return result
+
+
+def blocking_window(g: Game) -> str:
+    """What lies over the library after a try: "" (nothing), "full" (the game's
+    "research slots are occupied" window) or "window" (something else hides the library's
+    close button). A window left open takes every tap and wheel after it: the rest of the
+    search went blind and the tree stayed at its end, at every search of a night
+    (Qualitas, 2026-10-21)."""
+    if g.found(atlas.RS_SLOTS_FULL_X) and g.found(atlas.RS_SLOTS_FULL_CREAM):
+        return "full"
+    # the research popup dims the library's close button too: called with no popup open
+    if not g.found(atlas.DIALOG_CLOSE_X):
+        return "window"
+    return ""
+
+
+def _window_left(g: Game, box: Box, window: str) -> str:
+    """Say and capture the window, close the slots window and the popup under it:
+    "full" or "blocked" (the search stops either way)."""
+    if window == "full":
+        g.save_diagnostic("research-slots-full.png")
+        g.status(
+            'Research: the game says every research slot is busy ("Your current research '
+            'slots are occupied"), the search stops'
+        )
+        g.tap(atlas.RS_SLOTS_FULL_CLOSE, 800)
+        g.wait_still()
+        _close_popup(g)
+        if not blocking_window(g):
+            return "full"
+    g.save_diagnostic("research-window.png")
+    g.status(f"Research: a window stays over the library after {box.label}, the search stops")
+    return "blocked"
+
+
+def _diagnostic_once(g: Game, scan: Scan, name: str) -> None:
+    """One capture of each kind a search (the visits of a failing night would push
+    the useful one out: three of a kind are kept)."""
+    if name not in scan.captured:
+        scan.captured.add(name)
+        g.save_diagnostic(name)
 
 
 # --- layouts and the choice -----------------------------------------------------------------
@@ -719,6 +799,21 @@ def started_key(box: Box) -> str:
 class Choice:
     box: Box | None  # the research started
     line: str  # the status line of the decision ("" when nothing could be started)
+    stop: str = ""  # "full" / "blocked": a window over the library ended the decision
+
+
+STOPS = ("full", "blocked")
+WHY = {
+    "locked": "no Research button",
+    "failed": "pressed, nothing started",
+    "missing": "skipped",
+    "full": "the game says the slots are busy",
+    "blocked": "a window stayed open",
+}
+
+
+class _Stop(Exception):
+    """A try left a window over the library: no other box is tapped."""
 
 
 class Chooser:
@@ -749,14 +844,24 @@ class Chooser:
         self.by_name = {b.name.lower(): b for b in boxes if b.name}
         self.at_place = {(b.col, b.row): b for b in boxes if b.name is None}
         self.results: dict[tuple[int, int], str] = {}
+        self.labels: dict[tuple[int, int], str] = {}
         self.passed: list[tuple[str, str]] = []  # (priority, why it was passed over)
         self.tree = tree_label(cands)
 
     def _try(self, box: Box) -> str:
         key = (box.col, box.row)
         if key not in self.results:  # a box is tapped once per decision
+            self.labels[key] = box.label
             self.results[key] = self.attempt(box)
+            if self.results[key] in STOPS:
+                raise _Stop(self.results[key])
         return self.results[key]
+
+    def outcomes(self) -> str:
+        """What each box tried this decision gave, when it did not start."""
+        return "; ".join(
+            f"{self.labels[k]}: {WHY.get(r, r)}" for k, r in self.results.items() if r != "started"
+        )
 
     def _rank(self, name: str | None) -> int:
         for i, (_, p) in enumerate(self.priorities):
@@ -866,6 +971,12 @@ class Chooser:
         return "priorities: " + ", ".join(f"{n} {why}" for n, why in self.passed)
 
     def choose(self) -> Choice:
+        try:
+            return self._choose()
+        except _Stop as stop:
+            return Choice(None, "", str(stop))
+
+    def _choose(self) -> Choice:
         for rank, name in self.priorities:
             choice = self.priority(rank, name)
             if choice is not None:
@@ -937,19 +1048,38 @@ def start_research(g: Game, busy: int) -> bool:
         started,
     )
     choice = chooser.choose()
-    close_late_popup(g, scan)  # before the tree is wheeled back
+    if choice.stop != "blocked":
+        close_late_popup(g, scan)  # before the tree is wheeled back
     if choice.box is not None:
         g.vars[STARTED][started_key(choice.box)] = time.monotonic()
+        g.vars[FAILED_SEARCHES] = 0
         g.status(choice.line)
         to_start(g, scan)
         return True
-    to_start(g, scan)
+    # tries that went wrong are tried again sooner, three times in a row; a tree with
+    # nothing to start, or a slot left free on purpose, waits the 15 min
+    trouble = bool(choice.stop) or any(r in ("failed", "missing") for r in chooser.results.values())
+    streak = g.vars.get(FAILED_SEARCHES, 0) + 1 if trouble else 0
+    g.vars[FAILED_SEARCHES] = streak
+    quick = trouble and choice.stop != "full" and streak <= MAX_QUICK_RETRIES
+    pause = RETRY_PAUSE_S if quick else NO_NODE_PAUSE_S
+    if not choice.line and not choice.stop:  # before the tree moves (a window has its own)
+        _diagnostic_once(g, scan, "research-no-node.png")
+    if choice.stop != "blocked":  # a window would take the wheels
+        to_start(g, scan)
+    next_search = f"next search in {pause // 60} min"
     if choice.line:  # left free on purpose
-        g.status(choice.line)
+        g.status(choice.line.replace("next search in 15 min", next_search))
     else:
-        g.status("Research: a slot is free but no research could start, next search in 15 min")
-        g.save_diagnostic("research-no-node.png")
-    g.vars[NO_NODE_UNTIL] = int(time.monotonic()) + NO_NODE_PAUSE_S
+        tried = chooser.outcomes()
+        why = f" ({tried})" if tried else ""
+        g.status(f"Research: a slot is free but no research could start{why}, {next_search}")
+    if streak == FAIL_ALERT:
+        g.heartbeat(
+            f"Research: {FAIL_ALERT} searches in a row started nothing (see the log)",
+            important=True,
+        )
+    g.vars[NO_NODE_UNTIL] = int(time.monotonic()) + pause
     return False
 
 
@@ -977,7 +1107,12 @@ def go_research(g: Game) -> None:
             continue
         if "empty" not in kinds:
             break
-        if time.monotonic() < g.vars.get(NO_NODE_UNTIL, 0):
+        until = g.vars.get(NO_NODE_UNTIL, 0)
+        if time.monotonic() < until:
+            if g.vars.get(PAUSE_SAID) != until:  # once a pause: why the slot stays free
+                g.vars[PAUSE_SAID] = until
+                left = max(1, math.ceil((until - time.monotonic()) / 60))
+                g.status(f"Research: the last search started nothing, the next one in {left} min")
             # nothing could be started a moment ago: the whole tree is not scrolled again
             # at every cycle (firestones take a while to come)
             break
