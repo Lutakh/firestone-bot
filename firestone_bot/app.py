@@ -51,7 +51,7 @@ class App:
         self._hotkey_listener = None
         self._guard = None  # inputguard.InputGuard, created in _late_init
         self._overlay = None
-        self._exit_heartbeat: threading.Thread | None = None
+        self._exit_heartbeat = False  # queued at exit, sent before the process ends
         self._banners_stop_event: threading.Event | None = None
         self._update: dict = {"release": None, "payload": None, "busy": False, "last": 0.0}
         self.window.on_check_updates = lambda: self.check_updates(manual=True)
@@ -481,13 +481,9 @@ class App:
                 self._hotkey_listener.stop()
             return
         self.runner.stop()
-        # Blocking urlopen (10 s timeout): keep it off the UI thread, joined after mainloop.
-        self._exit_heartbeat = threading.Thread(
-            target=lambda: self.game.heartbeat("Exit Bot", is_stop=True, important=True),
-            name="exit-heartbeat",
-            daemon=True,
-        )
-        self._exit_heartbeat.start()
+        # only queued (the heartbeat thread sends it); run() gives it 2 s after mainloop
+        self.game.heartbeat("Exit Bot", is_stop=True, important=True)
+        self._exit_heartbeat = True
         t = self.runner.thread
         if t and t.is_alive():
             t.join(timeout=3)
@@ -896,8 +892,10 @@ class App:
         # START / DRY RUN also wire it on demand
         self.window.root.after(400, self._startup_dialogs)
         self.window.run()
-        if self._exit_heartbeat is not None:
-            self._exit_heartbeat.join(timeout=2)
+        if self._exit_heartbeat:
+            from firestone_bot.features import heartbeat
+
+            heartbeat.flush(2.0)
 
 
 def main(autostart: bool = False) -> int:

@@ -422,7 +422,9 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   that wait forever for a screen change (arena battle, liberation mission, hero upgrades,
   main-menu finder); a cap of N stops such a loop after N iterations.
 - **Heartbeat** (Workshop): off by default. Sends progress messages to the maintainer's log
-  server only when the toggle is on AND a Discord ID is set.
+  server only when the toggle is on AND a Discord ID is set. The bot never waits for the
+  server: messages are sent in the background, and when the server is slow or down they
+  are dropped (5 min without trying after a failed send) instead of slowing the clicks.
 - `gui_state.json` (next to `settings.ini`) stores window geometry, navigation/editor selection,
   skin and appearance. Geometry, editor selections, skin and appearance are restored on
   the next start; the opening page is always Camp. The file is safe to delete.

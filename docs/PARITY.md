@@ -72,7 +72,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | subFunctions/LiberationInProgressCheck.ahk | liberation_in_progress_check | yes | no | | unbounded wait; SafetyCap optional |
 | subFunctions/FirestoneNew1st.ahk | (not ported) | n/a | | | never called; includes a missing FirestoneClicks.ahk, so it cannot run in AHK either |
 | RestartGameRoutine.ahk | restart_game_routine | yes | partial | yes | kill + Steam URL relaunch + start-button wait exercised step by step (not through the runner's timer) |
-| SendHeartbeat.ahk | heartbeat | yes | no | | opt-in (EnableHeartbeat=1); wired into Game.heartbeat by the runner |
+| SendHeartbeat.ahk | heartbeat | yes | no | | opt-in (EnableHeartbeat=1); wired into Game.heartbeat by the runner; sent from a background queue, never waited for (dropped when the server is slow or down) |
 | subFunctions/GetColor.ahk | (not ported) | n/a | | | returns nothing, never used |
 | MapRedeem.ahk | map_redeem | yes | yes | | ran 340 s incl. claim_campaign + liberation (see below) |
 | subFunctions/MapStart.ahk | map_start | yes | yes | | inside map_redeem; MapStartState.ini via state.py; TimeDiff unused in AHK |

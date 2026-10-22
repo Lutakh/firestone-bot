@@ -193,6 +193,12 @@
   not measured together), the arena's buy-more popup has one probe, the personal tree
   clicks blind, the map step does not prove the map is open.
 
+- Heartbeat slowing the bot (owner, 2026-10-22; why it is off by default): every message
+  was sent by the bot's own thread, which waited for fs-bot-logs.lutak.ovh (up to 10 s a
+  message, unbounded while a DNS lookup hung), about 35 places a cycle. Fixed: messages
+  go to a queue of 32 sent by a background thread (5 s timeout); a full queue drops them,
+  and after a failed send none is tried for 5 min. The exit message gets 2 s at most.
+
 - Research popups whose close button does not read (three users' logs, 2026-10-22: "the
   popup of <box> did not open", then every other box "lost from view"): a popup is now
   told by its close button, its green Research button or the dim over the library's
