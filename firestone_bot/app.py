@@ -491,9 +491,9 @@ class App:
             self._hotkey_listener.stop()
 
     def self_test(self, restore: bool = False) -> dict[str, str]:
+        from firestone_bot import report
         from firestone_bot.platform import capture, process
         from firestone_bot.platform.window import GameWindowNotFound, activate, find_game_window
-        from firestone_bot.vision.viewport import Viewport
 
         out = {"dpi": self.dpi_mode}
         if sys.platform == "darwin":
@@ -546,24 +546,13 @@ class App:
                 capture="-",
             )
             return out
-        vp = Viewport(win.client)
         if sys.platform == "darwin":
             from firestone_bot.platform.window import pixels_per_point
 
             out["dpi"] = (
                 f"macOS, {pixels_per_point():g} px per point (capture in pixels, input in points)"
             )
-        out["window"] = (
-            f"'{win.title}' pid {win.pid}"
-            + (" maximized" if win.maximized else "")
-            + (" (restored from minimised)" if restored else "")
-        )
-        out["platform"] = process.detect_platform(win.exe)
-        out["client"] = f"{win.client.w}x{win.client.h} at ({win.client.x},{win.client.y})"
-        aspect_ok = abs(win.client.w / win.client.h - 1920 / 1009) < 0.01
-        out["scale"] = (
-            f"{vp.rel_scale:.3f} (canvas {vp.scale:.3f}), aspect {'OK' if aspect_ok else 'differs from reference: anchors in use'}"
-        )
+        out.update(report.window_fields(win))
         t0 = time.perf_counter()
         try:
             img = capture.grab(win.client)
@@ -577,6 +566,10 @@ class App:
             if sys.platform == "darwin"
             else "pynput SendInput (move test happens in the dry run trace)"
         )
+        # in the log when it changes: a report sent after the game closed still has it
+        report.note_environment(out)
+        if restored:
+            out["window"] += " (restored from minimised)"
         return out
 
     # -- self-update (firestone_bot.update) --------------------------------------------------

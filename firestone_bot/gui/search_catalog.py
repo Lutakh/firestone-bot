@@ -365,6 +365,16 @@ ROOT_TARGETS = (
     ),
     _target(
         "camp",
+        "dock",
+        "report",
+        "Send report",
+        "Send the logs, recent screenshots and settings to the maintainer.",
+        "bug",
+        "bug report",
+        "support",
+    ),
+    _target(
+        "camp",
         "navigation",
         "skin",
         "Choose interface skin",

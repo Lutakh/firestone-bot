@@ -30,13 +30,16 @@ BACKOFF_S = 300  # after a failed send, no message is tried for this long
 log = logging.getLogger("firestone_bot.heartbeat")
 
 
-def get_unique_id(settings: Settings) -> str:
+def get_unique_id(settings: Settings, save: bool = True) -> str:
+    """The stored client id, or a new one set in `settings` (and saved unless `save` is
+    False: the GUI thread lets its binder save it, never while the bot runs)."""
     stored = settings.get("ClientID").strip()
     if stored:
         return stored
     new_id = f"{ahk_now()}-{random.randint(100000, 999999)}"
     settings.set("ClientID", new_id)
-    settings.save()
+    if save:
+        settings.save()
     return new_id
 
 
@@ -47,7 +50,9 @@ def _post(payload: dict) -> None:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=SEND_TIMEOUT_S):
+    from firestone_bot.update import _ssl_context  # certifi roots (the macOS bundle has none)
+
+    with urllib.request.urlopen(req, timeout=SEND_TIMEOUT_S, context=_ssl_context()):
         pass
 
 

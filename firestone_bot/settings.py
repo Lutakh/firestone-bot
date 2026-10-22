@@ -266,16 +266,8 @@ class Settings:
                     s.extra.setdefault(section, {})[key] = value
         return s
 
-    def save(self, path: str | None = None, force: bool = False) -> None:
-        """Write every setting to `path`. A Settings that was not loaded from an existing
-        file refuses to overwrite one (2026-09-08: a test script built Settings(path=...)
-        instead of Settings.load(...) and the daily-reset save wiped the owner's file with
-        the defaults); `force` writes anyway."""
-        path = path or self.path
-        if not force and not self.loaded and os.path.exists(path):
-            raise SettingsNotLoaded(
-                f"refusing to overwrite {path}: load it first (Settings.load) or pass force=True"
-            )
+    def text(self) -> str:
+        """The ini text that save() writes (LF line ends)."""
         cp = _parser()
         for k, (section, default) in {**SETTINGS_MAP, **EXTRA_SETTINGS}.items():
             if k in EXTRA_SETTINGS and self.values[k] == default:
@@ -292,7 +284,19 @@ class Settings:
         for section in cp.sections():
             lines.append(f"[{section}]")
             lines.extend(f"{k}={v}" for k, v in cp.items(section))
-        data = "\n".join(lines) + "\n"
+        return "\n".join(lines) + "\n"
+
+    def save(self, path: str | None = None, force: bool = False) -> None:
+        """Write every setting to `path`. A Settings that was not loaded from an existing
+        file refuses to overwrite one (2026-09-08: a test script built Settings(path=...)
+        instead of Settings.load(...) and the daily-reset save wiped the owner's file with
+        the defaults); `force` writes anyway."""
+        path = path or self.path
+        if not force and not self.loaded and os.path.exists(path):
+            raise SettingsNotLoaded(
+                f"refusing to overwrite {path}: load it first (Settings.load) or pass force=True"
+            )
+        data = self.text()
         # Write-then-rename: a reader (or a crash mid-write) never sees a torn settings.ini.
         tmp = path + ".tmp"
         with open(tmp, "w", encoding=self.encoding, newline="\r\n") as f:

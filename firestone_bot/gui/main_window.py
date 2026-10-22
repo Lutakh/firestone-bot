@@ -145,6 +145,7 @@ class MainWindow:
         self.update_button: str | None = None
         self.update_kind = "info"
         self._last_env: dict[str, str] | None = None
+        self._report_dialog = None  # gui.report_dialog.ReportDialog while open
         self._last_poll = 0.0
         self._last_second = 0.0
         self._tick_fns: list[Callable[[], None]] = []
@@ -316,6 +317,18 @@ class MainWindow:
         ).pack(anchor="w", pady=(2, 0))
         commands = ctk.CTkFrame(dock, fg_color="transparent")
         commands.grid(row=0, column=1, sticky="e", padx=26, pady=12)
+        self.report_btn = ctk.CTkButton(
+            commands,
+            text="Send report",
+            command=self.open_report,
+            width=110,
+            height=38,
+            fg_color="transparent",
+            text_color=theme.MUTED,
+            border_width=1,
+            border_color=theme.BORDER,
+            hover_color=theme.SURFACE_ALT,
+        )
         self.dry_btn = ctk.CTkButton(
             commands,
             text="Dry run",
@@ -350,8 +363,30 @@ class MainWindow:
             text_color=theme.ON_ACCENT,
             hover_color=theme.ACCENT_HOVER,
         )
-        for index, button in enumerate((self.dry_btn, self.stop_btn, self.start_btn)):
+        buttons = (self.report_btn, self.dry_btn, self.stop_btn, self.start_btn)
+        for index, button in enumerate(buttons):
             button.grid(row=0, column=index, padx=(8, 0))
+
+    def open_report(self) -> None:
+        """Send report: logs, captures, settings and environment to the maintainer."""
+        from firestone_bot.gui.report_dialog import ReportDialog
+
+        current = self._report_dialog
+        if current is not None and current.alive():
+            # one at a time (a double click opened two); a dialog closed while it sent
+            # was only hidden: it shows the outcome now
+            current.top.deiconify()
+            current.top.lift()
+            return
+        self._report_dialog = ReportDialog(
+            self.root,
+            self.ctx.base_dir,
+            self.ctx.settings,
+            self._last_env,
+            # a new client id is saved with the settings; never by creating settings.ini
+            # (a fresh folder would then refuse the import of the old settings)
+            persist=self.binder.touch if os.path.exists(self.ctx.settings.path) else None,
+        )
 
     def _select_skin(self, name: str) -> None:
         # Finish the option-menu callback before destroying its menu widget.
@@ -526,6 +561,7 @@ class MainWindow:
                 "start": self.start_btn,
                 "stop": self.stop_btn,
                 "dry_run": self.dry_btn,
+                "report": self.report_btn,
                 "skin": self.skin_menu,
             }
             if result.key in commands:

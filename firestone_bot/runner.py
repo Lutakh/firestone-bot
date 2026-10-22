@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from firestone_bot import daily, stats
+from firestone_bot import daily, report, stats
 from firestone_bot.features import (
     alchemist,
     arena,
@@ -120,7 +120,7 @@ class Runner:
             self.main_script()
         except BotStopped:
             self.g.status("Stopped")
-        except Exception:
+        except Exception:  # informational only
             log.exception("cycle crashed")
             self.g.status("Crashed, see log")
         finally:
@@ -196,7 +196,7 @@ class Runner:
             sx2, sy2 = vp.to_screen(x2, y2, (0.0, 0.0))
             img = capture.grab(Rect(sx1, sy1, sx2 - sx1, sy2 - sy1))
             capture.save_png(img, os.path.join(folder, "account-level-miss.png"))
-        except Exception:
+        except Exception:  # informational only
             log.debug("level diagnostic not saved", exc_info=True)
 
     def main_script(self) -> None:
@@ -291,7 +291,7 @@ class Runner:
             raise
         except ScreenNotReached as e:
             g.status(f"{name}: its screen ({e}) did not show, step skipped")
-        except Exception:
+        except Exception:  # informational only
             log.exception("%s failed", name)
             g.status(f"{name}: failed ({sys.exc_info()[1]!r}), step skipped")
         g.save_diagnostic(f"step-{name.lower().replace(' ', '-')}.png")
@@ -351,6 +351,17 @@ class Runner:
             "restart_interval_s": interval_ms / 1000 if interval_ms is not None else None,
             "restart_source": source,
         }
+
+    @staticmethod
+    def _note_environment(g: Game) -> None:
+        """The game window and style in the log when they changed (bug reports)."""
+        win = getattr(g, "window", None)
+        if win is None or not win.client.w:
+            return
+        try:
+            report.note_environment({**report.window_fields(win), "style": g.style})
+        except Exception:  # informational only
+            log.debug("environment not noted", exc_info=True)
 
     def _cycle(self) -> bool:
         """One pass of the AHK main loop. False = the bot stops."""
@@ -412,6 +423,7 @@ class Runner:
             )
             self._style_seen = g.style
             g.status(f"Interface style: {g.style}")
+            self._note_environment(g)
             self._progress_checks()
             # the Decorated Heroes auto switch alone also runs it: the events list is looked
             # at for the event's start (event_watch)

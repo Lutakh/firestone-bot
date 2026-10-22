@@ -421,6 +421,15 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
 - **Safety cap** (Workshop > Run behavior): 3 by default; 0 disables the cap. The original has loops
   that wait forever for a screen change (arena battle, liberation mission, hero upgrades,
   main-menu finder); a cap of N stops such a loop after N iterations.
+- **Send report** (bottom bar, next to Dry run): sends the maintainer a zip of the bot's
+  logs (newest 8 MB of text, the user folder written `~`), the newest screenshots of
+  `diagnostics/` (a box leaves them out), the settings without `DiscordID` and `ClientID`,
+  and the last environment the bot logged (game window, store, scale, style: an
+  `Environment:` line written when it changes and once a day, so it is there even when the
+  game was closed before the click). 20 MB at most, uploaded to the maintainer's server
+  (docs/REPORT_API.md) with the bot's client ID; the Discord ID goes with it only when its
+  box is ticked (ticked by default when the heartbeat is on). The player gets a report ID
+  to give on Discord; when the upload fails, Save as file keeps the zip.
 - **Heartbeat** (Workshop): off by default. Sends progress messages to the maintainer's log
   server only when the toggle is on AND a Discord ID is set. The bot never waits for the
   server: messages are sent in the background, and when the server is slow or down they

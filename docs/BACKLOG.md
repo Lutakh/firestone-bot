@@ -193,6 +193,26 @@
   not measured together), the arena's buy-more popup has one probe, the personal tree
   clicks blind, the map step does not prove the map is open.
 
+- New mission dialogs (Steam has the game update, Epic not yet; the owner's crops,
+  2026-10-22). In progress: a red Cancel left of an orange Speed up with a gem and a price
+  (paid with 1:17:16 left), so the AHK rule "orange = free" picked the paid button; the
+  v0.3.31 gem guard catches its gem at every aspect checked (margin 1.6x at 5:4, 3.4x at
+  1920x1009). Start: Start mission, then Complete instantly (gem) to its right, as before.
+  Fixed now (the owner's setup unchanged): a popup neither brown nor orange is captured
+  (mission-dialog-unknown.png) and closed instead of left open under the next map clicks;
+  a start popup still showing after Start is closed, and when it stays, the map search
+  stops (mission-start-stuck.png); the in-progress popup is read once it has scaled in.
+  To do with one uncropped 1:1 Steam capture of the new in-progress, start and free
+  dialogs: centre anchors for the MR_* / MS_* dialog entries (thirds-rule right/bottom
+  anchors put them 63 px off at 16:9, worse at 21:9, 4:3, 5:4), MR_MORE_THAN_3_MIN at
+  variation 2 (the exact brown covers ~6 of 41 band rows), the free state's look.
+
+- Send report (owner request, 2026-10-22): a button of the bottom bar uploads a zip of the
+  logs, the newest captures, the settings without DiscordID/ClientID and the last logged
+  environment to fs-bot-logs.lutak.ovh/api/report (docs/REPORT_API.md); the player gets an
+  ID for Discord, or saves the zip when the upload fails. The environment is logged as an
+  `Environment:` line by the environment check and at every cycle when it changed.
+
 - Heartbeat slowing the bot (owner, 2026-10-22; why it is off by default): every message
   was sent by the bot's own thread, which waited for fs-bot-logs.lutak.ovh (up to 10 s a
   message, unbounded while a DNS lookup hung), about 35 places a cycle. Fixed: messages

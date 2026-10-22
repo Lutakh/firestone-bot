@@ -13,6 +13,11 @@ The same server already receives the bot's heartbeats; that route stays as it is
 This file is the contract: the bot side is written against it. Anything the server session
 changes (URL, limits, headers, response) must be written back here.
 
+Status (2026-10-22): the server route is live (the owner); the bot side is
+`firestone_bot/report.py` and `firestone_bot/gui/report_dialog.py` (Send report in the
+bottom bar). Checked against the live server: a text body gives 400 "body is not a zip", a
+small zip gives 201 `{"id", "size", "expires"}`.
+
 ## Upload
 
 `POST https://fs-bot-logs.lutak.ovh/api/report`
@@ -26,7 +31,7 @@ Headers:
 | `X-Client-Id` | yes | the bot's `ClientID`, `YYYYMMDDHHMMSS-NNNNNN` (the heartbeat's `client_id`) |
 | `X-Bot-Version` | yes | e.g. `0.3.32` |
 | `X-Platform` | yes | `windows`, `macos` or `linux` |
-| `X-Discord-Id` | no | the player's Discord ID (digits) when set in the bot, else absent |
+| `X-Discord-Id` | no | the player's Discord ID (ASCII digits) when set in the bot and its box ticked in the dialog (ticked by default when the heartbeat is on), else absent |
 | `X-Report-Note` | no | the player's description, UTF-8 then percent-encoded, at most 500 characters once decoded |
 
 Body: the zip, raw (not multipart), at most **20 MB** (20,971,520 bytes).
@@ -72,20 +77,30 @@ Discord"), and on any failure offers to save the zip locally instead.
 - **Configuration** (environment): `REPORT_DIR`, `REPORT_MAX_BYTES` (20971520),
   `REPORT_RETENTION_DAYS` (30), `REPORT_STORAGE_MAX_BYTES` (5 GB), `REPORT_ADMIN_TOKEN`,
   `REPORT_DISCORD_WEBHOOK` (optional), rate limits.
+- **Early refusals** (400/413/429/503 decided from the headers): send the JSON answer, then
+  read and discard the rest of the body (up to the cap) before closing, or let the proxy do
+  a lingering close. The bot (Python urllib) sends the whole body before it reads any
+  answer: an answer followed by an immediate close reaches it as a cut connection, and the
+  player reads "the server cut the connection" instead of "try again in 30 min". Test it
+  with a client that does not read early answers, not only curl.
 - **Reverse proxy**: allow 20 MB bodies and 60 s uploads (nginx: `client_max_body_size 25m;`,
   `proxy_read_timeout 60s;`, and request buffering off or enough temp space).
 
 ## What the zip holds (made by the bot)
 
-- `report.json`: `{"version", "platform", "created_at", "client_id", "note", "environment":
-  {...}, "files": [...]}`; `environment` = the last environment block the bot logged (bot
-  version, OS, store, game window client size and position, maximized/fullscreen, DPI scale,
-  screen size, interface style, capture method), so it is there even when the game was
-  closed before the click.
+- `report.json`: `{"version", "platform", "created_at", "note", "system", "environment",
+  "environment_now", "files": [...]}`. No client id (the server has it from `X-Client-Id`;
+  a zip saved and posted publicly must not carry it). `system` = bot version, OS, Python,
+  screen size when the zip was made; `environment` = the last environment block the bot
+  logged (game window, store, client size and position, maximized/fullscreen, scale, DPI,
+  capture, interface style, plus the system fields), so it is there even when the game was
+  closed before the click; `environment_now` = the launcher's last environment check.
 - `logs/firestone-bot.log` and the kept days `logs/firestone-bot.log.YYYY-MM-DD` (the bot keeps
-  7 days; the report takes the newest up to about 8 MB).
-- `diagnostics/*.png`: the newest captures, within the remaining size budget.
-- `settings.ini` without `DiscordID` and `ClientID`.
+  7 days; the report takes the newest up to about 8 MB; the user's home folder is written
+  `~`).
+- `diagnostics/*.png`: the newest captures, within the remaining size budget, unless the
+  player unticked them.
+- `settings.ini` (the settings in use) without `DiscordID` and `ClientID`.
 
 ## Checks before telling the bot side it is ready
 
