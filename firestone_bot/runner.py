@@ -48,6 +48,7 @@ from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.game import BotStopped, Game, ScreenNotReached
 from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.platform import capture, process
+from firestone_bot.platform.types import GameWindowNotFound
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas, layouts
 
@@ -258,6 +259,11 @@ class Runner:
                 return
             except UserInterrupted:
                 continue
+            except GameWindowNotFound:
+                # paused while the game was closed (a restart): the run crashed here
+                # (owner, 2026-10-22); the next cycle launches the game
+                g.status("No game window after the pause; the next cycle starts the game")
+                return
         g.status("Could not reach the main screen after the pause; the cycle starts anyway")
 
     def _step(self, name: str, fn, town: bool = False) -> None:
