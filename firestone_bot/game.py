@@ -46,6 +46,10 @@ log = logging.getLogger("firestone_bot")
 
 DIAGNOSTICS_PER_NAME = 3  # newest captures kept of each kind (town-miss, research-no-node...)
 DIAGNOSTICS_TOTAL = 60  # and at most this many files in all
+# ...none older than the kept log days, and at most this much disk (the owner's folder
+# held 85 MB, captures of a kind that never came back were kept for weeks, 2026-10-22)
+DIAGNOSTICS_MAX_AGE_S = 7 * 24 * 3600
+DIAGNOSTICS_MAX_BYTES = 50 * 1024 * 1024
 _STAMPED = re.compile(r"^(?:\d{8}-)?\d{6}-(.+)$")
 
 
@@ -54,9 +58,12 @@ def prune_diagnostics(
     spare: str | None = None,
     per_name: int = DIAGNOSTICS_PER_NAME,
     total: int = DIAGNOSTICS_TOTAL,
+    max_age_s: float = DIAGNOSTICS_MAX_AGE_S,
+    max_bytes: int = DIAGNOSTICS_MAX_BYTES,
 ) -> None:
     """Delete old captures: keep the `per_name` newest of each kind, then the `total` newest
-    overall, by modification time; `spare` (the file just written) is never deleted.
+    overall, none older than `max_age_s` and the newest within `max_bytes` in all, by
+    modification time; `spare` (the file just written) is never deleted.
 
     The captures used to be named by time of day only and pruned by name, which kept the 40
     latest times of day: a capture taken before 23:57 was deleted as soon as it was written
@@ -70,17 +77,33 @@ def prune_diagnostics(
     files.sort(key=_mtime, reverse=True)  # newest first
     seen: dict[str, int] = {}
     kept = 1 if spare else 0
+    used = _size(spare) if spare else 0
+    oldest = time.time() - max_age_s
     for path in files:
         match = _STAMPED.match(os.path.basename(path))
         kind = match.group(1) if match else os.path.basename(path)
         seen[kind] = seen.get(kind, 0) + 1
-        if seen[kind] > per_name or kept >= total:
+        size = _size(path)
+        if (
+            seen[kind] > per_name
+            or kept >= total
+            or _mtime(path) < oldest
+            or used + size > max_bytes
+        ):
             try:
                 os.remove(path)
             except OSError:
                 pass
         else:
             kept += 1
+            used += size
+
+
+def _size(path: str) -> int:
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return 0
 
 
 def _mtime(path: str) -> float:

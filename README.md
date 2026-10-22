@@ -253,7 +253,8 @@ Every feature of a cycle (events, shop, each town building, guild, map, heroes) 
 one step. When its screen does not show after the click and one retry (network lag, a
 leftover dialog, an unlock animation such as a new war machine in the garage), or when
 the step fails, the bot logs it, keeps a capture in the diagnostics folder
-(`step-<name>.png`), closes what is open, goes back to the main screen (and reopens the
+(`step-<name>.png`; the folder keeps the 3 newest of a kind, 60 files and 50 MB at most,
+none older than 7 days), closes what is open, goes back to the main screen (and reopens the
 town for a town building) and carries on with the next step. Stop and the mouse-guard
 pause still unwind the whole cycle. Features verify their entry screen with the dialog's
 close button; the shop, engineer and arena log what they are about to do before they

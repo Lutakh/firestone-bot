@@ -907,6 +907,10 @@ def main(autostart: bool = False) -> int:
         handlers=[logfile.handler(base_dir())],  # one file a day, 7 days kept
     )
     _log_launch_context()
+    # old captures go at start too, not only when a new one is written
+    from firestone_bot.game import prune_diagnostics
+
+    prune_diagnostics(os.path.join(base_dir(), "diagnostics"))
     app = App(autostart=autostart)
     _start_stall_watchdog(app)
     app.run()

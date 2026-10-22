@@ -195,7 +195,8 @@ def test_prune_keeps_the_newest_of_each_kind(tmp_path):
     new = tmp_path / "20260924-120000-chaos-hit-not-taken.png"
     new.write_bytes(b"x")
     os.utime(new, (old - 200, old - 200))  # even a clock gone back keeps the new file
-    prune_diagnostics(str(tmp_path), spare=str(new))
+    # the age limit left out: the files carry 2023 dates
+    prune_diagnostics(str(tmp_path), spare=str(new), max_age_s=10**10)
     left = sorted(os.listdir(tmp_path))
     assert rare.name in left and new.name in left
     assert sum(name.endswith("town-open.png") for name in left) == 3
