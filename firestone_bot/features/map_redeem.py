@@ -11,6 +11,7 @@ from firestone_bot.state import MapState
 from firestone_bot.vision import atlas, gems
 
 PAID_OFF = "map_paid_off"  # Game.vars: a gem met after a click believed free: no more this run
+GEM_SEEN = "map_gem_seen"  # Game.vars: speed-ups in a row followed by a gem in the dialog
 CHECKS_CAP = 12  # completed missions claimed per visit (one per loop; SafetyCap 3 cut it short
 # with four missions done at once, owner's cycle 2026-09-07)
 
@@ -54,11 +55,15 @@ def _checks(g: Game) -> None:
                 g.click()
                 g.sleep(1000)
                 g.wait_still()
+                # the screen after a free speed-up was never captured: one a run
+                _diagnostic_once(g, "mission-after-speed-up.png")
                 if gems.shows_gem(g, atlas.MR_GEM_DIALOG_RECT, atlas.ANCHOR_CENTER):
-                    # a gem confirmation: never confirmed blind, no more speed-ups this run
-                    _paid_met(g, "a gem confirmation came after a speed-up click")
+                    # a gem confirmation: never confirmed blind; twice in a row, no more
+                    # speed-ups this run (a purple mission icon of the map could make one)
+                    _paid_met(g, "a gem showed after a speed-up click")
                     map_close(g)
                     return  # Goto, Troops
+                g.vars[GEM_SEEN] = 0
                 g.tap(atlas.MR_DIALOG_OK, 1000)
             else:
                 # check 2nd mission in case of greyed out first mission bug
@@ -72,9 +77,14 @@ def _checks(g: Game) -> None:
 
 
 def _paid_met(g: Game, what: str) -> None:
-    """A gem where a free button was expected: said, captured, and the bot's free
-    speed-ups and refreshes are off for the run (an important heartbeat says so)."""
+    """A gem where a free button was expected: said, captured and not confirmed; the
+    second time in a row, the bot's free speed-ups and refreshes are off for the run (an
+    important heartbeat says so)."""
     g.save_diagnostic("mission-gem-dialog.png")
+    g.vars[GEM_SEEN] = g.vars.get(GEM_SEEN, 0) + 1
+    if g.vars[GEM_SEEN] < 2:
+        g.status(f"Mission Check: {what}: not confirmed")
+        return
     g.status(f"Mission Check: {what}: not confirmed; free speed-ups are off until restart")
     if not g.vars.get(PAID_OFF):
         g.vars[PAID_OFF] = 1
@@ -105,8 +115,7 @@ def map_redeem(g: Game) -> None:
         g.click()
         g.sleep(1000)
     _checks(g)
-    cap = int(g.settings.get("SafetyCap") or 0)
-    n = 0
+    reset_done = False  # a paid map reset made this visit (MapReset)
     while True:  # Troops:
         g.toast("Troop Check", "Checking for idle troops.", 1.5)
         g.focus()
@@ -122,7 +131,7 @@ def map_redeem(g: Game) -> None:
         g.sleep(500)
         if g.found(atlas.MR_RESET_AVAILABLE):
             MapState.load(g.map_state_path).reset()
-            if g.settings.MapReset.strip() == "1":
+            if g.settings.MapReset.strip() == "1" and not reset_done:
                 g.move_to(atlas.MR_RESET_BUTTON)
                 g.toast("Reset mission", "Reset map mission", 1.5)
                 g.focus()
@@ -132,13 +141,12 @@ def map_redeem(g: Game) -> None:
                 g.move_to(atlas.MR_RESET_CONFIRM)
                 g.click()
                 g.sleep(500)
-                n += 1
-                # one paid reset a visit whatever SafetyCap (0 = none): the loop could
-                # spend gems on every pass (gem audit, 2026-10-22)
-                if n >= (min(cap, 1) if cap else 1):
-                    g.status("MapRedeem: one paid map reset this visit")
-                    break
+                # one paid reset a visit whatever SafetyCap (0 = none): the loop spent
+                # gems on every pass (gem audit, 2026-10-22); the new missions start
+                reset_done = True
                 continue  # Goto, Troops
+            if reset_done:
+                g.status("MapRedeem: one paid map reset this visit")
         break
     if g.settings.flag("Campaign"):
         claim_campaign(g)

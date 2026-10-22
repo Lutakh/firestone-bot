@@ -139,16 +139,18 @@ def test_a_gem_dialog_after_a_speed_up_is_never_confirmed():
     map_redeem._checks(g)
     ok = (atlas.MR_DIALOG_OK.x, atlas.MR_DIALOG_OK.y)
     assert g.clicks.count(EARLY) == 1 and ok not in g.clicks
+    assert not g.vars.get(map_redeem.PAID_OFF) and not g.beats  # once could be the map's purple
+    assert "Mission Check: a gem showed after a speed-up click: not confirmed" in g.lines
+    map_redeem._checks(g)  # the second time in a row: off for the run
+    assert g.clicks.count(EARLY) == 2 and ok not in g.clicks
     assert g.vars[map_redeem.PAID_OFF] == 1
-    beat = (
-        "Map missions: a gem confirmation came after a speed-up click, nothing confirmed "
-        "(see the log)"
-    )
+    beat = "Map missions: a gem showed after a speed-up click, nothing confirmed (see the log)"
     assert g.beats == [(beat, True)]
     assert "mission-gem-dialog.png" in g.diagnostics
+    assert "mission-after-speed-up.png" in g.diagnostics  # the screen, once a run
     g.dialog_gem = False
     map_redeem._checks(g)  # the next visit of the run: no speed-up click at all
-    assert g.clicks.count(EARLY) == 1
+    assert g.clicks.count(EARLY) == 2
 
 
 def test_a_paid_map_reset_happens_once_a_visit_whatever_the_safety_cap(tmp_path):
