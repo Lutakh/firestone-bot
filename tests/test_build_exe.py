@@ -124,3 +124,25 @@ def test_target_exe_per_os(tree, monkeypatch):
     )
     monkeypatch.setattr(build_exe.sys, "platform", "win32")
     assert build_exe.target_exe() == os.path.join(str(dist), "FirestoneBot.exe")
+
+
+def test_a_leftover_still_in_use_is_renamed_aside(tmp_path, monkeypatch):
+    """A Chrome native host kept a DLL of _internal.old loaded and every build failed
+    (2026-10-22): the leftover is renamed aside and the build goes on."""
+    old = tmp_path / "_internal.old"
+    old.mkdir()
+    (old / "VCRUNTIME140.dll").write_bytes(b"x")
+    stale = tmp_path / "_internal.old.1700000000"
+    stale.mkdir()
+    real_rmtree = build_exe.shutil.rmtree
+
+    def rmtree(path, *args, **kwargs):
+        if os.path.basename(path) == "_internal.old":
+            raise PermissionError(5, "Access is denied")
+        real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(build_exe.shutil, "rmtree", rmtree)
+    build_exe._clear_leftovers(str(old))
+    assert not old.exists() and not stale.exists()
+    asides = [p.name for p in tmp_path.iterdir() if p.name.startswith("_internal.old.")]
+    assert len(asides) == 1 and (tmp_path / asides[0] / "VCRUNTIME140.dll").exists()

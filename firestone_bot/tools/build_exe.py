@@ -16,10 +16,12 @@ without the keychain it stays ad-hoc signed and macOS asks for them again.
 
 from __future__ import annotations
 
+import glob
 import os
 import shutil
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 STAGE = os.path.join(ROOT, "build", "stage")
@@ -51,6 +53,22 @@ def bot_running() -> bool:
     return False
 
 
+def _clear_leftovers(old: str) -> None:
+    """Remove the *.old left by earlier builds. One still in use is renamed aside instead of
+    failing the build: another program can keep a DLL of it loaded for hours (a Chrome native
+    host held _internal.old/VCRUNTIME140.dll, 2026-10-22); a later build removes it."""
+    for path in [old, *glob.glob(glob.escape(old) + ".*")]:
+        if not os.path.exists(path):
+            continue
+        try:
+            (shutil.rmtree if os.path.isdir(path) else os.remove)(path)
+        except OSError:
+            if path == old:
+                aside = f"{old}.{int(time.time())}"
+                os.rename(old, aside)
+                print(f"{old} is still in use: renamed {os.path.basename(aside)}")
+
+
 def _swap(name: str, src: str, dest: str | None = None) -> None:
     """Replace dest/name (dist/FirestoneBot by default) by src/name: the old item is renamed
     aside first (fails cleanly when it is in use, nothing is deleted), then the new one is
@@ -58,8 +76,7 @@ def _swap(name: str, src: str, dest: str | None = None) -> None:
     build)."""
     dst = os.path.join(dest or DIST, name)
     old = dst + ".old"
-    if os.path.exists(old):
-        (shutil.rmtree if os.path.isdir(old) else os.remove)(old)
+    _clear_leftovers(old)
     if os.path.exists(dst):
         os.rename(dst, old)
     shutil.move(os.path.join(src, name), dst)
