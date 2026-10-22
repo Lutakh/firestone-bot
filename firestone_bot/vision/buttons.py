@@ -21,15 +21,21 @@ FILL = 0.5  # share of the band that must be green
 
 
 def green_boxes(
-    g, rect: tuple[int, int, int, int], min_w: int = MIN_W, min_h: int = MIN_H, variation: int = 30
+    g,
+    rect: tuple[int, int, int, int],
+    min_w: int = MIN_W,
+    min_h: int = MIN_H,
+    variation: int = 30,
+    anchor=None,
 ) -> list[tuple[int, int, int, int]]:
     """Logical (x1, y1, x2, y2) of every green button inside `rect`, left to right.
 
     Buttons side by side (one per card) are told apart by their columns; two buttons in the
-    same columns but on different rows would be reported as one box.
+    same columns but on different rows would be reported as one box. `anchor` maps the
+    whole rect (a centred dialog: ANCHOR_CENTER); None keeps a default anchor per corner.
     """
     x1, y1, x2, y2 = rect
-    img = g.region_image(rect)
+    img = g.region_image(rect) if anchor is None else g.region_image(rect, anchor)
     mask = match_mask(img, atlas.GREEN_BUTTON, variation)
     h, w = mask.shape
     if not h or not w:
@@ -59,6 +65,9 @@ def green_boxes(
     return out
 
 
-def green_buttons(g, rect: tuple[int, int, int, int], **kw) -> list[Point]:
-    """Centres of the green buttons inside `rect`, left to right."""
-    return [Point((b[0] + b[2]) // 2, (b[1] + b[3]) // 2) for b in green_boxes(g, rect, **kw)]
+def green_buttons(g, rect: tuple[int, int, int, int], anchor=None, **kw) -> list[Point]:
+    """Centres of the green buttons inside `rect`, left to right (clicked with `anchor`)."""
+    return [
+        Point((b[0] + b[2]) // 2, (b[1] + b[3]) // 2, anchor)
+        for b in green_boxes(g, rect, anchor=anchor, **kw)
+    ]

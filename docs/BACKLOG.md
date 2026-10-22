@@ -193,6 +193,15 @@
   not measured together), the arena's buy-more popup has one probe, the personal tree
   clicks blind, the map step does not prove the map is open.
 
+- Mystery boxes / Oracle's gifts not opened on the latest game version (Qualitas's video,
+  Steam, classic style, 2026-10-22): the gift dialog's x1 sits ~50 px lower (logical
+  850..1068 x 912..982) and the AHK click (914,898) landed above it. Fixed: the green
+  buttons are located in GIFT_BUTTON_ROW (both rows), centre-anchored, the rightmost
+  clicked; the AHK points stay as the fallback. Not seen yet on the latest version: the
+  gift result screen (open more) and, in the new style, the dialog's X (its tap point
+  NS_CHEST_DIALOG_CLOSE 1413,86 falls inside the wider new dialog; its X is near
+  1585,84). The chest row NS_CHEST_BUTTON_ROW has the same per-corner anchors.
+
 - New mission dialogs (Steam has the game update, Epic not yet; the owner's crops,
   2026-10-22). In progress: a red Cancel left of an orange Speed up with a gem and a price
   (paid with 1:17:16 left), so the AHK rule "orange = free" picked the paid button; the

@@ -341,6 +341,12 @@ GIFT_OPEN_BUTTONS = (  # OraclesGift.ahk:25-43, one row lower than chests
     (Probe(1090, 862, 1173, 930, GREEN_BUTTON, 1, "gift_open_10"), Point(1089, 898)),
     (Probe(860, 862, 1055, 930, GREEN_BUTTON, 1, "gift_open_1"), Point(914, 898)),
 )
+# The gift dialog's button row, wherever it sits: the latest game version (Steam,
+# Qualitas's video, 2026-10-22) draws its x1 at 850..1068 x 912..982, about 50 px below
+# the AHK row (862..930), and the fixed click (914, 898) landed above the button. Its
+# green buttons are located in this band, which holds both rows.
+GIFT_BUTTON_ROW = (600, 850, 1320, 995)
+GIFT_BUTTON_MIN_W = 100  # logical px: the x1 button's green is about 158 wide (its icon is not)
 CHEST_EQUIP_READY = Probe(860, 860, 1084, 892, GREEN_BUTTON, 1, "chest_equip_ready")  # :44
 CHEST_EQUIP = Point(964, 880)  # :46
 CHEST_OPEN_MORE_READY = Probe(1773, 932, 1831, 976, GREEN_BUTTON, 1, "chest_open_more")  # :53
