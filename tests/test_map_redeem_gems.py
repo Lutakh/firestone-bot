@@ -171,3 +171,14 @@ def test_a_paid_map_reset_happens_once_a_visit_whatever_the_safety_cap(tmp_path)
     map_redeem.map_redeem(g)
     assert len(resets) == 1
     assert "MapRedeem: one paid map reset this visit" in g.lines
+
+
+def test_a_popup_neither_brown_nor_orange_is_closed():
+    """The else-branch used to leave the popup open (AHK); the next map points could land on
+    its paid Speed up or its Cancel."""
+    g = FakeMap()
+    g.found = lambda probe: False
+    map_redeem._checks(g)
+    close = (atlas.MAP_POPUP_CLOSE.x, atlas.MAP_POPUP_CLOSE.y)
+    assert g.clicks[-1] == close
+    assert g.diagnostics == ["mission-dialog-unknown.png"]

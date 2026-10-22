@@ -37,6 +37,7 @@ def _checks(g: Game) -> None:
         else:
             # look for greater than 3 minutes left
             g.tap(atlas.MR_FIRST_MISSION, 1000)
+            g.wait_still()  # fast timing: the popup has scaled in before it is read
             if g.found(atlas.MR_MORE_THAN_3_MIN):
                 g.toast("Mission Check", "Mission has more than 3 minutes reamining", 1.5)
                 map_close(g)
@@ -69,6 +70,11 @@ def _checks(g: Game) -> None:
                 # check 2nd mission in case of greyed out first mission bug
                 if g.found(atlas.MR_SECOND_MISSION_NOT_DONE):
                     g.toast("Mission Check", "Second mission is not complete", 1.5)
+                # Python-only: a popup neither brown nor orange (another layout, another
+                # aspect) was left open, and the map points clicked next could land on
+                # its paid Speed up or its Cancel (new game version, 2026-10-22)
+                _diagnostic_once(g, "mission-dialog-unknown.png")
+                map_close(g)
                 return  # Goto, Troops (also the fall-through case)
         n += 1
         if cap and n >= cap:

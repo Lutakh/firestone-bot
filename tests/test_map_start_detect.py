@@ -36,6 +36,8 @@ class FakeGame:
         self.started = 0
         self.troops_until = troops_until
         self.log = []
+        self.popup = False  # a start popup is open
+        self.stuck = False  # the popup ignores Start and close taps
 
     def save_diagnostic(self, name):
         pass
@@ -56,10 +58,21 @@ class FakeGame:
         pass
 
     def click(self):
-        self.started += 1
+        if not self.stuck:
+            self.started += 1
+            self.popup = False
 
     def click_at(self, x, y, anchor=None):
         self.log.append(("click", x, y))
+        self.popup = True
+
+    def tap(self, p, settle_ms=1500, expect=None):
+        self.log.append(("tap", p.x, p.y))
+        if not self.stuck:
+            self.popup = False
+
+    def wait_gone(self, probe, timeout_ms=0):
+        return not self.found(probe)
 
     def region_image(self, rect, anchor=None):
         x1, y1, x2, y2 = rect
@@ -67,7 +80,7 @@ class FakeGame:
 
     def found(self, probe, variation=None):
         if probe is atlas.MS_START_BUTTON:
-            return True
+            return self.popup
         if probe is atlas.MAP_TROOP_IDLE:
             return self.started < self.troops_until
         return False
@@ -123,8 +136,32 @@ def test_a_start_button_with_a_gem_is_never_clicked():
     """Green is no proof of free (gem audit, 2026-10-22): a gem in the Start button keeps
     the mission unstarted and its popup is closed."""
     g = FakeGame({0: []}, troops_until=5)
+    g.popup = True
     g.region_image = lambda rect, anchor=None: np.full(
         (rect[3] - rect[1], rect[2] - rect[0], 3), (0x9D, 0x00, 0x9F), np.uint8
     )
     assert not map_start._start_ready(g)
     assert "Mission Start: the Start button shows a gem, not clicked" in g.log
+
+
+def test_a_start_popup_left_open_stops_the_map_search(monkeypatch):
+    """A Start that does not close the popup: closed once, and when it stays, no other map
+    point is clicked onto it (its Complete instantly costs gems; new game version)."""
+    g = FakeGame({0: [(500, 400), (700, 420)]}, troops_until=9)
+    g.stuck = True
+    _run(g, FakeState(), monkeypatch, [])
+    clicks = [e for e in g.log if isinstance(e, tuple) and e[0] == "click"]
+    assert len(clicks) == 1 and g.started == 0
+    assert "Mission Start: the popup stays open after Start; map search stopped" in g.log
+
+
+def test_no_alignment_under_a_stuck_popup(monkeypatch):
+    """A popup stuck during the pass with the map moved: the map is dragged back, but not
+    measured under the popup (a swallowed drag would turn the alignment off for the run)."""
+    s = atlas.MAP_DETECT_SCROLL
+    g = FakeGame({0: [], s: [], -s: [(650, 900)]}, troops_until=9)
+    g.stuck = True
+    aligned = []
+    _run(g, FakeState(), monkeypatch, aligned)
+    drags = [e[1] for e in g.log if isinstance(e, tuple) and e[0] == "drag"]
+    assert drags == [s, -s, -s, s] and aligned == []

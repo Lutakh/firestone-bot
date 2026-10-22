@@ -13,6 +13,7 @@ from firestone_bot.state import MapState, ahk_now
 from firestone_bot.vision import atlas, gems
 
 MAX_DETECT_ROUNDS = 5  # safety: full searches of the map in one visit
+START_CLOSE_MS = 3000  # the start popup closes after Start, or after a close tap
 
 
 def _start_ready(g: Game) -> bool:
@@ -24,6 +25,21 @@ def _start_ready(g: Game) -> bool:
         g.status("Mission Start: the Start button shows a gem, not clicked")
         g.save_diagnostic("mission-start-gem.png")
         return False
+    return True
+
+
+def _left_open(g: Game) -> bool:
+    """After a Start click: True when the start popup is still there after a close tap.
+    The next map point would be clicked onto it, maybe on its paid Complete instantly
+    (new game version, 2026-10-22), so the map search stops."""
+    if g.wait_gone(atlas.MS_START_BUTTON, START_CLOSE_MS):
+        return False
+    map_close(g)
+    if g.wait_gone(atlas.MS_START_BUTTON, START_CLOSE_MS):
+        g.status("Mission Start: the popup stayed open after Start; closed")
+        return False
+    g.status("Mission Start: the popup stays open after Start; map search stopped")
+    g.save_diagnostic("mission-start-stuck.png")
     return True
 
 
@@ -55,10 +71,11 @@ def _undrag_if_needed(g: Game, y: int) -> None:
         _drag_map(g, -atlas.MAP_NORTH_DRAG_DY)
 
 
-def _detect_and_click(g: Game, state: MapState, offset: int) -> tuple[bool, int]:
+def _detect_and_click(g: Game, state: MapState, offset: int) -> tuple[bool, int, bool]:
     """One detection pass on the map as currently shown (`offset`: how far it was dragged
     down, 0 = in place). Missions are remembered at their in-place position so a mission
-    seen after a drag is not clicked twice. Returns (idle troops remain, missions started)."""
+    seen after a drag is not clicked twice. Returns (idle troops remain, missions started,
+    a start popup stayed open)."""
     from firestone_bot.features import map_detect
 
     points = map_detect.find_missions(g)
@@ -79,14 +96,16 @@ def _detect_and_click(g: Game, state: MapState, offset: int) -> tuple[bool, int]
             g.toast("Mission Start", "Mission found - Starting", 1.5)
             g.click()
             g.sleep(500)
+            if _left_open(g):
+                return False, started, True
             started += 1
         else:
             map_close(g)  # mission in progress or unavailable: close the pop-up
         g.toast("Troop Check", "Looking for more idle troops", 2)
         if not g.found(atlas.MAP_TROOP_IDLE):
             g.toast("Troop Check", "No idle troops found - ending mission search", 2)
-            return False, started
-    return g.found(atlas.MAP_TROOP_IDLE), started
+            return False, started, False
+    return g.found(atlas.MAP_TROOP_IDLE), started, False
 
 
 def map_start_detected(g: Game, state: MapState) -> None:
@@ -98,7 +117,7 @@ def map_start_detected(g: Game, state: MapState) -> None:
     from firestone_bot.features import map_align
 
     scroll = atlas.MAP_DETECT_SCROLL
-    moved = False
+    moved = stuck = False
     try:
         # The map is searched again as long as missions keep being started: an icon in the
         # middle of the map can be hidden by its neighbours and only shows once one of them
@@ -114,7 +133,7 @@ def map_start_detected(g: Game, state: MapState) -> None:
                     g.status("Map: idle troops left, looking beyond the edge")
                     _drag_map(g, offset)
                     moved = True
-                more, n = _detect_and_click(g, state, offset)
+                more, n, stuck = _detect_and_click(g, state, offset)
                 started += n
                 if offset:
                     _drag_map(g, -offset)
@@ -136,7 +155,9 @@ def map_start_detected(g: Game, state: MapState) -> None:
             g.save_diagnostic("map-troops-left.png")
             break
     finally:
-        if moved:
+        # never measured under a stuck popup: a drag it swallows would turn the alignment
+        # off for the run; the next visit's alignment puts the map back
+        if moved and not stuck:
             map_align.align_map(g)  # recentre exactly before leaving
 
 
@@ -169,6 +190,9 @@ def map_start(g: Game) -> None:
                 g.toast("Mission Start", "Mission found - Starting", 1.5)
                 g.click()
                 g.sleep(500)
+                if _left_open(g):
+                    _undrag_if_needed(g, y)
+                    return
                 _undrag_if_needed(g, y)
                 g.toast("Troop Check", "Looking for more idle troops", 2)
                 if g.found(atlas.MAP_TROOP_IDLE):
