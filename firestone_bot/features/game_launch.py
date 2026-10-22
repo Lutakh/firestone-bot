@@ -8,10 +8,11 @@
 
 from __future__ import annotations
 
+import sys
 import time
 
 from firestone_bot.game import BotStopped, Game
-from firestone_bot.platform import process
+from firestone_bot.platform import process, window
 from firestone_bot.platform.window import GameWindowNotFound, find_game_window
 from firestone_bot.vision import atlas
 
@@ -34,6 +35,36 @@ def wait_for_start_button(g: Game, timeout_s: float = START_BUTTON_TIMEOUT_S) ->
                 return True
         g.sleep(5000)
     return False
+
+
+MAXIMIZED = "game_maximized"  # Game.vars: the game window was maximized at the last cycle
+
+
+def note_window(g: Game) -> None:
+    """Remember whether the game window is maximized (read at every cycle start)."""
+    win = getattr(g, "window", None)
+    if win is not None and win.client.w > 0:
+        g.vars[MAXIMIZED] = bool(win.maximized)
+
+
+def restore_maximized(g: Game) -> None:
+    """Maximize the relaunched game window when it was maximized before (Windows: a user
+    found the game no longer maximized after the restarts, 2026-10-22). macOS keeps its
+    zoom; a fullscreen or a resized window of the user is left as it is."""
+    if sys.platform != "win32" or getattr(g, "dry_run", False):
+        return
+    if not getattr(g, "vars", {}).get(MAXIMIZED):
+        return
+    try:
+        win = find_game_window()
+    except GameWindowNotFound:
+        return
+    if win.maximized or win.fullscreen:
+        return
+    window.maximize(win)
+    g.sleep(1000)
+    g.focus()
+    g.status("Game launch: the game window is maximized again, as before the relaunch")
 
 
 def wait_for_game(g: Game, timeout_s: float = WINDOW_TIMEOUT_S) -> bool:
@@ -80,6 +111,7 @@ def launch_game(g: Game) -> bool:
     g.settings.save()
     if wait_for_start_button(g):
         g.status("Game launch: start button clicked, resuming")
+        restore_maximized(g)
         return True
     if platform == "steam":
         # black window after the launch: restart the Steam client and try once more
@@ -93,6 +125,7 @@ def launch_game(g: Game) -> bool:
             process.launch_game(platform)
         if wait_for_game(g) and wait_for_start_button(g):
             g.status("Game launch: start button clicked after a Steam restart, resuming")
+            restore_maximized(g)
             return True
     g.status("Game launch: start button not found in time")
     return False

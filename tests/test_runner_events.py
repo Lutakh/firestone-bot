@@ -216,3 +216,24 @@ def test_auto_alone_looks_again_after_a_detected_reset(cycle):
     assert _names(steps)[:4] == ["Events", "Daily shop", "Events", "Mail"]
     assert g.openings == 1 and g.card_taps() == [0]
     assert g.settings.flag("EventDecoratedHeroes")
+
+
+@pytest.mark.parametrize("restarts", ["0", "1"])
+def test_a_restart_a_feature_asks_for_obeys_the_restart_switch(cycle, monkeypatch, restarts):
+    """A user with game restarts off had the game restarted once or twice a day for the chaos
+    rift, and found it no longer maximized (2026-10-22): asked-for restarts obey the switch."""
+    r, g, _ = cycle(reset=False)
+    g.settings.set("RestartGame", restarts)
+    done = []
+    monkeypatch.setattr(
+        runner_mod.restart_game_routine, "restart_game_routine", lambda game: done.append(1) or True
+    )
+    monkeypatch.setattr(r, "_due", lambda game: False)
+    g.vars["restart_requested"] = "the chaos rift Hit button stayed grey with a free token loaded"
+    r._cycle()
+    assert bool(done) == (restarts == "1")
+    declined = (
+        "Game restart asked for (the chaos rift Hit button stayed grey with a free token "
+        "loaded), but game restarts are off: not restarted"
+    )
+    assert (declined in g.lines) == (restarts == "0")

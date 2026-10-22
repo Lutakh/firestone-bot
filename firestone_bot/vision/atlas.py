@@ -794,6 +794,9 @@ RS_SLOTS_FULL_CREAM = Probe(
     1090, 641, 1110, 661, 0xE8D1B7, 25, "rs_slots_full_cream", ANCHOR_CENTER
 )
 RS_SLOTS_FULL_CLOSE = Point(1370, 355, ANCHOR_CENTER)
+# Sky left of the research popup and above the tree's top row: a tap there closes the
+# popup (seen 2026-10-09) when its close button does not read
+RS_POPUP_OUTSIDE = Point(100, 150, ANCHOR_CENTER)
 # Slot panels (bottom-left anchored). The two fixed button zones of 2026-09-08 were measured
 # on the Mac's own aspect and missed at 2560x1302: the bot read the running slot as finished
 # and clicked its orange "Speed up" gem button (2026-09-09). The buttons are now looked up as
@@ -994,6 +997,8 @@ LIB_HOVER = Point(1650, 500)  # :14
 # --- MapRedeem.ahk --------------------------------------------------------------------------
 MR_FREE_RESET = Probe(221, 878, 277, 891, ORANGE_2, 3, "mr_free_reset")  # :13
 MR_FREE_RESET_BUTTON = Point(173, 918)  # :15
+# the whole "Refresh Now" button (owner's map, 2026-10-22: orange, a gem and "120")
+MR_REFRESH_RECT = (95, 869, 297, 976)
 MR_NO_MISSIONS = Probe(117, 249, 208, 334, 0x1452B4, 3, "mr_no_missions")  # :25
 MR_MISSION_DONE = Probe(207, 305, 244, 348, GREEN_BUTTON, 3, "mr_mission_done")  # :33
 MR_FIRST_MISSION = Point(162, 334)  # :35
@@ -1001,6 +1006,9 @@ MR_DIALOG_OK = Point(971, 628)  # :39
 MR_MORE_THAN_3_MIN = Probe(1427, 730, 1481, 762, 0x916A38, 0, "mr_more_than_3_min")  # :50
 MR_FREE_EARLY = Probe(1427, 730, 1481, 762, ORANGE_1, 10, "mr_free_early")  # :57
 MR_FREE_EARLY_BUTTON = Point(1365, 758)  # :59
+# around the mission's speed-up button, wide: a gem anywhere in it means the button is
+# paid (not measured in today's interface; a reward gem in it only skips a free click)
+MR_EARLY_RECT = (1100, 690, 1600, 830)
 MR_SECOND_MISSION_NOT_DONE = Probe(205, 443, 242, 484, GREEN_BUTTON, 3, "mr_second_not_done")  # :71
 MR_RESET_AVAILABLE = Probe(104, 878, 300, 977, 0xED00EF, 3, "mr_reset_available")  # :92
 MR_RESET_BUTTON = Point(200, 930)  # :102

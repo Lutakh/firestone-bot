@@ -8,7 +8,7 @@ from firestone_bot.features.map_close import map_close
 from firestone_bot.features.map_start import map_start
 from firestone_bot.game import Game
 from firestone_bot.state import MapState
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, gems
 
 CHECKS_CAP = 12  # completed missions claimed per visit (one per loop; SafetyCap 3 cut it short
 # with four missions done at once, owner's cycle 2026-09-07)
@@ -40,6 +40,13 @@ def _checks(g: Game) -> None:
                 map_close(g)
                 return  # Goto, Troops
             if g.found(atlas.MR_FREE_EARLY):
+                # orange is no proof of free: a paid button carries a gem (three users'
+                # missions completed with gems after a game update, 2026-10-22)
+                if gems.shows_gem(g, atlas.MR_EARLY_RECT):
+                    g.status("Mission Check: the speed-up button costs gems, not clicked")
+                    _diagnostic_once(g, "mission-paid-speed-up.png")
+                    map_close(g)
+                    return  # Goto, Troops
                 g.move_to(atlas.MR_FREE_EARLY_BUTTON)
                 g.toast("Mission Check", "Mission can be completed early for free", 1.5)
                 g.click()
@@ -56,12 +63,23 @@ def _checks(g: Game) -> None:
             return
 
 
+def _diagnostic_once(g: Game, name: str) -> None:
+    """One capture of a kind a session: the paid buttons of today's interface."""
+    key = f"map_diag:{name}"
+    if not g.vars.get(key):
+        g.vars[key] = 1
+        g.save_diagnostic(name)
+
+
 def map_redeem(g: Game) -> None:
     g.focus()
     # check if missions can be reset for free
     g.toast("Mission Restart", "Checking if we can reset missions for free", 1.5)
     g.focus()
-    if g.found(atlas.MR_FREE_RESET):
+    if g.found(atlas.MR_FREE_RESET) and gems.shows_gem(g, atlas.MR_REFRESH_RECT):
+        g.status("Mission Restart: the refresh button costs gems, not clicked")
+        _diagnostic_once(g, "mission-paid-refresh.png")
+    elif g.found(atlas.MR_FREE_RESET):
         g.move_to(atlas.MR_FREE_RESET_BUTTON)
         g.toast("Mission Restart", "WOOHOO! FREE BUTTON!", 1.5)
         g.click()

@@ -270,8 +270,8 @@ class FakeLibrary:
             self._start(self.popup)
             if self.window is None:
                 self.popup = None
-        elif p is atlas.RS_POPUP_CLOSE:
-            self.popup = None
+        elif p is atlas.RS_POPUP_CLOSE or p is atlas.RS_POPUP_OUTSIDE:
+            self.popup = None  # its close button, or a tap beside it
         elif p is not atlas.RS_FIRESTONE_TREE:
             assert self.popup is None, "a box tapped over an open popup"
             node = self.node_at(p.x, p.y)
@@ -829,7 +829,8 @@ def test_an_unknown_window_stops_the_search_without_a_wheel(fake):
         g.statuses
     )
     assert len(g.wheels) == wheels  # nothing wheeled into the window
-    assert len(g.taps) == taps  # nor tapped
+    outside = (atlas.RS_POPUP_OUTSIDE.x, atlas.RS_POPUP_OUTSIDE.y)
+    assert set(g.taps[taps:]) <= {outside}  # only taps beside the popup, to close it
     assert g.statuses[-1].endswith("next search in 3 min")
 
 
@@ -909,3 +910,25 @@ def test_one_press_the_game_ignored_moves_on_to_the_next_box(fake):
     assert "Research: the Research button of Energy Heroes did not start a research" in g.statuses
     assert "diag:research-press.png" in g.statuses
     assert not any("window stays" in s for s in g.statuses)
+
+
+def test_a_popup_whose_close_button_does_not_read_still_starts(fake, monkeypatch):
+    """Three users' logs (2026-10-22): "the popup of <box> did not open", then every other
+    box "lost from view". The popup is told by its green button or its dim, and started."""
+    g = fake([None, None])
+    real = g.found
+    monkeypatch.setattr(g, "found", lambda p: False if p is atlas.RS_POPUP_CLOSE_X else real(p))
+    assert research.start_research(g, 0)
+    assert g.popups == ["Energy Heroes"] and g.popup is None
+    assert not any("did not open" in s or "lost from view" in s for s in g.statuses)
+
+
+def test_a_locked_popup_whose_close_button_does_not_read_is_closed_beside_it(fake, monkeypatch):
+    g = fake([None, None], tree=xiii(locked=("Rage Heroes", "Energy Heroes", "Mana Heroes")))
+    real = g.found
+    monkeypatch.setattr(g, "found", lambda p: False if p is atlas.RS_POPUP_CLOSE_X else real(p))
+    assert not research.start_research(g, 0)
+    assert g.popups == ["Energy Heroes", "Mana Heroes", "Rage Heroes"] and g.popup is None
+    outside = (atlas.RS_POPUP_OUTSIDE.x, atlas.RS_POPUP_OUTSIDE.y)
+    assert g.taps.count(outside) == 3
+    assert g.offset == 0

@@ -24,6 +24,7 @@ from firestone_bot.features import multiplier, token_counter
 from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos_books import buy_books
 from firestone_bot.game import Game
+from firestone_bot.platform import process
 from firestone_bot.vision import atlas
 
 
@@ -142,6 +143,14 @@ def _open_rift(g: Game) -> None:
     g.sleep(2000)
 
 
+STUCK_PID = "chaos_stuck_pid"  # Game.vars: the game process whose Hit button stayed grey
+
+
+def _game_pid() -> int | None:
+    p = process.find_game_process()
+    return p.pid if p is not None else None
+
+
 def hit_chaos(g: Game) -> None:
     # After the day's hits the rift is opened again only when it shows its dot: with
     # MaxChaos asking for every free moonstone, a moonstone still left is then used.
@@ -153,6 +162,11 @@ def hit_chaos(g: Game) -> None:
     need_books = g.settings.flag("ChaosBooks")
     if not (need_hits or need_books):
         return  # nothing left for today: the rift is not opened again until the reset
+    stuck = g.vars.get(STUCK_PID)
+    if stuck is not None and stuck == _game_pid():
+        # the game bug a restart fixes, and no restart came (game restarts off): the
+        # rift is not reopened at every cycle for nothing
+        return
     g.focus()
     # Check for Chaos notification on guild screen
     if not g.found(atlas.CHAOS_DOT):
@@ -236,6 +250,7 @@ def hit_chaos(g: Game) -> None:
                 g.vars["restart_requested"] = (
                     "the chaos rift Hit button stayed grey with a free token loaded"
                 )
+                g.vars[STUCK_PID] = _game_pid()  # until the game is started again
             break
         token = _hit_button_token(g)
         if token != "free":

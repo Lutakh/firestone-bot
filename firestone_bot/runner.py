@@ -358,6 +358,13 @@ class Runner:
         cycle_start = _ms()
         g.vars["chests_opened"] = 0  # counted by open_chest_type, read by the exotic merchant
         requested = self._restart_request(g)
+        if requested and not s.flag("RestartGame"):
+            # a user with game restarts off had the game restarted once or twice a day for
+            # the chaos rift, and found it no longer maximized (2026-10-22)
+            g.status(
+                f"Game restart asked for ({requested}), but game restarts are off: not restarted"
+            )
+            requested = ""
         if requested or (s.flag("RestartGame") and (s.flag("RestartGameTest") or self._due(g))):
             if requested:
                 g.status(f"Game restart: {requested}")
@@ -382,6 +389,7 @@ class Runner:
             return self._launch_failed(g)
         self._launch_failures = 0
         g.focus()
+        game_launch.note_window(g)
         with self._timed("main screen"):
             # do main screen sections
             g.heartbeat("Starting Bot", important=True)

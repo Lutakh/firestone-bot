@@ -142,3 +142,29 @@ def test_dry_runs_and_runs_of_n_cycles_still_stop(monkeypatch, dry_run, max_cycl
     assert r._launch_failed(g) is False
     assert g.slept == []
     assert g.log[-1] == "The game could not be started; stopping"
+
+
+def test_chaos_waits_for_a_new_game_process_after_a_stuck_hit_button(monkeypatch):
+    """With game restarts off, the restart the stuck Hit button asks for does not come: the
+    rift is not reopened at every cycle until the game is started again."""
+    from firestone_bot.features import chaos
+
+    class Settings:
+        @staticmethod
+        def flag(key):
+            return True
+
+    class G:
+        def __init__(self):
+            self.vars = {chaos.STUCK_PID: 1234}
+            self.settings = Settings()
+
+        def focus(self):
+            raise AssertionError("the rift was looked at")
+
+    monkeypatch.setattr(chaos.daily, "chaos_left", lambda s: 5)
+    monkeypatch.setattr(chaos, "_game_pid", lambda: 1234)
+    chaos.hit_chaos(G())  # same game process: nothing
+    monkeypatch.setattr(chaos, "_game_pid", lambda: 5678)
+    with pytest.raises(AssertionError, match="looked at"):
+        chaos.hit_chaos(G())  # a new game process: the rift is looked at again

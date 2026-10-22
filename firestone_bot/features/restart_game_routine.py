@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import time
 
-from firestone_bot.features.game_launch import wait_for_start_button
+from firestone_bot.features.game_launch import restore_maximized, wait_for_start_button
 from firestone_bot.game import Game
 from firestone_bot.platform import process
 
@@ -61,6 +61,7 @@ def restart_game_routine(g: Game) -> bool:
         # 5. resume or retry
         if pixel_found:
             g.status("Game restart: start screen found, resuming the cycle")
+            restore_maximized(g)
             g.heartbeat("Pixel found. Resuming bot.", important=True)
             g.vars["lastRestartTime"] = int(time.monotonic() * 1000)
             return True

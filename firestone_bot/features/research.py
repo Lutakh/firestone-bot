@@ -553,12 +553,20 @@ POPUP_POLL_MS = 250
 
 
 def _popup_open(g: Game) -> bool:
-    """The tapped box's popup is open (its close button), waited for POPUP_WAIT_MS more: the
-    tap itself waits 800 ms (fast timing: for the screen to change), a hitch of the game
-    takes longer."""
+    """The tapped box's popup is open, waited for POPUP_WAIT_MS more: the tap itself waits
+    800 ms (fast timing: for the screen to change), a hitch of the game takes longer.
+
+    Its close button, its green Research button, or the dim it puts over the library's own
+    close button: on users' machines the popup's close button did not read, "the popup did
+    not open", and the popup left open hid every other box ("lost from view") at every
+    search of a night (three users' logs, 2026-10-22)."""
     waited = 0
     while True:
-        if g.found(atlas.RS_POPUP_CLOSE_X):
+        if (
+            g.found(atlas.RS_POPUP_CLOSE_X)
+            or g.found(atlas.RS_POPUP_RESEARCH)
+            or not g.found(atlas.DIALOG_CLOSE_X)
+        ):
             return True
         if waited >= POPUP_WAIT_MS:
             return False
@@ -567,11 +575,16 @@ def _popup_open(g: Game) -> bool:
 
 
 def _close_popup(g: Game) -> None:
-    """Close the popup that is open (a close tap the game swallowed is tapped again)."""
+    """Close the popup that is open (a close tap the game swallowed is tapped again): its
+    close button, or a tap beside the popup when only its dim over the library's close
+    button tells it is there. The slots window is left to blocking_window."""
     for _ in range(2):
-        if not g.found(atlas.RS_POPUP_CLOSE_X):
+        if g.found(atlas.RS_POPUP_CLOSE_X):
+            g.tap(atlas.RS_POPUP_CLOSE, 500)
+        elif not g.found(atlas.DIALOG_CLOSE_X) and not g.found(atlas.RS_SLOTS_FULL_X):
+            g.tap(atlas.RS_POPUP_OUTSIDE, 500)
+        else:
             break
-        g.tap(atlas.RS_POPUP_CLOSE, 500)
         g.wait_still()
     g.move_to(atlas.RS_PARK)  # the popup's X lies over the tree's top row
     g.sleep(BOUNCE_MS)

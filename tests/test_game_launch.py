@@ -152,3 +152,45 @@ def test_the_wait_for_the_game_ends_when_it_shows(monkeypatch):
     g.stop_event = threading.Event()
     monkeypatch.setattr(game_launch.process, "find_game_process", lambda: object())
     assert game_launch.wait_for_game(g, timeout_s=5)
+
+
+class WindowGame(FakeGame):
+    dry_run = False
+
+    def __init__(self, maximized_before: bool) -> None:
+        super().__init__()
+        self.vars = {game_launch.MAXIMIZED: maximized_before}
+
+    def sleep(self, ms):
+        pass
+
+    def focus(self):
+        pass
+
+
+class Win:
+    def __init__(self, maximized=False, fullscreen=False):
+        self.maximized = maximized
+        self.fullscreen = fullscreen
+
+
+@pytest.mark.parametrize(
+    "platform, before, now, expected",
+    [
+        ("win32", True, Win(), True),  # maximized before, not after the relaunch
+        ("win32", False, Win(), False),  # the user's own window size is kept
+        ("win32", True, Win(maximized=True), False),  # already maximized
+        ("win32", True, Win(fullscreen=True), False),  # fullscreen is left alone
+        ("darwin", True, Win(), False),  # macOS keeps its zoom
+    ],
+)
+def test_a_relaunched_game_is_maximized_again(monkeypatch, platform, before, now, expected):
+    """A user found the game no longer maximized after the restarts (2026-10-22)."""
+    done = []
+    monkeypatch.setattr(game_launch.sys, "platform", platform)
+    monkeypatch.setattr(game_launch, "find_game_window", lambda: now)
+    monkeypatch.setattr(game_launch.window, "maximize", lambda win: done.append(win))
+    g = WindowGame(before)
+    game_launch.restore_maximized(g)
+    assert bool(done) == expected
+    assert any("maximized again" in line for line in g.lines) == expected

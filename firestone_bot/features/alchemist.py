@@ -15,7 +15,7 @@ import numpy as np
 
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, gems
 from firestone_bot.vision.probes import match_mask
 
 FREE, PAID, OTHER = "free", "paid", "other"
@@ -31,11 +31,7 @@ def button_shares(img: np.ndarray) -> tuple[float, float]:
         return 0.0, 0.0
     px = img[:, :, :3].astype(np.int16)
     orange = float(match_mask(px, atlas.ORANGE_1, 40).mean())
-    b, gr, r = px[:, :, 0], px[:, :, 1], px[:, :, 2]
-    gem = ((r > 150) & (b > 150) & (gr < 110)) | (
-        (r - gr > 60) & (b - gr > 60) & (r > 100) & (b > 100)
-    )
-    return orange, float(gem.mean())
+    return orange, gems.gem_share(img)
 
 
 def button_look(img: np.ndarray) -> str:
