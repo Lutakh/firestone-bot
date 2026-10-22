@@ -426,7 +426,8 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   skin and appearance. Geometry, editor selections, skin and appearance are restored on
   the next start; the opening page is always Camp. The file is safe to delete.
 - Journal shows the bot's log stream (`firestone-bot.log` at INFO level); status
-  lines posted without a log entry are added to it too.
+  lines posted without a log entry are added to it too. The log file holds one day: at
+  midnight it becomes `firestone-bot.log.YYYY-MM-DD`, and only the last 7 days are kept.
 - Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,
   Ctrl+1..4 switch pages, Ctrl+5 opens Skin, Ctrl+K focuses search, Ctrl+Q exits.
 

@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 
+from firestone_bot import logfile
 from firestone_bot.gui.main_window import MainWindow
 from firestone_bot.platform.dpi import set_dpi_aware
 from firestone_bot.settings import Settings
@@ -903,9 +904,7 @@ def main(autostart: bool = False) -> int:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(os.path.join(base_dir(), "firestone-bot.log"), encoding="utf-8")
-        ],
+        handlers=[logfile.handler(base_dir())],  # one file a day, 7 days kept
     )
     _log_launch_context()
     app = App(autostart=autostart)
