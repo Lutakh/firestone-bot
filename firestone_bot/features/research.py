@@ -57,8 +57,11 @@ sat right-most in the tree; they choose up to five researches, in their order):
   the scan's own stops), the box is found again by its place and icon, tapped, and the
   popup's Research button pressed. A popup without it is closed; a tap whose popup did not
   open skips the box (a locked box is one whose popup shows without the button), and a popup
-  that opens late is closed before the next tap. The tree is left at its start after the
-  visit, and a search that started nothing pauses the next ones 15 minutes.
+  that opens late is closed before the next tap. The popup's Research button and close
+  button are located in bands that hold both game versions' places (9.1.3a draws the popup
+  shorter). The tree is left at its start after the visit, and a search that started
+  nothing pauses the next ones 15 minutes (3 minutes, three times, when a try went wrong:
+  a popup that did not open or showed no button, a press that started nothing).
 """
 
 from __future__ import annotations
@@ -75,8 +78,9 @@ import numpy as np
 from firestone_bot import research_data
 from firestone_bot.features.big_close import big_close
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas, blobs, research_icons
-from firestone_bot.vision.atlas import Point
+from firestone_bot.vision import atlas, blobs, gems, research_icons
+from firestone_bot.vision.atlas import Point, Probe
+from firestone_bot.vision.buttons import green_boxes
 
 log = logging.getLogger("firestone_bot")
 
@@ -167,13 +171,27 @@ def _started(g: Game, busy: int) -> bool:
     counted, not looked up by index: the game shows the newest research in the first panel
     and moves the others right, so "slot 2 did not start" was logged for a research that
     had started in slot 1 (owner's log: 9 visits, then 3 more Research clicks on a full
-    queue)."""
+    queue).
+
+    A popup still open when the wait would end dims the panels ("Speed up" no longer
+    reads): it is closed once, then the panels are read once more. The old game closes it
+    itself (or empties it until the server answers); 9.1.3a was never seen after a press."""
     waited = 0
+    closed = False
     while True:
         if busy_count(panels(g)) > busy:
             return True
         if waited >= START_CONFIRM_MS:
             return False
+        if (
+            not closed
+            and waited >= START_CONFIRM_MS - 800  # where the old wait gave up: unchanged until then
+            and not g.found(atlas.DIALOG_CLOSE_X)
+            and blocking_window(g) != "full"
+        ):
+            closed = True
+            _close_popup(g)
+            continue
         g.sleep(500)
         waited += 500 + PARK_MS
 
@@ -552,6 +570,60 @@ POPUP_WAIT_MS = 2000  # a box's popup scales in; a hitch of the game delays it
 POPUP_POLL_MS = 250
 
 
+def popup_button(g: Game) -> Point | None:
+    """The popup's green Research button, wherever the popup puts it (the latest game
+    version draws it lower): the left-most green box of RS_POPUP_BUTTON_BAND, the paid
+    "Complete instantly" (orange, a gem) being to its right. A gem in it is never
+    clicked. The fixed AHK-era point when no box is found."""
+    boxes = green_boxes(
+        g,
+        atlas.RS_POPUP_BUTTON_BAND,
+        min_w=atlas.RS_POPUP_BUTTON_MIN_W,
+        variation=20,
+        anchor=atlas.ANCHOR_CENTER,
+    )
+    if boxes:
+        x1, y1, x2, y2 = boxes[0]
+        if gems.shows_gem(g, boxes[0], atlas.ANCHOR_CENTER):
+            g.status("Research: the popup's green button shows a gem, not pressed")
+            return None
+        return Point((x1 + x2) // 2, (y1 + y2) // 2, atlas.ANCHOR_CENTER)
+    if g.found(atlas.RS_POPUP_RESEARCH):
+        return atlas.RS_POPUP_RESEARCH_BUTTON
+    return None
+
+
+def popup_close(g: Game) -> Point | None:
+    """The popup's close button, wherever the popup puts it: an orange ring of 40 px or
+    more in RS_POPUP_X_BAND with the cream cross at its centre (the tree's icons carry
+    bits of that orange, never such a ring). The fixed probe when none is found."""
+    for b in blobs.find_blobs(
+        g,
+        atlas.RS_POPUP_X_BAND,
+        atlas.DIALOG_RING,
+        30,
+        anchor=atlas.ANCHOR_CENTER,
+        min_w=atlas.RS_POPUP_X_MIN,
+        min_h=atlas.RS_POPUP_X_MIN,
+    ):
+        cx, cy = round(b.cx), round(b.cy)
+        cross = Probe(
+            cx - 6,
+            cy - 6,
+            cx + 6,
+            cy + 6,
+            atlas.DIALOG_X_CROSS,
+            30,
+            "rs_popup_x_cross",
+            atlas.ANCHOR_CENTER,
+        )
+        if g.found(cross):
+            return Point(cx, cy, atlas.ANCHOR_CENTER)
+    if g.found(atlas.RS_POPUP_CLOSE_X):
+        return atlas.RS_POPUP_CLOSE
+    return None
+
+
 def _popup_open(g: Game) -> bool:
     """The tapped box's popup is open, waited for POPUP_WAIT_MS more: the tap itself waits
     800 ms (fast timing: for the screen to change), a hitch of the game takes longer.
@@ -563,9 +635,9 @@ def _popup_open(g: Game) -> bool:
     waited = 0
     while True:
         if (
-            g.found(atlas.RS_POPUP_CLOSE_X)
-            or g.found(atlas.RS_POPUP_RESEARCH)
-            or not g.found(atlas.DIALOG_CLOSE_X)
+            not g.found(atlas.DIALOG_CLOSE_X)  # the dim: the cheapest read first
+            or popup_close(g) is not None
+            or popup_button(g) is not None
         ):
             return True
         if waited >= POPUP_WAIT_MS:
@@ -579,8 +651,9 @@ def _close_popup(g: Game) -> None:
     close button, or a tap beside the popup when only its dim over the library's close
     button tells it is there. The slots window is left to blocking_window."""
     for _ in range(2):
-        if g.found(atlas.RS_POPUP_CLOSE_X):
-            g.tap(atlas.RS_POPUP_CLOSE, 500)
+        close = popup_close(g)
+        if close is not None:
+            g.tap(close, 500)
         elif not g.found(atlas.DIALOG_CLOSE_X) and not g.found(atlas.RS_SLOTS_FULL_X):
             g.tap(atlas.RS_POPUP_OUTSIDE, 500)
         else:
@@ -619,7 +692,7 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
     if blob is None:
         g.status(f"Research: {box.label} was lost from view, skipped")
         return "missing"
-    if g.found(atlas.RS_POPUP_CLOSE_X):
+    if popup_close(g) is not None:
         g.status(f"Research: the popup's close button shows before {box.label} is tapped, skipped")
         g.save_diagnostic("research-popup-x.png")
         return "missing"
@@ -645,11 +718,14 @@ def try_box(g: Game, scan: Scan, box: Box, busy: int) -> str:
     g.move_to(atlas.RS_PARK)  # a hovered Research button is drawn lighter
     g.sleep(PARK_MS)
     result = "locked"
-    if g.found(atlas.RS_POPUP_RESEARCH):
-        g.tap(atlas.RS_POPUP_RESEARCH_BUTTON, 1000)
+    button = popup_button(g)
+    if button is not None:
+        g.tap(button, 1000)
         g.wait_still()
         if _started(g, busy):
             box.state = "running"
+            if not g.found(atlas.DIALOG_CLOSE_X):  # a popup left over the tree
+                _close_popup(g)
             return "started"
         if blocking_window(g) == "full":  # the box's own popup dims the library's X
             return _window_left(g, box, "full")
@@ -1070,8 +1146,13 @@ def start_research(g: Game, busy: int) -> bool:
         to_start(g, scan)
         return True
     # tries that went wrong are tried again sooner, three times in a row; a tree with
-    # nothing to start, or a slot left free on purpose, waits the 15 min
-    trouble = bool(choice.stop) or any(r in ("failed", "missing") for r in chooser.results.values())
+    # nothing to start, or a slot left free on purpose, waits the 15 min. "locked" is
+    # trouble too: a box found available (locked ones are grey, never tried) whose popup
+    # shows no Research button is a misread (9.1.3a moved the button: every search of a
+    # player's evening paused 15 min in silence, report VNHYHL, 2026-10-22)
+    trouble = bool(choice.stop) or any(
+        r in ("failed", "missing", "locked") for r in chooser.results.values()
+    )
     streak = g.vars.get(FAILED_SEARCHES, 0) + 1 if trouble else 0
     g.vars[FAILED_SEARCHES] = streak
     quick = trouble and choice.stop != "full" and streak <= MAX_QUICK_RETRIES

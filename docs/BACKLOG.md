@@ -193,6 +193,17 @@
   not measured together), the arena's buy-more popup has one probe, the personal tree
   clicks blind, the map step does not prove the map is open.
 
+- Research never started on game 9.1.3a (report VNHYHL, the first sent with the Send report
+  button, 2026-10-22): the popup's Research button and X moved ~67 px lower (MEASUREMENTS
+  2026-10-22); "shows no Research button" for every box, then a silent 15 min pause. Fixed:
+  both are located; a search where boxes answered "no button" is retried in 3 min with the
+  heartbeat at the fourth; a popup left open after a press is closed before the panels are
+  read. To check with a 9.1.3a capture: after a press, the slots-occupied window, the
+  meteorite popup (fixed METEORITE_POPUP_* points). Follow-up from the same report: the
+  guild step runs blind when its icon click is lost (0.4% of cycles, owner 0.5%) or a layer
+  stays over the town; the crystal tap then hits the hero mode button. Proposed: check the
+  guild X after the click and retry once (guild.py), not done yet.
+
 - Mystery boxes / Oracle's gifts not opened on the latest game version (Qualitas's video,
   Steam, classic style, 2026-10-22): the gift dialog's x1 sits ~50 px lower (logical
   850..1068 x 912..982) and the AHK click (914,898) landed above it. Fixed: the green

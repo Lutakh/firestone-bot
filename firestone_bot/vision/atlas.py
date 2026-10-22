@@ -792,6 +792,15 @@ RS_POPUP_RESEARCH = Probe(700, 690, 900, 716, 0x0EA10C, 20, "rs_popup_research",
 RS_POPUP_RESEARCH_BUTTON = Point(800, 704, ANCHOR_CENTER)
 RS_POPUP_CLOSE_X = Probe(1215, 200, 1263, 248, DIALOG_RING, 30, "rs_popup_close_x", ANCHOR_CENTER)
 RS_POPUP_CLOSE = Point(1239, 224, ANCHOR_CENTER)
+# Game 9.1.3a (Steam; report VNHYHL, 2026-10-22) draws the popup 132 px shorter, still
+# centred: its Research button moved from logical 654..946 x 656..748 to 654..946 x
+# 723..816 and its X ring's centre from (1239,217) to (1233,288); the fixed entries above
+# read neither ("shows no Research button" for every box). Both are located in these
+# bands, which hold both places; the fixed entries stay as the fallback.
+RS_POPUP_BUTTON_BAND = (620, 630, 980, 860)
+RS_POPUP_BUTTON_MIN_W = 200  # the button is 292 wide; the green effect arrow 74, above
+RS_POPUP_X_BAND = (1170, 160, 1300, 340)
+RS_POPUP_X_MIN = 40  # the ring is 66 x 66; ring-coloured bits of the tree's icons <= 45 x 9
 # Research pressed with no free slot (a finished research not claimed counts as busy): the
 # game puts a cream window "Your current research slots are occupied. Wait until a research
 # completes." over a dimmed screen; the popup's and the library's close buttons no longer

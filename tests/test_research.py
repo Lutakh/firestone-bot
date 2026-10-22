@@ -728,7 +728,7 @@ def test_popups_without_a_research_button_are_closed(fake):
     assert (
         "Research: a slot is free but no research could start (Energy Heroes: no Research "
         "button; Mana Heroes: no Research button; Rage Heroes: no Research button), next "
-        "search in 15 min"
+        "search in 3 min"  # boxes found available without a button: a misread, tried again
     ) in g.statuses
     assert "Research: the popup of Energy Heroes shows no Research button" in g.statuses
     assert g.statuses.count("diag:research-no-button.png") == 1  # one a search
@@ -741,7 +741,7 @@ def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
     wheels = len(g.wheels)
     research.go_research(g)  # the next cycle
     assert len(g.wheels) == wheels
-    g.vars[research.NO_NODE_UNTIL] = 0  # 15 min later
+    g.vars[research.NO_NODE_UNTIL] = 0  # 3 min later
     research.go_research(g)
     assert len(g.wheels) > wheels
 

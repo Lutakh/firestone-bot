@@ -463,3 +463,21 @@ Owner's game, client 1920x1009 (logical y = client y + 31):
   its logical rect); in the research popup's orange "Complete instantly": 711 of 28120
   (3.8 %); in the green Research button: 0; over 1.1 M px of the world map: 65.
 - The map's magenta probe MR_RESET_AVAILABLE (0xED00EF) matches 14 pixels of that gem.
+
+## 2026-10-22 — research popup and gift dialog on game 9.1.3a (Steam, players' captures)
+
+Report VNHYHL (a player, Steam 9.1.3a, Windows 10, client 1920x1017, new style) and
+Qualitas's video (Steam, classic style). Logical px, centre anchor.
+
+- Research popup: 132 px shorter than the old one (logical y 230..840 against 165..907), still
+  centred, so its content sits ~67 px lower. Research button 654..946 x 723..816 (old
+  656..748), colour GREEN_BUTTON; X ring centre (1233,288) (old (1239,217)). The fixed
+  RS_POPUP_RESEARCH read the "Original time" row (0 green px) and RS_POPUP_CLOSE_X missed the
+  ring, so every box read "no Research button". Located now in RS_POPUP_BUTTON_BAND (left-most
+  green box, gem-checked) and RS_POPUP_X_BAND (ring of 40 px or more with the cream cross).
+  The screen still dims by 0.75 under the popup (the library X reads (191,184,151)), the slot
+  panels, the tree (colours, columns, rows) and the title are unchanged.
+- Gift dialog (mystery box, Oracle's gift): x1 button 850..1068 x 912..982 (old 862..930);
+  green located in GIFT_BUTTON_ROW. The dialog is wider (333..1592), its X at (1585,84).
+- Not seen on 9.1.3a yet: the screen after a successful Research press, the "slots
+  occupied" window, the meteorite popup, the gift result screen.
