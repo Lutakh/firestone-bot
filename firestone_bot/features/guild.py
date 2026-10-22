@@ -14,7 +14,7 @@ from firestone_bot.features.big_close import big_close
 from firestone_bot.features.chaos import hit_chaos
 from firestone_bot.features.ptree import personal_tree
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, gems
 
 log = logging.getLogger("firestone_bot")
 
@@ -168,8 +168,13 @@ def claim_axes(g: Game) -> None:
     # Supplies
     g.tap(atlas.GUILD_SHOP_SUPPLIES)
     if g.found(atlas.GUILD_AXE_READY):
-        g.heartbeat("ClaimAxe", important=True)
-        g.tap(atlas.GUILD_AXE_CLAIM)
+        if gems.shows_gem(g, atlas.GUILD_AXE_BUTTON, (atlas.CENTER, atlas.CENTER)):
+            # green is no proof of free (gem audit, 2026-10-22)
+            g.status("Guild shop: the pickaxes button shows a gem, not clicked")
+            g.save_diagnostic("guild-axes-gem.png")
+        else:
+            g.heartbeat("ClaimAxe", important=True)
+            g.tap(atlas.GUILD_AXE_CLAIM)
     big_close(g)
 
 

@@ -23,7 +23,7 @@ from firestone_bot.features.big_close import big_close
 from firestone_bot.features.main_menu import main_menu
 from firestone_bot.game import Game
 from firestone_bot.state import hours_since
-from firestone_bot.vision import atlas, blobs
+from firestone_bot.vision import atlas, blobs, gems
 from firestone_bot.vision.atlas import Point
 from firestone_bot.vision.probes import match_mask
 
@@ -128,6 +128,12 @@ def claim_free_mystery_box(g: Game) -> bool:
         return False
     if not _claim_button_shown(g):
         g.status("Daily shop: the free box was already claimed today (green tick, no button)")
+        return False
+    p = atlas.SHOP_MYSTERY_CLAIM_READY
+    if gems.shows_gem(g, (p.x1, p.y1, p.x2, p.y2)):
+        # a paid deal's green button in the free box's place (gem audit, 2026-10-22)
+        g.status("Daily shop: the first deal's green button costs gems, not clicked")
+        g.save_diagnostic("shop-paid-deal.png")
         return False
     g.status("Daily shop: free mystery box found, claiming it")
     before = g.region_image(atlas.SHOP_FIRST_CARD).astype(int)

@@ -9,12 +9,17 @@ from __future__ import annotations
 import random
 
 from firestone_bot.game import Game
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, gems
 
 
 def use_token(g: Game) -> bool:
     # check for use token button
     if not g.found(atlas.TAVERN_USE_TOKEN_READY):
+        return False
+    if gems.shows_gem(g, atlas.TAVERN_PLAY_BUTTON):
+        # green is no proof of free (gem audit, 2026-10-22)
+        g.status("Tavern: the Play button shows a gem, not pressed")
+        g.save_diagnostic("tavern-play-gem.png")
         return False
     g.tap(atlas.TAVERN_USE_TOKEN, 1000)
     card = random.choice(atlas.TAVERN_CARDS)

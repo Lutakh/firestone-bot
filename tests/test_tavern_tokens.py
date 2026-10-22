@@ -78,6 +78,8 @@ class FakeTavern:
         self.now += ms
 
     def region_image(self, rect, anchor=None):
+        if rect == atlas.TAVERN_PLAY_BUTTON:  # the gem check of the Play button: no gem
+            return np.zeros((70, 205, 3), dtype=np.uint8)
         self.images += 1
         return np.full((32, 112, 3), self.tokens % 256, dtype=np.uint8)  # the digits drawn
 

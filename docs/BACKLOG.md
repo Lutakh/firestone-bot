@@ -179,6 +179,31 @@
   the in-game meteorite names are only confirmed for Tank specialization and Attribute armor.
   Trees past firestone XIII and meteorite X were never seen (they reuse the same names).
 
+- Gems spent by the bot (three users, 2026-10-22: "missions finished with gems" since a
+  game update). The map's early completion was decided by a brown pixel at variation 0
+  (paid) and an orange one (free); the paid button is orange too (the owner's "Refresh
+  Now 120" and the research popup's "Complete instantly" carry a purple gem). Fixed: no
+  click believed free when a gem shows in the button (vision/gems.py, read twice) for the
+  mission speed-up, the map refresh, the mission Start, the guild's free pickaxes, the
+  tavern's Play and the daily shop's free box; a gem dialog after a speed-up click is
+  never confirmed (free speed-ups off for the run, important heartbeat); a paid map reset
+  (MapReset, opt-in) happens once a visit. The mission dialog of today's interface was
+  never captured (mission-paid-speed-up.png will show it). Left from the gem audit
+  (low): the chaos rift reads its free icon before the paid one (its icons share a rect,
+  not measured together), the arena's buy-more popup has one probe, the personal tree
+  clicks blind, the map step does not prove the map is open.
+
+- Research popups whose close button does not read (three users' logs, 2026-10-22: "the
+  popup of <box> did not open", then every other box "lost from view"): a popup is now
+  told by its close button, its green Research button or the dim over the library's
+  close button, and closed by a tap beside it. Why their close button does not read is
+  unknown (a research-popup.png of theirs would show).
+
+- Chaos rift restarts with game restarts off (a user, 2026-10-22): asked-for restarts obey
+  RestartGame; the stuck Hit button waits for a new game process; a relaunched game is
+  maximized again when it was (Windows). Wish: switch the chaos hit amount to the most
+  (like the hero upgrade's next milestone), and the same for the exotic merchant.
+
 - Research idle for whole nights (several users, 2026-10-21; Qualitas's video: Tree III left
   at its end, both slots free, the paused visits saying only "slot 1 free / slot 2 free").
   Found live: a Research press with no free slot (a finished research not claimed counts as

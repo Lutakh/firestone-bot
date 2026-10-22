@@ -10,9 +10,21 @@ from __future__ import annotations
 from firestone_bot.features.map_close import map_close
 from firestone_bot.game import Game
 from firestone_bot.state import MapState, ahk_now
-from firestone_bot.vision import atlas
+from firestone_bot.vision import atlas, gems
 
 MAX_DETECT_ROUNDS = 5  # safety: full searches of the map in one visit
+
+
+def _start_ready(g: Game) -> bool:
+    """The green Start button with no gem in it: green is no proof of free (gem audit,
+    2026-10-22); a gem means the mission popup is closed unstarted."""
+    if not g.found(atlas.MS_START_BUTTON):
+        return False
+    if gems.shows_gem(g, atlas.MS_START_RECT):
+        g.status("Mission Start: the Start button shows a gem, not clicked")
+        g.save_diagnostic("mission-start-gem.png")
+        return False
+    return True
 
 
 def _priority_points(g: Game) -> list[tuple[int, int]]:
@@ -62,7 +74,7 @@ def _detect_and_click(g: Game, state: MapState, offset: int) -> tuple[bool, int]
         g.click_at(x, y)
         g.sleep(1000)
         state.mark_clicked(x, y - offset)
-        if g.found(atlas.MS_START_BUTTON):
+        if _start_ready(g):
             g.move_to(atlas.MS_START)
             g.toast("Mission Start", "Mission found - Starting", 1.5)
             g.click()
@@ -152,7 +164,7 @@ def map_start(g: Game) -> None:
             g.sleep(1000)
             state.mark_clicked(x, y)
             # Check Start Button (Green)
-            if g.found(atlas.MS_START_BUTTON):
+            if _start_ready(g):
                 g.move_to(atlas.MS_START)
                 g.toast("Mission Start", "Mission found - Starting", 1.5)
                 g.click()

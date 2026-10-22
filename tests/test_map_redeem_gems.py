@@ -28,8 +28,10 @@ def _button(rect, gem: bool) -> np.ndarray:
 class FakeMap:
     """The mission panel with one mission in progress whose speed-up shows orange."""
 
-    def __init__(self, early_gem=False, free_reset=False, refresh=None):
+    def __init__(self, early_gem=False, free_reset=False, refresh=None, dialog_gem=False):
         self.early_gem = early_gem
+        self.dialog_gem = dialog_gem  # a gem shows in the dialog after the speed-up click
+        self.beats = []
         self.free_reset = free_reset
         self.refresh = refresh
         self.clicks = []
@@ -56,6 +58,8 @@ class FakeMap:
             return self.refresh
         if rect == atlas.MR_EARLY_RECT:
             return _button(rect, self.early_gem)
+        if rect == atlas.MR_GEM_DIALOG_RECT:
+            return _button(rect, self.dialog_gem and EARLY in self.clicks)
         return _button(rect, False)
 
     def move_to(self, p):
@@ -77,8 +81,11 @@ class FakeMap:
     def save_diagnostic(self, name):
         self.diagnostics.append(name)
 
-    def heartbeat(self, *a, **k):
-        pass
+    def heartbeat(self, msg, is_stop=False, important=False):
+        self.beats.append((msg, important))
+
+    def wait_still(self, max_ms=1500):
+        return True
 
     def focus(self):
         pass
@@ -122,3 +129,43 @@ def test_a_free_refresh_is_still_clicked():
     g = FakeMap(early_gem=True, free_reset=True, refresh=_button(atlas.MR_REFRESH_RECT, False))
     map_redeem.map_redeem(g)
     assert RESET in g.clicks
+
+
+def test_a_gem_dialog_after_a_speed_up_is_never_confirmed():
+    """Second line of defence: a gem in the dialog that follows the click means the click was
+    not free. OK is not tapped, free speed-ups and refreshes stop for the run, and an
+    important heartbeat says so."""
+    g = FakeMap(dialog_gem=True)
+    map_redeem._checks(g)
+    ok = (atlas.MR_DIALOG_OK.x, atlas.MR_DIALOG_OK.y)
+    assert g.clicks.count(EARLY) == 1 and ok not in g.clicks
+    assert g.vars[map_redeem.PAID_OFF] == 1
+    beat = (
+        "Map missions: a gem confirmation came after a speed-up click, nothing confirmed "
+        "(see the log)"
+    )
+    assert g.beats == [(beat, True)]
+    assert "mission-gem-dialog.png" in g.diagnostics
+    g.dialog_gem = False
+    map_redeem._checks(g)  # the next visit of the run: no speed-up click at all
+    assert g.clicks.count(EARLY) == 1
+
+
+def test_a_paid_map_reset_happens_once_a_visit_whatever_the_safety_cap(tmp_path):
+    """MapReset (spend gems on resets, opt-in) looped without end with SafetyCap 0."""
+    g = FakeMap(early_gem=True)
+    g.map_state_path = str(tmp_path / "MapStartState.ini")
+    g.MapReset = "1"
+    resets = []
+    real_found = g.found
+
+    def found(probe):
+        if probe is atlas.MR_RESET_AVAILABLE:
+            return True  # shown again after every reset
+        return real_found(probe)
+
+    g.found = found
+    g.move_to = lambda p: resets.append((p.x, p.y)) if p is atlas.MR_RESET_BUTTON else None
+    map_redeem.map_redeem(g)
+    assert len(resets) == 1
+    assert "MapRedeem: one paid map reset this visit" in g.lines

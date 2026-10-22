@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 from firestone_bot.features import map_start
 from firestone_bot.vision import atlas
 
@@ -59,6 +61,10 @@ class FakeGame:
     def click_at(self, x, y, anchor=None):
         self.log.append(("click", x, y))
 
+    def region_image(self, rect, anchor=None):
+        x1, y1, x2, y2 = rect
+        return np.zeros((y2 - y1, x2 - x1, 3), np.uint8)  # the Start button: no gem
+
     def found(self, probe, variation=None):
         if probe is atlas.MS_START_BUTTON:
             return True
@@ -111,3 +117,14 @@ def test_mission_seen_twice_is_clicked_once(monkeypatch):
     _run(g, state, monkeypatch, [])
     clicks = [e for e in g.log if isinstance(e, tuple) and e[0] == "click"]
     assert len(clicks) == 1 and state.resets >= 1
+
+
+def test_a_start_button_with_a_gem_is_never_clicked():
+    """Green is no proof of free (gem audit, 2026-10-22): a gem in the Start button keeps
+    the mission unstarted and its popup is closed."""
+    g = FakeGame({0: []}, troops_until=5)
+    g.region_image = lambda rect, anchor=None: np.full(
+        (rect[3] - rect[1], rect[2] - rect[0], 3), (0x9D, 0x00, 0x9F), np.uint8
+    )
+    assert not map_start._start_ready(g)
+    assert "Mission Start: the Start button shows a gem, not clicked" in g.log

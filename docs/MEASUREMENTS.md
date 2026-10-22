@@ -455,3 +455,11 @@ Owner's game, client 1920x1009 (logical y = client y + 31):
   slot 2's (as in Qualitas's video).
 - The library reopens the firestone tree where it was left (scrolled to its end, closed,
   reopened: still at its end).
+
+## 2026-10-22 — paid buttons and their gem (Windows, 1920x1009)
+
+- The world map's "Refresh Now" (bottom left, client 95..297 x 838..945): orange, the purple
+  gem and "120". Gem purple pixels (vision/gems.py) in the button: 1089 of 21614 (7.6 % of
+  its logical rect); in the research popup's orange "Complete instantly": 711 of 28120
+  (3.8 %); in the green Research button: 0; over 1.1 M px of the world map: 65.
+- The map's magenta probe MR_RESET_AVAILABLE (0xED00EF) matches 14 pixels of that gem.

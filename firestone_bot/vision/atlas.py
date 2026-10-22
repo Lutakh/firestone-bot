@@ -473,6 +473,7 @@ TAVERN_USE_TOKEN_READY = Probe(
     1019, 934, 1050, 991, GREEN_BUTTON, 3, "tavern_use_token"
 )  # UseTavernToken.ahk:8
 TAVERN_USE_TOKEN = Point(962, 958)  # :10
+TAVERN_PLAY_BUTTON = (860, 925, 1065, 995)  # around Play (gem check, not measured: wide)
 TAVERN_CARDS = (  # :20-21
     Point(680, 315),
     Point(956, 315),
@@ -863,6 +864,7 @@ GUILD_SHOP_SUPPLIES = Point(141, 790, (CENTER, CENTER))  # :77
 # bottom, logical (590,723)-(835,766) (measured 2026-09-04).
 GUILD_AXE_READY = Probe(620, 730, 800, 760, GREEN_BUTTON, 3, "guild_axe_ready", (CENTER, CENTER))
 GUILD_AXE_CLAIM = Point(714, 747, (CENTER, CENTER))
+GUILD_AXE_BUTTON = (590, 723, 835, 766)  # the Claim of the "Free pickaxes" card (gem check)
 GUILD_CRYSTAL = Point(1646, 928, (CENTER, CENTER))  # :93
 GUILD_CRYSTAL_HIT_READY = Probe(
     1101, 904, 1075, 946, GREEN_BUTTON, 3, "guild_crystal_hit", (CENTER, CENTER)
@@ -1009,6 +1011,8 @@ MR_FREE_EARLY_BUTTON = Point(1365, 758)  # :59
 # around the mission's speed-up button, wide: a gem anywhere in it means the button is
 # paid (not measured in today's interface; a reward gem in it only skips a free click)
 MR_EARLY_RECT = (1100, 690, 1600, 830)
+# a "spend gems" confirmation over the map would show its gem in this centred rect
+MR_GEM_DIALOG_RECT = (560, 300, 1360, 760)
 MR_SECOND_MISSION_NOT_DONE = Probe(205, 443, 242, 484, GREEN_BUTTON, 3, "mr_second_not_done")  # :71
 MR_RESET_AVAILABLE = Probe(104, 878, 300, 977, 0xED00EF, 3, "mr_reset_available")  # :92
 MR_RESET_BUTTON = Point(200, 930)  # :102
@@ -1390,6 +1394,7 @@ END_OF_CYCLE_PARK = Point(947, 755)  # MouseMove before the end-of-cycle delay
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
 MS_START_BUTTON = Probe(953, 822, 1205, 898, GREEN_BUTTON, 10, "ms_start_button")  # :170
 MS_START = Point(1084, 865)  # :172
+MS_START_RECT = (953, 822, 1205, 898)  # the Start button (gem check)
 # Missions on the north edge of the map (2026-09-05): in a 1920x1009 client the centred map
 # loses ~35 px at the top and bottom compared with the 1920x1080 canvas, so an icon whose
 # centre is above logical y 100 is hidden behind the HUD (only its pin / timer shows) and a
