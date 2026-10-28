@@ -481,3 +481,51 @@ Qualitas's video (Steam, classic style). Logical px, centre anchor.
   green located in GIFT_BUTTON_ROW. The dialog is wider (333..1592), its X at (1585,84).
 - Not seen on 9.1.3a yet: the screen after a successful Research press, the "slots
   occupied" window, the meteorite popup, the gift result screen.
+
+## 2026-10-28 — meteorite popup on 9.1.3a, the world map at 16:9, the arena's X (reports ANHNX9, PPJMWR)
+
+Report ANHNX9 (a player, Steam 9.1.3a, window 1920x1080 on a 2560x1440 screen), report
+PPJMWR (Epic, fullscreen 1920x1080, three log lines), the owner's Epic client (1920x1009),
+which took game 9.1.3a at the scheduled restart of 2026-10-23 15:18. Logical px.
+
+- Meteorite popup: the icon is drawn alone (no disc, no cyan ring), 1.43 x the node's icon
+  (1.15 x before) and centred at (708, 336) (before (708, 351)). In the old window the
+  closest reference was 40.5 (limit 10): every popup was "an unknown research" (owner: 111
+  visits, 20,581 meteorites unspent on 2026-10-28; ANHNX9 4 of 4). Read now at both places
+  in METEORITE_POPUP_ICON_BAND: All Attributes 1.53 (next 30.6); Raining Gold 12.0..13.0
+  (next 39 or more): its light rays, hidden by the node's disc, show on the panel (41, 82,
+  132), so a popup icon within 16 at most 0.4 x the runner-up is named too. Unchanged: the
+  X (ring 1206..1269 x 264..327), the Research button (830..1089 x 690..783, no gem), the
+  cost (reads 900), the tree.
+- World map at 16:9: a game started on a 16:9 client fits the map to the width. 25 map
+  labels registered between the owner's 1920x1009 map and ANHNX9's 1920x1080 one:
+  x' = 1.0027 x - 10.3, y' = 1.0028 y + 32.1 (client px, 0.05 px rms), i.e. the reference
+  client's pixel scale, 1009/1080 of the canvas-scaled map. A window resized to 1280x720
+  while the game ran stayed canvas-scaled (0.7136, the canvas's; 2026-09-03, 4.6 above),
+  so the scale depends on the game's start. The landmark tells them apart: on a fitted map
+  the Mac reference scores 0.67..0.79 and the Windows one 0.33; on canvas-scaled maps the
+  Windows one scores 0.83..0.98 and the Mac one 0.21..0.23. In coordinates mode the points
+  were clicked through the canvas scale: 33 of 78 over 30 px beside their icon at 1080,
+  58 px at worst (1608,119). Scaled by 1009/1080 around the centre: 9.5 px at most.
+- Map alignment at 16:9: ANHNX9's landmark sat (-4, -8) off the Mac reference; the 9.6 px
+  drag was ignored by the game and the alignment was given up for the run. The owner's
+  map at 1920x1009 matches at (0, 0), correlation 0.91..0.98.
+- Detection mode at 16:9: MAP_DETECT_AREA's corners follow the HUD edges, the map is
+  centred: labels went to logical through the area's corners and were clicked with the
+  thirds rule, up to 45 px off at 1080 (170 at 21:9); now through the centre anchor. A
+  "5" is often cut in two by anti-aliasing (6 + 5 px halves): "15:55" (one whole digit)
+  was never found (owner, 2026-10-27 17:54..18:29).
+- Arena of Kings at 1920x1080: the X's cream cross at client 1841..1878 x 99..135 (ring
+  1825..1892 x 86..153), the centre-anchored image of the 2026-09-08 measure; the
+  edge-anchored probe looked 68 px left of it. Refresh (865,176), the Fight buttons
+  (584..775 / 864..1055 / 1144..1335 x 629..676): centre-anchored, as at 1920x1009. Only
+  the horizontal anchor is measured there (at 16:9 the canvas fills the client's height);
+  the battle result was never seen on a client taller than 16:9.
+- The map's empty state (no mission, "New missions in"): MR_NO_MISSIONS never matches (sea
+  0x124292, distance 34 at 1080 and at 1920x1009); the bot taps the sea twice and the first
+  visit saves mission-dialog-unknown.png (ANHNX9's "unknown popup" is the empty map).
+- Mission Rewards dialog (after a free speed-up), 1:1 at 1920x1009 and 1920x1080: frame
+  419..1500 (top 221), Okay 805..1114 x 598..668, centred and canvas-scaled. A purple
+  mission's rewards (paw medallion, crystal chest) put 0.0056 of gem purple in
+  MR_GEM_DIALOG_RECT (limit 0.002): the owner's mission-gem-dialog.png captures; the gem
+  counter did not move (14,774).

@@ -103,6 +103,8 @@ UNCONFIRMED_PAUSE_S = 6 * 3600
 MAX_UNCONFIRMED = 3
 UNCONFIRMED_KEY = "meteorite_unconfirmed"  # Game.vars: unconfirmed clicks in a row
 OFF_KEY = "meteorite_off"
+AFTER_PURCHASE_KEY = "meteorite_after_purchase"  # Game.vars: the capture of a node lost after
+# a purchase is taken (once a run: what 9.1.3a draws there was never seen)
 PAUSE_LINE = "a Research click was not confirmed by the counter: the next visit is in 6 h"
 OFF_LINE = (
     f"{MAX_UNCONFIRMED} Research clicks in a row were not confirmed by the counter: "
@@ -381,21 +383,22 @@ def popup_open(g: Game) -> bool:
     return g.found(atlas.METEORITE_POPUP_X) and g.found(atlas.METEORITE_POPUP_X_RING)
 
 
-def popup_name(g: Game, names: frozenset[str] | None) -> str | None:
-    """The research whose icon the open popup shows (within the tree's names when known)."""
-    rect = atlas.METEORITE_POPUP_ICON_RECT
+def popup_name(g: Game, names: frozenset[str] | None) -> tuple[str | None, float, str | None]:
+    """The research whose icon the open popup shows (within the tree's names when known), its
+    distance and the closest name (said when the icon is not named). The icon is read where
+    each game version draws it (atlas.METEORITE_POPUP_ICONS: 9.1.3a moved and enlarged it)."""
+    band = atlas.METEORITE_POPUP_ICON_BAND
     try:
-        img = g.region_image(rect, atlas.ANCHOR_CENTER)
+        img = g.region_image(band, atlas.ANCHOR_CENTER)
     except Exception:  # a capture error: the popup is not trusted
         log.debug("meteorite popup icon not captured", exc_info=True)
-        return None
-    scale = img.shape[1] / (rect[2] - rect[0])
-    cx, cy = (rect[2] - rect[0]) / 2 * scale, (rect[3] - rect[1]) / 2 * scale
+        return None, 1e9, None
+    scale = img.shape[1] / (band[2] - band[0])
+    places = [
+        ((x - band[0]) * scale, (y - band[1]) * scale, k) for x, y, k in atlas.METEORITE_POPUP_ICONS
+    ]
     rgb = np.ascontiguousarray(img[:, :, ::-1])
-    name, _ = meteorite_nodes.popup_research(
-        meteorite_nodes.references(), rgb, cx, cy, scale, names
-    )
-    return name
+    return meteorite_nodes.popup_research(meteorite_nodes.references(), rgb, places, scale, names)
 
 
 def popup_cost(g: Game) -> int | None:
@@ -541,11 +544,24 @@ def _priority(g: Game, v: _Visit, name: str) -> bool:
     """Buy priority `name` (or what it waits for) while allowed. False: no more priorities
     this visit (saving up for this one, or the visit ends)."""
     target, depth = name, 0
+    bought = False
     while True:
         if v.stop or _capped(g, v):
             return False
         assert v.tab is not None
         node = v.tab.node(target)
+        if node is None and bought:
+            # Game 9.1.3a draws the pressed node as a gold disc, which is not detected, while
+            # its popup is open: still so after a purchase, the next priority would get this
+            # one's meteorites (review 2026-10-28). The next visit reads the tab afresh.
+            g.status(
+                f"{PREFIX} {name} bought, not seen on the tab afterwards: the rest waits for "
+                "the next visit"
+            )
+            if not g.vars.get(AFTER_PURCHASE_KEY):
+                g.vars[AFTER_PURCHASE_KEY] = 1
+                g.save_diagnostic("meteorite-after-purchase.png")
+            return False
         if node is None:
             if target == name:
                 g.status(f"{PREFIX} {name} is not found in this tree")
@@ -560,7 +576,7 @@ def _priority(g: Game, v: _Visit, name: str) -> bool:
             return True
         outcome = "locked" if target in v.locked else _attempt(g, v, node, name)
         if outcome == "bought":
-            target, depth = name, 0
+            target, depth, bought = name, 0, True
             v.locked.clear()  # what a purchase unlocked is tried again
             continue
         if outcome == "poor":
@@ -673,13 +689,16 @@ def _attempt(g: Game, v: _Visit, node: Node, goal: str) -> str:
         g.save_diagnostic("meteorite-popup.png")
         v.stop = "popup"
         return "fail"
-    shown = popup_name(g, v.tab.names)
+    shown, dist, closest = popup_name(g, v.tab.names)
     if shown != name:
         g.sleep(300)  # still scaling in
-        shown = popup_name(g, v.tab.names)
+        shown, dist, closest = popup_name(g, v.tab.names)
     if shown != name:
+        # the closest name and its distance say why (game 9.1.3a, 2026-10-23..28: every popup
+        # read 40 or more from every reference and the line said only "an unknown research")
+        near = f" (closest {closest}, {dist:.1f})" if shown is None and closest else ""
         g.status(
-            f"{PREFIX} the popup shows {shown or 'an unknown research'} instead of {name}, "
+            f"{PREFIX} the popup shows {shown or 'an unknown research'}{near} instead of {name}, "
             "nothing more spent"
         )
         g.save_diagnostic("meteorite-popup-name.png")

@@ -21,8 +21,11 @@ log = logging.getLogger("firestone_bot")
 
 def guild(g: Game) -> None:
     g.focus()
-    # open guild
-    g.tap(g.ms.guild_icon, expect=atlas.DIALOG_CLOSE_X)
+    # open guild. A click lost while the town fades out (3 to 10 a day, owner 2026-09-28..
+    # 10-28) left the guild features clicking blind on the main screen: its chat bubble, and
+    # twice a false expedition start. The guild is now opened like a building: retried once
+    # from the main screen, else skipped this cycle.
+    g.require_screen(g.ms.guild_icon, atlas.DIALOG_CLOSE_X)
     if not _guild_level_check(g):
         # no banner: most likely not on the main screen when the icon was clicked (a live
         # cycle still had the town open after the library, 2026-09-06). Back to the main

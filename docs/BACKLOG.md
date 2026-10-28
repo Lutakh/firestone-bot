@@ -199,10 +199,10 @@
   both are located; a search where boxes answered "no button" is retried in 3 min with the
   heartbeat at the fourth; a popup left open after a press is closed before the panels are
   read. To check with a 9.1.3a capture: after a press, the slots-occupied window, the
-  meteorite popup (fixed METEORITE_POPUP_* points). Follow-up from the same report: the
-  guild step runs blind when its icon click is lost (0.4% of cycles, owner 0.5%) or a layer
-  stays over the town; the crystal tap then hits the hero mode button. Proposed: check the
-  guild X after the click and retry once (guild.py), not done yet.
+  meteorite popup (measured 2026-10-28, see below). Follow-up from the same report: the
+  guild step ran blind when its icon click was lost (0.4% of cycles, owner 0.5%) or a layer
+  stayed over the town; the crystal tap then hit the hero mode button. Done 2026-10-28: the
+  guild is opened with require_screen (retried once from the main screen, else skipped).
 
 - Mystery boxes / Oracle's gifts not opened on the latest game version (Qualitas's video,
   Steam, classic style, 2026-10-22): the gift dialog's x1 sits ~50 px lower (logical
@@ -226,6 +226,59 @@
   dialogs: centre anchors for the MR_* / MS_* dialog entries (thirds-rule right/bottom
   anchors put them 63 px off at 16:9, worse at 21:9, 4:3, 5:4), MR_MORE_THAN_3_MIN at
   variation 2 (the exact brown covers ~6 of 41 band rows), the free state's look.
+  2026-10-28: 16:9 works as is (report ANHNX9 at 1920x1080: 29 in-progress reads, 11 free
+  speed-ups, 21 starts, no gem spent); the in-progress and start popups are now captured
+  once a run (mission-in-progress.png, mission-start-popup.png) for the anchors at 16:10,
+  4:3 and 21:9, where they are 60-250 px off.
+
+- Meteorite research dead on game 9.1.3a (the owner's Epic game since 2026-10-23 15:26:
+  111 hourly "the popup shows an unknown research", 20,581 meteorites unspent; report
+  ANHNX9, Steam, 2026-10-25: "not recognising Raining Gold"): the popup draws the icon
+  bigger and higher (MEASUREMENTS 2026-10-28). Fixed: both places read, a loose match
+  guarded by the runner-up for icons whose light shows on the panel; the line names the
+  closest research and its distance; "no icon at all" is a runner-up of the loose match
+  (a few specks on an empty panel read Mana Heroes in trees without Damage Specialization).
+  Not seen on 9.1.3a yet: the tree right after a purchase (the pressed node turns into a
+  full gold disc on the captures; if it stays gold, the visit ends after that purchase and
+  captures meteorite-after-purchase.png once a run, and a counter drop smaller than the
+  cost cannot be confirmed by the node's level: 6 h pause), the 26 other popup icons. The
+  owner's Raining Gold is grey-locked in tree XI (the locked-nodes follow-up above).
+
+- Arena of Kings never run on a 1920x1080 client (report ANHNX9, 2 of 2 tries "did not
+  show"): its X probe was edge-anchored on a centred dialog. Fixed: every arena entry is
+  centre-anchored (same points at 1920x1009). Taller clients (16:10) are unverified: the
+  battle result screen was never seen there; a claim button that never shows now ends the
+  arena after SafetyCap x 20 s (180 s at most, also with SafetyCap 0) with
+  arena-battle-miss.png, instead of waiting forever or tapping on blind.
+
+- World map at 16:9 (reports ANHNX9 and PPJMWR, 2026-10-25..28; PPJMWR: "the bot doesn't
+  work properly in the map", Epic fullscreen 1920x1080, coordinates mode, no capture: the
+  bot ran from WinRAR's temp folder). A game started at 16:9 draws the map fitted to the
+  width, 1009/1080 of the size the mission points were measured at (MEASUREMENTS
+  2026-10-28). Fixed: the landmark measures the map's scale at every alignment (kept when
+  no reference wins clearly, measured also once the alignment is off) and the coordinates
+  are scaled around the centre; an offset too short to drag (under 10 px) no
+  longer turns the alignment off for the run; detection mode maps a label through the
+  centre anchor (it was up to 45 px off at 1080); a label whose digits are cut in two
+  ("15:55") is found. Left: MR_NO_MISSIONS never matches (the empty map is tapped twice and
+  saves mission-dialog-unknown.png; proposed: a probe on the panel's navy band,
+  MR_PANEL (60,220)-(240,240) 0x163059); the gem guard after a free speed-up fires on a
+  purple mission's Rewards (owner, 8 times since 2026-10-22, no gem spent; proposed: no
+  gem in the Okay band = rewards); the zoom knob row is right-anchored on a bottom-centre
+  slider (reads the home value at 1080 by chance). PPJMWR's case is unproven until a
+  report from a real folder.
+
+- Other findings of the 2026-10-28 log review (owner, ANHNX9), not done: the game could
+  not be brought to the foreground for 7 h on 2026-10-25 (17:18..00:34, 5,605 warnings)
+  while the bot kept clicking and pressing T into whatever window was in front (to ask the
+  owner what was on screen; proposed: a pause instead of blind input); an empty mailbox
+  opened every cycle for hours while its bell stays lit (512 visits in 17 h); ANHNX9's
+  Scarab game waits 23 s for a Play button that never turns green, every cycle (no token?);
+  after the 10th scarab play the screen is left open (the next step recovers); a fresh
+  install opens the shop every cycle until the first daily reset is seen; the routine
+  liberation / dungeon captures fill the 50 MB diagnostics budget in two days; a bot run
+  from a temp folder (WinRAR) loses its settings, logs and updates (proposed: a warning at
+  start-up).
 
 - Send report (owner request, 2026-10-22): a button of the bottom bar uploads a zip of the
   logs, the newest captures, the settings without DiscordID/ClientID and the last logged

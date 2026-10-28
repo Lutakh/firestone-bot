@@ -666,17 +666,22 @@ BATTLES_CLOSE_X = Probe(1293, 248, 1297, 252, DIALOG_RING, 20, "battles_close_x"
 MESSAGE_CLOSE_X = Probe(1346, 343, 1350, 347, DIALOG_RING, 20, "message_close_x", ANCHOR_CENTER)
 MESSAGE_CLOSE = Point(1368, 345, ANCHOR_CENTER)
 # the arena screen's X sits lower than the generic dialog X (client (1800,110), 2026-09-08):
-# DIALOG_CLOSE_X missed and the step was skipped every cycle
-ARENA_CLOSE_X = Probe(1796, 137, 1804, 145, 0xFFF9CE, 30, "arena_close_x")
+# DIALOG_CLOSE_X missed and the step was skipped every cycle. The arena is a centred dialog:
+# edge-anchored, the probe sat 68 px left of the X on a 1920x1080 client (report ANHNX9,
+# 2026-10-25: cross at client 1841..1878 x 99..135, "did not show" at every try), so every
+# entry of the arena and its battles is centre-anchored (no change at 1920x1009).
+ARENA_CLOSE_X = Probe(1796, 137, 1804, 145, 0xFFF9CE, 30, "arena_close_x", ANCHOR_CENTER)
 ARENA_OPPONENT_COLUMNS = (700, 954, 1220)  # :19
 ARENA_OPPONENT_Y = 630  # :30
-ARENA_REFRESH = Point(871, 195)  # :25
-ARENA_BUY_MORE = Probe(1243, 669, 1291, 713, GREEN_BUTTON, 1, "arena_buy_more")  # :35
-ARENA_FIGHT = Point(961, 570)  # :41
+ARENA_REFRESH = Point(871, 195, ANCHOR_CENTER)  # :25
+ARENA_BUY_MORE = Probe(
+    1243, 669, 1291, 713, GREEN_BUTTON, 1, "arena_buy_more", ANCHOR_CENTER
+)  # :35
+ARENA_FIGHT = Point(961, 570, ANCHOR_CENTER)  # :41
 ARENA_BATTLE_DONE = Probe(
-    979, 753, 1056, 798, GREEN_BUTTON, 3, "arena_battle_done"
+    979, 753, 1056, 798, GREEN_BUTTON, 3, "arena_battle_done", ANCHOR_CENTER
 )  # ArenaBattle.ahk:5
-ARENA_BATTLE_CLAIM = Point(959, 775)  # :7
+ARENA_BATTLE_CLAIM = Point(959, 775, ANCHOR_CENTER)  # :7
 
 # --- Alchemist.ahk --------------------------------------------------------------------------
 TOWN_ALCHEMIST = Point(511, 837)  # :8
@@ -842,9 +847,18 @@ METEORITE_TREE_RECT = (480, 141, 1460, 986)  # centre-anchored: nodes and labels
 # x 1604..1606 stay outside. Dimmed under a popup (a "4" scored 0.67): read with none open.
 METEORITE_COUNTER_DIGITS = (1616, 50, 1738, 86)  # top-right anchored (token_counter.read)
 METEORITE_PARK = Point(1300, 60, (CENTER, TOP))  # empty sky left of the counter, as RS_PARK
-# Popup (centre-anchored). The icon's centre is (708, 351); the rect leaves room for the
-# icon window slid +-4 px at 1.15 x. The cost's digits sit at client x 965..1025, y 719..741.
+# Popup (centre-anchored). Before game 9.1.3a the icon's centre is (708, 351); this rect (read
+# until 0.3.34, the crop of the tank fixture) leaves room for the icon window slid +-4 px at
+# 1.15 x. The cost's digits sit at client x 965..1025, y 719..741.
 METEORITE_POPUP_ICON_RECT = (648, 291, 768, 411)
+# Game 9.1.3a (the owner's Epic client from 2026-10-23 ~15:00, report ANHNX9 on Steam at
+# 1920x1080) draws the icon alone, without its disc and ring, 1.43 x the node's and centred at
+# (708, 336): read in the rect above, no reference came within 40 (Raining Gold's popup 40.5,
+# All Attributes' 41.0; limit 10), every popup was "an unknown research", nothing bought. The
+# frame, the X (ring 1206..1269 x 264..327), the Research button (830..1089 x 690..783) and its
+# cost did not move. Both icons are read in this band: (x, y, size x the node's icon) of each.
+METEORITE_POPUP_ICON_BAND = (636, 264, 780, 420)
+METEORITE_POPUP_ICONS = ((708, 351, 1.15), (708, 336, 1.43))  # before 9.1.3a, 9.1.3a
 METEORITE_POPUP_COST = (940, 743, 1075, 779)
 # The button's lower band (the cost's background) is GREEN_BUTTON, logical y 740..779; the
 # label's band above it is darker (42, 116, 39). The green effect arrow sits at y ~631.

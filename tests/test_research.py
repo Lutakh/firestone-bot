@@ -735,6 +735,28 @@ def test_popups_without_a_research_button_are_closed(fake):
     assert _starts(g) == [] and g.offset == 0
 
 
+def test_a_finished_tree_is_said_plainly_without_a_capture(fake):
+    """Report ANHNX9 (2026-10-25): tree done but the running research, a capture of it
+    every 15 min and a bare "no research could start"."""
+    g = fake(["orange", None], tree=_all("maxed", **{"Mana Heroes": "running"}))
+    research.go_research(g)
+    assert g.popups == [] and _research_clicks(g) == 0
+    assert (
+        "Research: nothing left to start in this tree (15 maxed, 1 running), next search in 15 min"
+    ) in g.statuses
+    assert not any(s.startswith("diag:") for s in g.statuses)
+
+
+def test_a_claim_ends_the_pause_of_an_empty_search(fake):
+    """Report ANHNX9 (2026-10-25): after each claim both slots stayed free until the pause
+    of the last empty search ran out (8 and 11 min)."""
+    g = fake(["green", None])
+    g.vars[research.NO_NODE_UNTIL] = int(research.time.monotonic()) + 900
+    research.go_research(g)
+    assert _claims(g) == 1
+    assert len(_starts(g)) == 2 and g.panels == ["orange", "orange"]
+
+
 def test_no_new_search_for_a_while_after_one_that_found_nothing(fake):
     g = fake([None, None], tree=xiii(locked=("Rage Heroes", "Energy Heroes", "Mana Heroes")))
     research.go_research(g)

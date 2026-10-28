@@ -25,6 +25,11 @@ def _start_ready(g: Game) -> bool:
         g.status("Mission Start: the Start button shows a gem, not clicked")
         g.save_diagnostic("mission-start-gem.png")
         return False
+    # the start popup of game 9.1.3a has no 1:1 capture yet: one a run, before the click
+    key = "map_diag:mission-start-popup.png"
+    if not g.vars.get(key):
+        g.vars[key] = 1
+        g.save_diagnostic("mission-start-popup.png")
     return True
 
 
@@ -57,13 +62,20 @@ def _drag_map(g: Game, dy: int) -> None:
 
 
 def _click_mission(g: Game, x: int, y: int) -> None:
-    """Click a mission point; north-edge points are revealed by a temporary drag (see atlas)."""
+    """Click a mission point; north-edge points are revealed by a temporary drag (see atlas).
+    The points were measured on a canvas-scaled map: on a map the game fitted to a 16:9 width
+    (map_align.SCALE_KEY, measured on the landmark) they sit that much nearer the centre."""
+    from firestone_bot.features import map_align
+
+    f = g.vars.get(map_align.SCALE_KEY, 1.0)
+    cx, cy = atlas.REF.x + atlas.REF.w / 2, atlas.REF.y + atlas.REF.h / 2
+    lx, ly = round(cx + (x - cx) * f), round(cy + (y - cy) * f)
     if y >= atlas.MAP_NORTH_DRAG_LIMIT:
-        g.click_at(x, y, anchor=atlas.ANCHOR_CENTER)  # Click %x%, %y%
+        g.click_at(lx, ly, anchor=atlas.ANCHOR_CENTER)  # Click %x%, %y%
         return
     dy = atlas.MAP_NORTH_DRAG_DY
     _drag_map(g, dy)
-    g.click_at(x, y + dy, anchor=atlas.ANCHOR_CENTER)
+    g.click_at(lx, ly + dy, anchor=atlas.ANCHOR_CENTER)
 
 
 def _undrag_if_needed(g: Game, y: int) -> None:
@@ -88,7 +100,7 @@ def _detect_and_click(g: Game, state: MapState, offset: int) -> tuple[bool, int,
         if state.was_clicked(x, y - offset):
             continue
         g.focus()
-        g.click_at(x, y)
+        g.click_at(x, y, anchor=atlas.ANCHOR_CENTER)  # find_missions' points are centred
         g.sleep(1000)
         state.mark_clicked(x, y - offset)
         if _start_ready(g):
@@ -179,8 +191,8 @@ def map_start(g: Game) -> None:
             if state.was_clicked(x, y):
                 continue
             g.focus()
-            # The world map is centred and scaled with the canvas (measured at 1280x720,
-            # docs/MEASUREMENTS.md 4.6), so every mission point uses the centre anchor.
+            # The world map is centred (measured at 1280x720, docs/MEASUREMENTS.md 4.6), so
+            # every mission point uses the centre anchor, and the map's scale (_click_mission).
             _click_mission(g, x, y)
             g.sleep(1000)
             state.mark_clicked(x, y)

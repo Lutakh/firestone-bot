@@ -1157,13 +1157,24 @@ def start_research(g: Game, busy: int) -> bool:
     g.vars[FAILED_SEARCHES] = streak
     quick = trouble and choice.stop != "full" and streak <= MAX_QUICK_RETRIES
     pause = RETRY_PAUSE_S if quick else NO_NODE_PAUSE_S
-    if not choice.line and not choice.stop:  # before the tree moves (a window has its own)
+    # the whole tree seen and nothing in it left to start: said plainly, no capture (report
+    # ANHNX9, 2026-10-25: a finished tree saved research-no-node.png every 15 min)
+    done = not choice.stop and scan.complete and bool(scan.boxes)
+    done = done and all(b.state in ("maxed", "running") for b in scan.boxes)
+    if not choice.line and not choice.stop and not done:  # before the tree moves
         _diagnostic_once(g, scan, "research-no-node.png")
     if choice.stop != "blocked":  # a window would take the wheels
         to_start(g, scan)
     next_search = f"next search in {pause // 60} min"
     if choice.line:  # left free on purpose
         g.status(choice.line.replace("next search in 15 min", next_search))
+    elif done:
+        maxed = sum(b.state == "maxed" for b in scan.boxes)
+        running = len(scan.boxes) - maxed
+        g.status(
+            f"Research: nothing left to start in this tree ({maxed} maxed, {running} running), "
+            f"{next_search}"
+        )
     else:
         tried = chooser.outcomes()
         why = f" ({tried})" if tried else ""
@@ -1198,6 +1209,11 @@ def go_research(g: Game) -> None:
                 g.status("Research: the claim did not show, no more claims this visit")
                 g.save_diagnostic("research-claim.png")
                 claiming = False
+            else:
+                # a claimed slot changes what can start: the pause of the last empty search
+                # ends (report ANHNX9, 2026-10-25: with the tree done but the running
+                # research, both slots stayed free 8 and 11 min after each claim)
+                g.vars[NO_NODE_UNTIL] = 0
             continue
         if "empty" not in kinds:
             break

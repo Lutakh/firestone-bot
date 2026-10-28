@@ -38,9 +38,12 @@ class FakeGame:
         self.log = []
         self.popup = False  # a start popup is open
         self.stuck = False  # the popup ignores Start and close taps
+        self.vars = {}
+        self.captures = []
+        self.anchors = []
 
     def save_diagnostic(self, name):
-        pass
+        self.captures.append(name)
 
     def status(self, msg):
         self.log.append(msg)
@@ -64,6 +67,7 @@ class FakeGame:
 
     def click_at(self, x, y, anchor=None):
         self.log.append(("click", x, y))
+        self.anchors.append(anchor)
         self.popup = True
 
     def tap(self, p, settle_ms=1500, expect=None):
@@ -107,6 +111,10 @@ def test_visible_missions_enough_no_scroll(monkeypatch):
         and aligned == []
         and not any(e[0] == "drag" for e in g.log if isinstance(e, tuple))
     )
+    # the start popup of game 9.1.3a is captured once a run, before its first Start click
+    assert g.captures.count("mission-start-popup.png") == 1
+    # the detected points are centre-anchored, like the map (report ANHNX9, 1920x1080)
+    assert g.anchors == [atlas.ANCHOR_CENTER] * 2
 
 
 def test_scrolls_both_ways_then_recentres(monkeypatch):

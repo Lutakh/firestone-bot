@@ -39,7 +39,10 @@ def _checks(g: Game) -> None:
             g.tap(atlas.MR_FIRST_MISSION, 1000)
             g.wait_still()  # fast timing: the popup has scaled in before it is read
             if g.found(atlas.MR_MORE_THAN_3_MIN):
-                g.toast("Mission Check", "Mission has more than 3 minutes reamining", 1.5)
+                g.toast("Mission Check", "Mission has more than 3 minutes remaining", 1.5)
+                # the in-progress popup of game 9.1.3a (red Cancel, paid Speed up) has no
+                # 1:1 capture yet: one a run, for its anchors at other sizes
+                _diagnostic_once(g, "mission-in-progress.png")
                 map_close(g)
                 return  # Goto, Troops
             if g.found(atlas.MR_FREE_EARLY):

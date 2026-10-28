@@ -10,6 +10,7 @@ took one more).
 import pytest
 
 from firestone_bot.features import guild
+from firestone_bot.game import ScreenNotReached
 from firestone_bot.settings import Settings
 from firestone_bot.vision import atlas
 
@@ -155,6 +156,9 @@ class GuildVisit(FakeGuildMap):
     def locked(self, feature):
         return False
 
+    def require_screen(self, p, expect, settle_ms=1500, via_town=False):
+        self.tap(p, settle_ms, expect=expect)
+
 
 def test_the_guild_visit_runs_the_expedition(guild_map):
     visit = guild_map(cls=GuildVisit)
@@ -163,3 +167,18 @@ def test_the_guild_visit_runs_the_expedition(guild_map):
     visit.settings.set("Pickaxes", 1)  # 1 = skip the pickaxe claim
     guild.guild(visit)
     assert "Guild expedition: started (the dot is gone)" in visit.lines
+
+
+def test_a_guild_click_that_opens_nothing_skips_the_visit(guild_map):
+    """Owner, 2026-09-28..10-28: the guild icon click right after the town closed was lost 3
+    to 10 times a day and the guild features ran blind on the main screen (its chat bubble
+    clicked, twice a false expedition start). The visit is now skipped instead."""
+    visit = guild_map(cls=GuildVisit)
+
+    def miss(p, expect, settle_ms=1500, via_town=False):
+        raise ScreenNotReached(expect.name)
+
+    visit.require_screen = miss
+    with pytest.raises(ScreenNotReached):
+        guild.guild(visit)
+    assert visit.taps == [] and visit.lines == []

@@ -82,7 +82,16 @@ BG_BLUE_MINUS_RED = 70
 BG_BLUE_MIN = 100
 MAX_DISTANCE = 10.0  # own reference: 4.05 at most on the captures; another name: 6.7 at least
 MAX_RATIO = 0.6  # best / runner-up (worst own ratio 0.42 at 1920 px)
-POPUP_ICON_SCALE = 1.15  # the popup draws the node's icon 1.15 x bigger
+POPUP_ICON_SCALE = 1.15  # the popup draws the node's icon 1.15 x bigger (before game 9.1.3a)
+# Game 9.1.3a draws the popup's icon without the disc (atlas.METEORITE_POPUP_ICONS): what the
+# node's disc hides shows on the popup's panel (Raining Gold's light rays: 12.0..13.0 from its
+# reference, the next name 39 or more; All Attributes 1.5). A popup icon further than
+# MAX_DISTANCE is still named within POPUP_LOOSE_DISTANCE when the runner-up is at least
+# 1 / POPUP_LOOSE_RATIO as far: the runner-up is at most the distance plus the two references'
+# own distance, so a name with a look-alike within 1.5 x the distance (the scroll, weak and
+# powerless pairs: 6.7 to 9.9 apart) never passes this way.
+POPUP_LOOSE_DISTANCE = 16.0
+POPUP_LOOSE_RATIO = 0.4
 
 # -- lines -----------------------------------------------------------------------------------
 LINE_CELL = 3  # logical px
@@ -364,15 +373,31 @@ def references() -> IconRefs:
 
 
 def popup_research(
-    refs: IconRefs, rgb: np.ndarray, cx: float, cy: float, scale: float, names=None
-) -> tuple[str | None, float]:
-    """The research whose icon a node's popup shows at (cx, cy) of `rgb` (capture px,
-    `scale` capture px per logical px): the closest reference within MAX_DISTANCE, else
-    None. Measured: Tank Specialization 1.74 (next 24.4), Attribute Armor 2.15 (next 30.4)."""
-    ds = refs.distances(icon_thumbs(icon_integral(rgb), cx, cy, scale * POPUP_ICON_SCALE), names)
-    if not ds or ds[0][0] > MAX_DISTANCE:
-        return None, ds[0][0] if ds else 1e9
-    return ds[0][1], ds[0][0]
+    refs: IconRefs, rgb: np.ndarray, places, scale: float, names=None
+) -> tuple[str | None, float, str | None]:
+    """The research whose icon a node's popup shows in `rgb` (`scale` capture px per logical
+    px). `places`: (cx, cy, icon scale) in capture px, one per way the game draws the icon;
+    each name keeps its closest distance. (name or None, distance, closest name): named within
+    MAX_DISTANCE, or within POPUP_LOOSE_DISTANCE at most POPUP_LOOSE_RATIO x the runner-up.
+    Measured: Tank Specialization 1.74 (next 24.4), Attribute Armor 2.15 (next 30.4) before
+    9.1.3a; All Attributes 1.53 (next 30.6), Raining Gold 12.7 (next 40.0) on 9.1.3a."""
+    integral = icon_integral(rgb)
+    best: dict[str, float] = {}
+    # "no icon at all" is a runner-up of the loose match too: Mana Heroes' sparse reference
+    # sits 17.4 from an empty window and every other one 33 or more, so a panel with a few
+    # specks was named Mana Heroes in a tree without Damage Specialization (review 2026-10-28)
+    blank = 1e9
+    for cx, cy, k in places:
+        thumbs = icon_thumbs(integral, cx, cy, scale * k)
+        blank = min(blank, float(np.abs(thumbs)[:, refs.mask].mean(axis=(1, 2)).min()))
+        for d, n in refs.distances(thumbs, names):
+            best[n] = min(d, best.get(n, d))
+    ds = sorted((d, n) for n, d in best.items())
+    if not ds:
+        return None, 1e9, None
+    (d1, n1), d2 = ds[0], (ds[1][0] if len(ds) > 1 else 1e9)
+    loose = d1 <= POPUP_LOOSE_DISTANCE and d1 <= POPUP_LOOSE_RATIO * min(d2, blank)
+    return (n1 if d1 <= MAX_DISTANCE or loose else None), d1, n1
 
 
 # -- lines -----------------------------------------------------------------------------------

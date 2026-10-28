@@ -89,21 +89,119 @@ def test_numbers(name, value):
     assert token_counter.read_image(Reader(), np.load(FIX / f"{name}.npy")) == value
 
 
+def _old_place(c):
+    """The icon at the centre `c` of a crop of METEORITE_POPUP_ICON_RECT, before 9.1.3a."""
+    return ((c, c, mn.POPUP_ICON_SCALE),)
+
+
+def _band_places(img):
+    """Both icon places in a crop of METEORITE_POPUP_ICON_BAND, and the crop's scale."""
+    band = atlas.METEORITE_POPUP_ICON_BAND
+    s = img.shape[1] / (band[2] - band[0])
+    places = [((x - band[0]) * s, (y - band[1]) * s, k) for x, y, k in atlas.METEORITE_POPUP_ICONS]
+    return places, s
+
+
+def _half(img):
+    h, w = img.shape[0] // 2 * 2, img.shape[1] // 2 * 2
+    return img[:h, :w].reshape(h // 2, 2, w // 2, 2, 3).mean(axis=(1, 3)).astype(np.uint8)
+
+
 def test_the_popup_icon_is_the_node_icon_drawn_bigger():
     """Capture of METEORITE_POPUP_ICON_RECT with Tank Specialization's popup open."""
     img = _rgb("meteorite-popup-icon-tank")
-    got, d = mn.popup_research(REFS, img, 60, 60, 1.0)
+    got, d, _ = mn.popup_research(REFS, img, _old_place(60), 1.0)
     assert got == "Tank Specialization" and d < 4
     ten = frozenset(research_data.meteorite_names_of("10"))
-    assert mn.popup_research(REFS, img, 60, 60, 1.0, ten)[0] == "Tank Specialization"
+    assert mn.popup_research(REFS, img, _old_place(60), 1.0, ten)[0] == "Tank Specialization"
     # at half the size (a 960 px wide client)
     half = img[:120, :120].reshape(60, 2, 60, 2, 3).mean(axis=(1, 3)).astype(np.uint8)
-    got, d = mn.popup_research(REFS, half, 30, 30, 0.5)
+    got, d, _ = mn.popup_research(REFS, half, _old_place(30), 0.5)
     assert got == "Tank Specialization" and d < 8
     # the tree itself, read as a popup, is not taken for a research
     blank = np.zeros_like(img)
     blank[:] = (41, 170, 247)
-    assert mn.popup_research(REFS, blank, 60, 60, 1.0)[0] is None
+    assert mn.popup_research(REFS, blank, _old_place(60), 1.0)[0] is None
+
+
+def test_the_old_popup_still_reads_in_the_band():
+    """The tank crop of before 9.1.3a put back in METEORITE_POPUP_ICON_BAND on its panel."""
+    old = _rgb("meteorite-popup-icon-tank")
+    band, r = atlas.METEORITE_POPUP_ICON_BAND, atlas.METEORITE_POPUP_ICON_RECT
+    img = np.empty((band[3] - band[1], band[2] - band[0], 3), np.uint8)
+    img[:] = old[0, 0]  # the popup's panel
+    img[r[1] - band[1] : r[3] - band[1], r[0] - band[0] : r[2] - band[0]] = old
+    places, s = _band_places(img)
+    got, d, _ = mn.popup_research(REFS, img, places, s)
+    assert got == "Tank Specialization" and d < 4
+    half = _half(img)
+    places, s = _band_places(half)
+    assert mn.popup_research(REFS, half, places, s)[0] == "Tank Specialization"
+
+
+@pytest.mark.parametrize(
+    "name, research, tree, most",
+    [
+        # the owner's Epic client, 1920x1009, 2026-10-28: no disc, 1.43 x, centred (708, 336)
+        ("meteorite-popup-band-all-attributes-913a", "All Attributes", "11", 4),
+        # report ANHNX9, Steam, 1920x1080 (scale 1.07), 2026-10-25: the coins' light rays show
+        ("meteorite-popup-band-raining-gold-913a", "Raining Gold", "6", 14),
+    ],
+)
+def test_the_913a_popup_icon_is_named(name, research, tree, most):
+    img = _rgb(name)
+    for names in (None, frozenset(research_data.meteorite_names_of(tree))):
+        places, s = _band_places(img)
+        got, d, closest = mn.popup_research(REFS, img, places, s, names)
+        assert got == closest == research and d < most
+    half = _half(img)
+    places, s = _band_places(half)
+    assert mn.popup_research(REFS, half, places, s)[0] == research
+    # 0.3.34 read only the old place: nothing within the limit
+    places, s = _band_places(img)
+    got, d, _ = mn.popup_research(REFS, img, places[:1], s)
+    assert got is None and d > 30
+
+
+def test_a_loose_popup_match_needs_a_clear_runner_up():
+    """Raining Gold's 9.1.3a icon (12-13 from its reference) is named only because every
+    other name is 3 x as far: beside a look-alike reference 6 away it is not named."""
+    img = _rgb("meteorite-popup-band-raining-gold-913a")
+    places, s = _band_places(img)
+    ref = REFS.refs["Raining Gold"]
+    near = ref.copy()
+    near[:, :, 3] = np.clip(near[:, :, 3] + 24, 0, 255)  # coverage +24: 6 apart (mean of 4)
+    refs = mn.IconRefs({"Raining Gold": ref, "Look-alike": near})
+    got, d, closest = mn.popup_research(refs, img, places, s)
+    assert got is None and closest == "Raining Gold" and d > mn.MAX_DISTANCE
+    blank = np.zeros_like(img)
+    blank[:] = (41, 82, 132)  # the 9.1.3a popup's panel, no icon
+    assert mn.popup_research(REFS, blank, places, s)[0] is None
+
+
+def test_a_few_specks_on_an_empty_panel_are_no_research():
+    """Review 2026-10-28: Mana Heroes' sparse reference is the closest to an almost empty
+    window; in a tree without Damage Specialization every other name is 2.5 x as far, so
+    the loose match also needs the window to be far from no icon at all. The owner's 9.1.3a
+    band with the icon painted out by the panel's rows, and the review's trial 56 specks."""
+    img = _rgb("meteorite-popup-band-all-attributes-913a").copy()  # 1920x1009: 1 px a px
+    img[:] = img[:, :5].mean(axis=1, keepdims=True).astype(np.uint8)  # the panel, no icon
+    yy, xx = np.mgrid[0 : img.shape[0], 0 : img.shape[1]]
+    for x, y, r, rgb in ((32, 49, 5, (255, 200, 60)), (23, 31, 8, (255, 200, 60))) + (
+        (94, 70, 7, (255, 255, 255)),
+    ):
+        img[np.hypot(yy - y, xx - x) <= r] = rgb
+    places, s = _band_places(img)
+    for tree in ("3", "7", "12", "B"):
+        names = frozenset(research_data.meteorite_names_of(tree))
+        assert "Mana Heroes" in names and "Damage Specialization" not in names
+        got, d, closest = mn.popup_research(REFS, img, places, s, names)
+        assert got is None and closest == "Mana Heroes" and d < mn.POPUP_LOOSE_DISTANCE
+    # the real Raining Gold popup is still named in its tree
+    gold = _rgb("meteorite-popup-band-raining-gold-913a")
+    places, s = _band_places(gold)
+    six = frozenset(research_data.meteorite_names_of("6"))
+    assert mn.popup_research(REFS, gold, places, s, six)[0] == "Raining Gold"
 
 
 def test_references_cover_every_research_and_are_distinct():

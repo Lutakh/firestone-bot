@@ -182,3 +182,15 @@ def test_a_popup_neither_brown_nor_orange_is_closed():
     close = (atlas.MAP_POPUP_CLOSE.x, atlas.MAP_POPUP_CLOSE.y)
     assert g.clicks[-1] == close
     assert g.diagnostics == ["mission-dialog-unknown.png"]
+
+
+def test_the_in_progress_popup_is_captured_once_a_run():
+    """Game 9.1.3a's in-progress popup (red Cancel, paid Speed up) has no 1:1 capture yet."""
+    g = FakeMap()
+    g.found = lambda probe: probe is atlas.MR_MORE_THAN_3_MIN
+    map_redeem._checks(g)
+    map_redeem._checks(g)  # the next visit of the run
+    close = (atlas.MAP_POPUP_CLOSE.x, atlas.MAP_POPUP_CLOSE.y)
+    assert g.clicks.count(close) == 2
+    assert g.diagnostics == ["mission-in-progress.png"]
+    assert "Mission Check: Mission has more than 3 minutes remaining" in g.lines

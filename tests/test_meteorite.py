@@ -267,7 +267,9 @@ def make(monkeypatch, tmp_path):
         g.clock = clock
         g.big_closed = []
         monkeypatch.setattr(meteorite, "read_tab", lambda game: game.tab_view())
-        monkeypatch.setattr(meteorite, "popup_name", lambda game, names: game.popup_name())
+        monkeypatch.setattr(
+            meteorite, "popup_name", lambda game, names: (game.popup_name(), 0.0, game.popup_name())
+        )
         monkeypatch.setattr(meteorite, "popup_cost", lambda game: game.popup_cost())
         monkeypatch.setattr(token_counter, "read", lambda game, rect: game.read_counter(rect))
         monkeypatch.setattr(meteorite, "big_close", lambda game: game.big_closed.append(game.tab))
@@ -310,6 +312,29 @@ def test_the_priorities_go_in_order_and_a_maxed_one_is_skipped(make):
     assert g.bought == ["Tank Specialization"] * 2 + ["Attribute Armor"] * 4
     assert g.counter == 5000 - 2 * 750 - 4 * 800
     assert len(_purchases(g)) == 6
+
+
+def test_a_node_not_seen_after_its_purchase_ends_the_visit(make):
+    """Game 9.1.3a draws the pressed node as a gold disc (not detected) while its popup is
+    open: if it stays so after the purchase, the meteorites ranked for priority 1 must not
+    go to priority 2 (review 2026-10-28)."""
+    g = make(["Tank Specialization", "Attribute Armor"], counter=1600)
+    view = g.tab_view
+
+    def gold():
+        tab = view()
+        if g.bought:
+            tab.nodes = [n for n in tab.nodes if n.name != g.bought[-1]]
+        return tab
+
+    g.tab_view = gold
+    assert meteorite.visit(g) == 1
+    assert g.bought == ["Tank Specialization"]
+    assert (
+        "Meteorite research: Tank Specialization bought, not seen on the tab afterwards: the "
+        "rest waits for the next visit"
+    ) in g.lines
+    assert g.diagnostics == ["meteorite-after-purchase.png"] and not _paused(g)
 
 
 def test_the_priority_names_are_compared_case_insensitively(make):

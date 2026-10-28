@@ -19,6 +19,7 @@ the bot opened the running Trade Route from that panel every cycle).
 
 from __future__ import annotations
 
+import math
 from collections import deque
 
 import numpy as np
@@ -33,6 +34,10 @@ OUTLINE_REACH = 2  # between a digit pixel and its outline
 DIGIT_H = (8, 21)  # digit blob height (a whole digit)
 FRAGMENT_H = 4  # a digit cut in two by anti-aliasing at the zoomed-out size (a "0" or a "5"
 # splits into 5 + 6 px halves, Windows 2026-09-08): fragments join a label but do not make one
+# Two halves stacked at most this far apart are joined back into one digit first: "15:55" has
+# a whole "1" and three split "5"s, so it never had two whole digits and its mission stayed
+# unstarted for 35 minutes (owner, 2026-10-27 17:54-18:29; 11 such episodes since 2026-09-12)
+SPLIT_GAP = 1  # rows between the two halves of a split digit
 DIGIT_W = (2, 38)  # digit blob width (merged digits allowed)
 ROW_GAP = 12  # largest gap between two blobs of one label (a colon plus a split digit)
 ROW_ALIGN = 5  # vertical centre tolerance inside one label
@@ -64,6 +69,39 @@ def _blobs(mask: np.ndarray) -> list[tuple[int, int, int, int]]:
     return out
 
 
+def _join_split(digits, digit_h, gap):
+    """Join the two halves of a digit cut by anti-aliasing (a "5" drawn as 6 + 5 px blobs):
+    two fragments (each shorter than a whole digit) stacked in one column, overlapping in x
+    by half the narrower one and at most `gap` rows apart, become one box when that box has
+    a whole digit's height and is taller than wide. Whole digits are never touched."""
+    frags = sorted((b for b in digits if b[3] - b[1] < digit_h[0]), key=lambda b: b[1])
+    out = [b for b in digits if b[3] - b[1] >= digit_h[0]]
+    used = [False] * len(frags)
+    for i, a in enumerate(frags):
+        if used[i]:
+            continue
+        for j in range(i + 1, len(frags)):
+            b = frags[j]
+            if used[j]:
+                continue
+            ov = min(a[2], b[2]) - max(a[0], b[0])
+            vgap = max(a[1], b[1]) - min(a[3], b[3])
+            box = (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+            h, w = box[3] - box[1], box[2] - box[0]
+            if (
+                ov >= 0.5 * min(a[2] - a[0], b[2] - b[0])
+                and vgap <= gap
+                and digit_h[0] <= h <= digit_h[1]
+                and w < h
+            ):
+                used[i] = used[j] = True
+                out.append(box)
+                break
+        if not used[i]:
+            out.append(a)
+    return out
+
+
 def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, int, int]]:
     """Label rectangles (capture px) in a BGR image: rows of outlined white digit blobs.
     `factor` = capture px per logical px (scales the size thresholds)."""
@@ -86,6 +124,7 @@ def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, in
         for b in _blobs(white & near)
         if fragment_h <= b[3] - b[1] <= digit_h[1] and digit_w[0] <= b[2] - b[0] <= digit_w[1]
     ]
+    digits = _join_split(digits, digit_h, max(1, round(SPLIT_GAP * f)))
     digits.sort(key=lambda b: b[0])
     used = [False] * len(digits)
     labels = []
@@ -115,17 +154,25 @@ def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, in
 
 
 def find_missions(g: Game) -> list[tuple[int, int]]:
-    """Logical (x, y) of every mission icon on the open map, top to bottom then left to right."""
+    """Logical (x, y) of every mission icon on the open map, top to bottom then left to right.
+    The points are centre-anchored, like the map: click them with atlas.ANCHOR_CENTER."""
     x1, y1, x2, y2 = atlas.MAP_DETECT_AREA
+    vp = g._viewport()
     img = g.region_image((x1, y1, x2, y2))
-    fx = (x2 - x1) / img.shape[1]
-    fy = (y2 - y1) / img.shape[0]
+    # The capture's corners follow the HUD edges (region_image's anchors) but the map is
+    # centred, so a label goes through its screen pixel and the centre anchor. Scaled by the
+    # area's corners and clicked with the thirds rule, labels were clicked up to 45 px beside
+    # their icon on a 1920x1080 client (report ANHNX9, 2026-10-25), 170 px at 21:9.
+    ox, oy = vp.to_screen(x1, y1)
+    panel_x = vp.to_screen(PANEL_MAX_X, 0, (0.0, 0.0))[0]  # the HUD panel is left-anchored
     points = []
-    for lx0, ly0, lx1, ly1 in find_labels(img, 1 / fx):
-        cx = x1 + int((lx0 + lx1) / 2 * fx)
-        cy = y1 + int((ly0 + ly1) / 2 * fy) - atlas.MAP_LABEL_TO_ICON
-        if cx < PANEL_MAX_X:
+    for lx0, ly0, lx1, ly1 in find_labels(img, img.shape[1] / (x2 - x1)):
+        sx, sy = ox + (lx0 + lx1) / 2, oy + (ly0 + ly1) / 2
+        if sx < panel_x:
             continue  # remaining time of a running mission in the left HUD panel
-        points.append((cx, cy))
+        # floored first: on the reference client the points are 0.3.34's exactly (MapState
+        # remembers the points clicked, exact matches)
+        cx, cy = vp.to_logical(math.floor(sx), math.floor(sy), atlas.ANCHOR_CENTER)
+        points.append((cx, cy - atlas.MAP_LABEL_TO_ICON))
     points.sort(key=lambda p: (p[1] // 40, p[0]))
     return points
