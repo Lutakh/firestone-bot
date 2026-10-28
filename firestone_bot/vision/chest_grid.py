@@ -11,6 +11,13 @@ centre (the grid shifts slightly with its row count) and the best position kept.
 distance is under 3 levels, the nearest other chest is 19 levels away; the count digits
 (bottom right of a slot) are left out of the comparison. The grid is captured once per
 scan (one grab, 15 slots, 25 positions each).
+
+Empty slots (2026-10-28): the `_empty` reference reads every empty slot of the real
+captures at 0..4 levels, the nearest chest 24 away: the owner's new-style bag (old game
+version, 1920x1009 and that capture scaled from 1/3 to 2x) and a player's classic bag on
+game 9.1.3a (an 854x480 video, rows placed from the panel's X). A chest without a
+reference (that player's mystery box) is 32..35 levels from every reference: unknown,
+never "empty".
 """
 
 from __future__ import annotations
@@ -34,6 +41,7 @@ WINDOW = 96  # logical px, the icon with a little margin
 OFFSETS = (-8, -4, 0, 4, 8)  # logical px, slid around the slot centre
 MAX_DISTANCE = 10.0  # mean levels: a match must be this close...
 MAX_RATIO = 0.5  # ...and this much closer than the runner-up
+EMPTY = "_empty"  # the reference name of an empty slot
 _MARGIN = WINDOW // 2 + max(OFFSETS)
 GRID_RECT = (
     CELL_COLS[0] - _MARGIN,
@@ -124,6 +132,13 @@ class GridImage:
 
 def classify_cell(g, cx: int, cy: int) -> tuple[str | None, float, float]:
     return GridImage(g).classify(cx, cy)
+
+
+def read_slots(g) -> list[str | None]:
+    """What the 15 visible slots hold, row by row from the top left: a chest name, EMPTY,
+    or None when no reference is close enough (a chest without one, or a misread)."""
+    grid = GridImage(g)
+    return [grid.classify(cx, cy)[0] for cy in grid.rows for cx in CELL_COLS]
 
 
 def scan_grid(g) -> dict[tuple[int, int], str | None]:

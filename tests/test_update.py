@@ -53,6 +53,15 @@ def test_parse_checksums():
     }
 
 
+def test_checksums_listing_the_exe_still_give_the_archive_hash():
+    """CI also lists the FirestoneBot.exe inside the Windows zip (README, antivirus warnings);
+    the updater, every installed one included, reads only the line of its own archive."""
+    text = "ab" * 32 + "  FirestoneBot-windows.zip\n" + "ef" * 32 + "  FirestoneBot.exe\n"
+    sums = update.parse_checksums(text)
+    assert sums[update.asset_name("win32")] == "ab" * 32
+    assert sums["FirestoneBot.exe"] == "ef" * 32
+
+
 def test_find_payload_layouts(tmp_path):
     win = tmp_path / "win"
     (win / "_internal").mkdir(parents=True)

@@ -3,11 +3,14 @@
 # Windows / Linux: dist/FirestoneBot/ with a bootloader splash. macOS: dist/FirestoneBot.app
 # (Splash is not supported on macOS; the app bundle carries the Retina and permission plist
 # keys and is ad-hoc signed by PyInstaller, so Screen Recording / Accessibility grants stick
-# to the bundle).
+# to the bundle). Windows: the exe carries a version resource built from __version__
+# (tools/win_version.py).
 import os
 import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
+from firestone_bot.tools import win_version
 
 MAC = sys.platform == "darwin"
 VERSION = __import__("firestone_bot").__version__  # keeps the bundle version in sync
@@ -69,6 +72,9 @@ else:
         minify_script=True,
         always_on_top=False,
     )
+    # The PKG (PYZ, scripts, splash) stays appended to the exe: with append_pkg=False it would
+    # be a FirestoneBot.pkg next to the exe, which the updater of the installed versions does
+    # not move (update.py swaps FirestoneBot.exe and _internal only).
     exe = EXE(
         pyz,
         a.scripts,
@@ -78,5 +84,9 @@ else:
         console=False,
         upx=False,
         icon="assets/icon.ico",
+        # Windows: product, publisher and version in Properties > Details; without them the exe
+        # is an anonymous PyInstaller launcher, a trait antivirus ML models weigh (Defender:
+        # Trojan:Win32/Bearfoos.B!ml, 2026-10)
+        version=win_version.version_info(VERSION) if sys.platform == "win32" else None,
     )
     coll = COLLECT(exe, splash.binaries, a.binaries, a.datas, name="FirestoneBot", upx=False)

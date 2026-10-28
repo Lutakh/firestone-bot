@@ -47,6 +47,16 @@ class GameWindowNotFound(RuntimeError):
     pass
 
 
+def same_window(a: int | None, b: int | None) -> bool:
+    """Whether two window handles name the same window (0 / None is no window).
+
+    Windows handles are 32-bit significant, and ctypes hands them back signed (a C int
+    return value, GetForegroundWindow) or unsigned (a pointer, EnumWindows): only their low
+    32 bits are compared, so a handle with bit 31 set still matches itself."""
+    a32 = int(a or 0) & 0xFFFFFFFF
+    return a32 != 0 and a32 == int(b or 0) & 0xFFFFFFFF
+
+
 def game_pids() -> set[int]:
     import psutil
 

@@ -113,6 +113,15 @@ def _mtime(path: str) -> float:
         return 0.0
 
 
+def coarse_image(img: np.ndarray, block: int) -> np.ndarray:
+    """BGR block means of `block` x `block` pixels (the right and bottom remainders dropped):
+    the layout and the light of a capture without readable text."""
+    h, w = img.shape[0] // block, img.shape[1] // block
+    cut = img[: h * block, : w * block, :3]
+    means = cut.reshape(h, block, w, block, 3).mean(axis=(1, 3), dtype=np.float32)
+    return np.rint(means).astype(np.uint8)
+
+
 class BotStopped(Exception):
     """Raised from sleep() when the stop event is set; unwinds the current cycle."""
 
@@ -121,6 +130,17 @@ class ScreenNotReached(Exception):
     """A feature's entry screen did not show after the click and the retry: the runner skips
     the feature and goes back to the main screen (owner request 2026-09-08: a new war
     machine's unlock animation in the engineer's garage lost a whole cycle)."""
+
+
+class GameNotInFront(Exception):
+    """Windows: the game window is not the foreground window and could not be brought
+    there, so the click or key about to be sent was not (2026-10-25: seven hours of clicks
+    and T presses into whatever window was in front). `gone`: the game window itself is
+    not found any more. Unwinds the cycle; the runner waits for the game (foreground.py)."""
+
+    def __init__(self, reason: str = "", gone: bool = False) -> None:
+        super().__init__(reason)
+        self.gone = gone
 
 
 @dataclass
@@ -163,6 +183,9 @@ class Game:
         self.guard_check: Callable[[Game], None] | None = None
         # called with the screen pixel about to be clicked (the app hides its overlay there)
         self.click_hook: Callable[[int, int], None] | None = None
+        # foreground.ForegroundGuard (Windows, installed by the runner): checked before every
+        # injected event; raises GameNotInFront rather than click into another window
+        self.front_guard = None
         self._pointer: tuple[int, int] | None = None  # last screen pixel the bot moved to
 
     @property
@@ -179,17 +202,37 @@ class Game:
         return self.window
 
     def focus(self) -> None:
-        """ControlFocus / WinActivate on the game. Re-reads the client rect every time."""
+        """ControlFocus / WinActivate on the game. Re-reads the client rect every time.
+
+        Best effort: a refusal is the foreground guard's business (it stops the next click
+        or key); without a guard (tools) it is logged as before."""
         try:
             win = self.refresh_window()
         except GameWindowNotFound:
             log.warning("focus: game window not found")
             return
         if not self.dry_run:
-            activate(win)
+            if activate(win) is False and self.front_guard is None:
+                log.warning("focus: the game window could not be brought to the foreground")
             if win.client.w == 0:  # was minimised: read the restored client rect
                 self.sleep(500)
                 self.refresh_window()
+
+    def _front(self) -> bool:
+        """Before an injected event: the game window must be the foreground window, or
+        GameNotInFront (Windows, with the runner's guard; never in a dry run, which sends
+        nothing). Key releases skip it: a key pressed must always come up. True when the
+        guard had to bring the game back to the front: the pointer may have been moved
+        meanwhile (by the user with the mouse guard off), so a click or a wheel notch puts it
+        back on the bot's last point first."""
+        if self.front_guard is not None and not self.dry_run:
+            return bool(self.front_guard.check(self))
+        return False
+
+    def _front_at_pointer(self) -> None:
+        """_front() for an event sent where the pointer is (a click, a wheel notch)."""
+        if self._front() and self._pointer is not None:
+            inp.move(*self._pointer)
 
     def _viewport(self) -> Viewport:
         if self.vp is None:
@@ -239,7 +282,11 @@ class Game:
         log.debug(s)
 
     # -- input (logical coordinates) ------------------------------------------------------
+    # Every injected event passes _front() first (the foreground guard, Windows): the
+    # check comes before the screen point is computed, since bringing a minimised game back
+    # re-reads its client rect.
     def move(self, x: int, y: int, anchor=None) -> None:
+        self._front()
         sx, sy = self._viewport().to_screen(x, y, anchor)
         self._trace(f"move ({x},{y}) -> screen ({sx},{sy})")
         self._pointer = (sx, sy)
@@ -258,6 +305,7 @@ class Game:
         if self._pointer is not None:
             self._before_click(*self._pointer)
         if not self.dry_run:
+            self._front_at_pointer()
             inp.click()
 
     def click_at(self, x: int, y: int, anchor=None) -> None:
@@ -273,6 +321,7 @@ class Game:
         self._trace(f"move screen ({sx},{sy})")
         self._pointer = (sx, sy)
         if not self.dry_run:
+            self._front()
             inp.move(sx, sy)
 
     def click_screen(self, sx: int, sy: int) -> None:
@@ -280,11 +329,13 @@ class Game:
         self._pointer = (sx, sy)
         self._before_click(sx, sy)
         if not self.dry_run:
+            self._front()
             inp.move(sx, sy)
             inp.click()
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, anchor=None) -> None:
         """Left-button drag between two logical points (same anchor for both)."""
+        self._front()
         vp = self._viewport()
         sx1, sy1 = vp.to_screen(x1, y1, anchor)
         sx2, sy2 = vp.to_screen(x2, y2, anchor)
@@ -297,14 +348,17 @@ class Game:
     def key(self, name: str) -> None:
         self._trace(f"key {name}")
         if not self.dry_run:
+            self._front()
             inp.key(name)
 
     def key_down(self, name: str) -> None:
         self._trace(f"key_down {name}")
         if not self.dry_run:
+            self._front()
             inp.key_down(name)
 
     def key_up(self, name: str) -> None:
+        """Never checked: a key held down must come up, wherever the foreground went."""
         self._trace(f"key_up {name}")
         if not self.dry_run:
             inp.key_up(name)
@@ -322,6 +376,7 @@ class Game:
         per = self.WHEEL_FAST_MS if fast else interval_ms
         for _ in range(abs(notches)):
             if not self.dry_run:
+                self._front_at_pointer()
                 inp.wheel(step, interval=0)
             self.sleep(per)
         if fast:
@@ -427,17 +482,22 @@ class Game:
                 return False
             self.sleep(self.CHANGE_POLL_MS)
 
-    def save_diagnostic(self, name: str) -> None:
+    def save_diagnostic(self, name: str, block: int = 1) -> None:
         """Keep a capture of the whole client in a `diagnostics` folder next to the user
         files when something unexpected is on screen (date and time stamped; the newest
-        few of each kind are kept, see prune_diagnostics); best effort."""
+        few of each kind are kept, see prune_diagnostics); best effort. `block` > 1 keeps a
+        coarse capture (coarse_image): what covers the game shows, its text cannot be read
+        (game-not-in-front.png is taken while another program's window is in front)."""
         try:
             folder = os.path.join(
                 os.path.dirname(os.path.abspath(self.map_state_path)), "diagnostics"
             )
             os.makedirs(folder, exist_ok=True)
             path = os.path.join(folder, f"{time.strftime('%Y%m%d-%H%M%S')}-{name}")
-            capture.save_png(capture.grab(self.window.client), path)
+            img = capture.grab(self.window.client)
+            if block > 1:
+                img = coarse_image(img, block)
+            capture.save_png(img, path)
             prune_diagnostics(folder, spare=path)
         except Exception:
             log.debug("diagnostic %s not saved", name, exc_info=True)

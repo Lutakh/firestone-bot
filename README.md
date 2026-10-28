@@ -30,6 +30,70 @@ Download `FirestoneBot-windows.zip` from the Releases page, unzip anywhere and r
 The executable is not code-signed: Windows SmartScreen shows "Windows protected your PC" the
 first time; click "More info", then "Run anyway".
 
+### Antivirus warnings (Windows Defender)
+
+Microsoft Defender sometimes blocks the download or quarantines `FirestoneBot.exe`, for
+example as `Trojan:Win32/Bearfoos.B!ml` ("This program is dangerous and executes commands from
+an attacker"); another release can get another name ending in `!ml`. This is a false positive:
+
+- `!ml` marks a machine-learning verdict, not a match with known malware: the model scores
+  what the file looks like. The bot is an unsigned program from a small project, packaged with
+  PyInstaller (a small launcher with Python and the bot's code compressed behind it, a packaging
+  malware authors use too), and it reads the screen, clicks, presses keys and downloads its own
+  updates: all traits such models weigh. Each release is also a new file that nobody has run
+  yet, so it starts without any reputation.
+- The release archives are built by GitHub Actions from the public code of this repository,
+  and each release publishes their checksums.
+
+**Check the file first.** Each release has a `SHA256SUMS.txt` with the SHA-256 of every
+archive (the release page also shows each archive's sha256) and, after 0.3.34, of the
+`FirestoneBot.exe` inside the Windows zip. In PowerShell, in the folder holding the file:
+
+```powershell
+Get-FileHash .\FirestoneBot-windows.zip
+Get-FileHash .\FirestoneBot.exe
+```
+
+`Hash` must equal the value on that file's line of `SHA256SUMS.txt` (upper or lower case does
+not matter). If it differs, delete the file and download the release again from this
+project's Releases page; do not run it.
+
+**Restore and allow it** (a quarantined file can only be checked once restored: check it as
+above before running it, and delete it if the hash differs):
+
+1. Windows Security > Virus & threat protection > Protection history.
+2. Open the entry whose affected item is the bot's zip or `FirestoneBot.exe`, then Actions >
+   Restore (or Allow on device, depending on the entry).
+3. If it is caught again at each update, give the bot a folder of its own and exclude that
+   folder only. The in-app update downloads and unpacks the new version into a
+   `FirestoneBot.update` folder next to the bot's folder, not inside it, so excluding the bot's
+   folder alone does not cover the update: keep the bot in, for example,
+   `C:\Games\FirestoneBot\FirestoneBot-windows` and exclude `C:\Games\FirestoneBot` (Virus &
+   threat protection settings > Manage settings > Exclusions > Add or remove exclusions > Add
+   an exclusion > Folder). Never exclude a whole drive or your Downloads folder.
+
+**Report it to Microsoft.** Each report helps clear the file for every player:
+
+1. Open <https://www.microsoft.com/en-us/wdsi/filesubmission> and choose "Home customer"
+   (signing in is optional; it lets you follow the analysis).
+2. Product: Microsoft Defender Antivirus (Windows 11 or Windows 10). File: `FirestoneBot.exe`
+   alone, not the zip. "What do you believe this file is?": Incorrectly detected as
+   malware/malicious. Detection name: the one Windows Security shows (such as
+   `Trojan:Win32/Bearfoos.B!ml`).
+3. In the comments, give the bot's version, this repository's address and the SHA-256 you
+   checked.
+
+When Microsoft has cleared the file (its e-mail says so), drop the cached verdict and update
+Defender from a Command Prompt run as administrator:
+
+```bat
+cd /d "%ProgramFiles%\Windows Defender"
+MpCmdRun.exe -RemoveDefinitions -DynamicSignatures
+MpCmdRun.exe -SignatureUpdate
+```
+
+Running from source (below) involves no exe at all.
+
 ## Run from source
 
 ```bash
@@ -197,9 +261,14 @@ folder…" does the same for any folder you pick.
 Releasing: bump `__version__` in `firestone_bot/__init__.py` (and `pyproject.toml`), create an
 annotated tag whose message is the changelog, `git tag -a vX.Y.Z --cleanup=verbatim -F notes.md`
 (without `--cleanup=verbatim` git drops the `## Heading` lines as comments), push the tag;
-CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` and
+CI builds the Windows zip, the Linux tarball and the macOS zip, writes `SHA256SUMS.txt` (the
+archives and the Windows `FirestoneBot.exe`) and
 attaches everything to the GitHub release with the tag message as body (the tag must equal
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
+The Windows build compiles PyInstaller's bootloader from source (the version pinned in
+`pyproject.toml`) and gives the exe a version resource (`firestone_bot/tools/win_version.py`).
+After a release, submit its `FirestoneBot.exe` to Microsoft as a software developer (same
+page as above) if Defender or VirusTotal flags it: each release is a new file.
 `python -m firestone_bot --start` starts the bot as soon as the window is up. On Windows the
 packaged `FirestoneBot.exe --start` first re-creates itself through WMI, outside the job of
 the program that launched it (an IDE, an assistant app, a terminal): those programs end what
@@ -255,8 +324,9 @@ leftover dialog, an unlock animation such as a new war machine in the garage), o
 the step fails, the bot logs it, keeps a capture in the diagnostics folder
 (`step-<name>.png`; the folder keeps the 3 newest of a kind, 60 files and 50 MB at most,
 none older than 7 days), closes what is open, goes back to the main screen (and reopens the
-town for a town building) and carries on with the next step. Stop and the mouse-guard
-pause still unwind the whole cycle. Features verify their entry screen with the dialog's
+town for a town building) and carries on with the next step. Stop, the mouse-guard
+pause and a game window that cannot be brought to the front (below) still unwind the whole
+cycle. Features verify their entry screen with the dialog's
 close button; the shop, engineer and arena log what they are about to do before they
 click, so the log reads in the order things happen.
 
@@ -275,6 +345,28 @@ event as the user's; it cannot exclude events, because a remote desktop (Parsec,
 injects the user's mouse exactly like the bot does. macOS flags synthetic events too, so a
 test script can stand in for the user; `FIRESTONE_GUARD_IGNORE_INJECTED_FLAG=1` ignores the
 flag altogether (test hook).
+
+### Game window not in front (Windows)
+
+The bot sends a click or a key only while the game window is the foreground window (on
+2026-10-25 a game that could not be brought to the front got seven hours of clicks and T
+presses sent to whatever window was in front). Before every event it checks; when the game
+is not in front, the mouse guard looks at your own activity first, then the bot tries to
+bring the game forward three times, half a second apart. If that fails nothing is sent: the
+activity line says "Paused: the game window is not in front ..." and names what is in front
+by its program (`.exe`) and window class, never by its title; a coarse capture of the game
+area goes to the diagnostics folder (`game-not-in-front.png`, about 240 pixels wide: the
+shape and light of what covers the game, no readable text); after 30 s an important heartbeat goes
+out (when heartbeats are on). The bot tries again every 5 s and goes on by itself, with a new
+cycle, as soon as the game is in front: close or answer the window it named, or bring the
+game forward yourself. Stop works at any time and a game that closed meanwhile is relaunched
+by the next cycle. A game restart that falls due meanwhile (scheduled, or asked for by a
+feature) is done right away only when the game itself is what is in front (a hung game, a
+dialog of the game); otherwise it is done once the game is in front again, since a restart
+would not remove the other window and the start button of a relaunched game is only clicked
+while the game is in front. For the same reason a relaunched game whose start screen waits
+behind another program's window is waited for, not closed as a failed launch. macOS and
+Linux: unchanged.
 
 ### macOS notification banners
 

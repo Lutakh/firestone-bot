@@ -16,11 +16,12 @@ from firestone_bot.vision.atlas import Point, Probe
 from firestone_bot.vision.buttons import green_buttons
 
 
-def _open_gift(g: Game, title: str, color: int, variation: int) -> None:
-    # Scroll to the bottom to look for the gift
-    g.move_to(atlas.BAG_SCROLL_HOVER)
-    g.toast(title, "Scrolling to ensure bottom gifts are visible", 1.5)
-    g.wheel(-5)
+def _open_gift(g: Game, title: str, color: int, variation: int, scroll: bool = True) -> None:
+    if scroll:
+        # Scroll to the bottom to look for the gift
+        g.move_to(atlas.BAG_SCROLL_HOVER)
+        g.toast(title, "Scrolling to ensure bottom gifts are visible", 1.5)
+        g.wheel(-5)
     hit = g.search(Probe(*g.ms.chest_grid, color, variation, f"gift_{color:06X}"))
     if hit is None:
         return
@@ -59,9 +60,10 @@ def _open_button(g: Game) -> Point | None:
     return None
 
 
-def oracles_gift(g: Game) -> None:
-    _open_gift(g, "Oracle's Gift", atlas.ORACLE_GIFT_COLOR, 1)
+def oracles_gift(g: Game, scroll: bool = True) -> None:
+    """`scroll` False: the whole list is already in view (open_chests), no wheel."""
+    _open_gift(g, "Oracle's Gift", atlas.ORACLE_GIFT_COLOR, 1, scroll)
 
 
-def mystery_box(g: Game) -> None:
-    _open_gift(g, "Mystery Box", atlas.MYSTERY_BOX_COLOR, 2)
+def mystery_box(g: Game, scroll: bool = True) -> None:
+    _open_gift(g, "Mystery Box", atlas.MYSTERY_BOX_COLOR, 2, scroll)

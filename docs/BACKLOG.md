@@ -268,10 +268,45 @@
   slider (reads the home value at 1080 by chance). PPJMWR's case is unproven until a
   report from a real folder.
 
-- Other findings of the 2026-10-28 log review (owner, ANHNX9), not done: the game could
-  not be brought to the foreground for 7 h on 2026-10-25 (17:18..00:34, 5,605 warnings)
-  while the bot kept clicking and pressing T into whatever window was in front (to ask the
-  owner what was on screen; proposed: a pause instead of blind input); an empty mailbox
+- Game window not in front (owner, 2026-10-28: "do something for this case instead of
+  clicking in the void"): on 2026-10-25 17:18..00:34 the game could not be brought to the
+  foreground (5,605 warnings) while the bot sent some 3,000 clicks and 2,000 T presses to
+  whatever window was in front. Done, not verified live: on Windows every click, key and
+  wheel notch is checked first (foreground.py); when three activations fail nothing is
+  sent, one line names what is in front by its exe and window class (never its title), one
+  coarse capture (game-not-in-front.png, about 240 px wide, no readable text) and, after
+  30 s, one important heartbeat; the bot tries again every 5 s and goes on by itself. A due
+  restart (scheduled or asked for) is done meanwhile only when the game itself is in the way
+  (hung, or a dialog of the game), else once the game is in front, also when the cycle that
+  finds it due starts behind the other window; a relaunch whose start screen waits behind
+  another program's window is waited for, not killed as a failed launch (review
+  2026-10-28). What held the front on 2026-10-25 is unknown: a dark layer at 27 % over a
+  live game that outlived three relaunches (the Xbox Game Bar, a GPU overlay?); the next
+  "Paused:" line will name it. Left: a window Windows will not let the bot replace (an
+  elevated one) now pauses the bot where a click on the game used to take the front back (a
+  click on the game's title bar, hit-tested, would); a "new cycle" of the mouse guard during
+  the start-button wait of a restart abandons the restart and leaves the game on its start
+  screen, which main_menu does not handle (older than the guard); macOS and Linux
+  unchanged.
+
+- Antivirus (several players, 2026-10-28: Microsoft Defender quarantines FirestoneBot.exe as
+  Trojan:Win32/Bearfoos.B!ml, a machine-learning verdict; microsoft/apm#487 has the same):
+  the exe carries a version resource (Lutakh, Firestone Bot, the version; no
+  LegalCopyright: the owner's to write, the code descends from another author's AHK bot and
+  the repository has no licence), PyInstaller is pinned (6.22.3) and the Windows CI job
+  compiles its bootloader from source (the stock one stays when that fails, a warning says
+  which one was used), a smoke test runs the built exe, SHA256SUMS lists the exe too, and
+  the README tells players how to check, restore and report it. Not done: optimize=2 (the
+  exe 17.6 % smaller, its effect unknown, needs a live run), append_pkg=False (every
+  installed updater would leave the new FirestoneBot.pkg behind). The owner's levers: report
+  each release's exe to Microsoft (WDSI, as a software developer), check it on VirusTotal
+  before announcing (the owner's Defender has cloud protection off and cannot reproduce the
+  players' verdict); code signing (SignPath Foundation, free, needs an OSI licence; Certum
+  Open Source, about 50-70 EUR; Azure Artifact Signing is not open to individuals in
+  France). First release with the compiled bootloader: run the CI artifact on the owner's PC
+  and check it on VirusTotal before the tag.
+
+- Other findings of the 2026-10-28 log review (owner, ANHNX9), not done: an empty mailbox
   opened every cycle for hours while its bell stays lit (512 visits in 17 h); ANHNX9's
   Scarab game waits 23 s for a Play button that never turns green, every cycle (no token?);
   after the 10th scarab play the screen is left open (the next step recovers); a fresh
@@ -323,6 +358,18 @@
 - Battle pass Claim buttons under a labelled tile ("100%", "5%") sit 22 px lower (Qualitas,
   2026-10-09, Windows 1080p): fixed (bands widened, click in the button's middle, a claim counts
   once the button is gone), awaiting Qualitas's confirmation.
+
+- Chest step (a user's suggestion, 2026-10-28: check whether the bag is empty instead of
+  going through the whole list): done, not verified live. The visible slots are read once
+  (two reads that agree) and a chest with an icon reference is tried only when a slot holds
+  it; chests without one are still searched by colour; no wheel when the list ends in view.
+  Reads that disagree, the bag's X not seen, a dry run, the first visit of a run and one an
+  hour go the old way (a full check counts once it saw the bag's X). Expected 21.3 s -> about 6 s a visit on the owner's account
+  (MEASUREMENTS 2026-10-28). To check live: the "the bag shows ..." line against the bag, a
+  run with a chest to open, bag-look.png if it ever shows. Left: opening the bag takes 3.6 s,
+  probably 2.5 s of it in waits that run out (wait_still on the animated battlefield, the
+  click on a Chests tab that is already open; not traced); a grid read is 0.2 s of Python
+  loops (an integral image would make it a few ms).
 
 - Celestial chests (fixed 2026-09-29, a user's report; verified live 2026-10-01): "Nebula and
   Higher" / "Cosmic and Higher" opened every celestial chest (AHK ladder). On the owner's game

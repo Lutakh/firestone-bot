@@ -6,7 +6,7 @@ import ctypes
 import logging
 from ctypes import wintypes
 
-from ..types import GameWindowNotFound, Rect, WindowInfo, exe_of_pid, game_pids
+from ..types import GameWindowNotFound, Rect, WindowInfo, exe_of_pid, game_pids, same_window
 
 log = logging.getLogger("firestone_bot.platform.window")
 user32 = ctypes.windll.user32
@@ -92,18 +92,29 @@ def find_game_window() -> WindowInfo:
     return best
 
 
-def activate(win: WindowInfo) -> None:
+def is_foreground(win: WindowInfo) -> bool:
+    """Whether the game window is the foreground window (the one that gets the keyboard) and
+    is not minimised: a minimised window keeps the foreground when no other window takes it,
+    and its client rect is empty (activate restores it)."""
+    return same_window(user32.GetForegroundWindow(), win.handle) and not user32.IsIconic(win.handle)
+
+
+def activate(win: WindowInfo) -> bool:
     """Bring the game window to the foreground (replaces WinActivate / ControlFocus).
 
     SetForegroundWindow alone is refused when the calling thread does not own the
     foreground (the bot's Tk thread does, its worker thread does not): the first cycle of
     a run then went on with the bot window over the game (2026-09-07). The call is verified
-    and, on refusal, retried with the input queues attached to the foreground thread."""
+    and, on refusal, retried with the input queues attached to the foreground thread.
+
+    Returns whether the game window is the foreground window afterwards. A refusal is only
+    logged at debug level: the foreground guard (foreground.py) reports it once per episode;
+    a warning per call wrote 5,605 lines on 2026-10-25 while the bot clicked on."""
     if user32.IsIconic(win.handle):
         user32.ShowWindow(win.handle, _SW_RESTORE)
     user32.SetForegroundWindow(win.handle)
-    if user32.GetForegroundWindow() == win.handle:
-        return
+    if is_foreground(win):
+        return True
     fg = user32.GetForegroundWindow()
     fg_thread = user32.GetWindowThreadProcessId(fg, None) if fg else 0
     me = kernel32.GetCurrentThreadId()
@@ -114,8 +125,46 @@ def activate(win: WindowInfo) -> None:
     finally:
         if attached:
             user32.AttachThreadInput(me, fg_thread, False)
-    if user32.GetForegroundWindow() != win.handle:
-        log.warning("activate: the game window could not be brought to the foreground")
+    if is_foreground(win):
+        return True
+    log.debug("activate: the game window could not be brought to the foreground")
+    return False
+
+
+def _class_name(hwnd: int) -> str:
+    buf = ctypes.create_unicode_buffer(256)
+    n = user32.GetClassNameW(hwnd, buf, 256)
+    return buf.value if n else ""
+
+
+def _process_name(pid: int) -> str:
+    """Exe name of a process ("chrome.exe"), never its path (it can hold the user name)."""
+    import psutil
+
+    try:
+        return psutil.Process(pid).name()
+    except (psutil.Error, OSError, ValueError):
+        return ""
+
+
+def foreground_owner() -> tuple[str, str, int]:
+    """(process exe name, window class, pid) of the foreground window; ("", "", 0) when no
+    window has the foreground (a locked session, a UAC prompt on the secure desktop).
+
+    Never the window title: other applications' titles are private (a page, a document, a
+    chat), and the log goes out with Send report."""
+    hwnd = user32.GetForegroundWindow()
+    if not hwnd:
+        return "", "", 0
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    return _process_name(pid.value), _class_name(hwnd), pid.value
+
+
+def is_hung(win: WindowInfo) -> bool:
+    """Whether the window's thread no longer answers (Windows then shows a "Not Responding"
+    ghost window in its place, which takes the foreground). Sends no message to it."""
+    return bool(user32.IsHungAppWindow(win.handle))
 
 
 def screen_size() -> tuple[int, int]:

@@ -57,6 +57,8 @@ def cycle(monkeypatch, tmp_path):
     events step before the shop does not look), no bell; `reset`: the shop visit detects the
     daily reset."""
     patch_events(monkeypatch, [])
+    # no foreground guard (Windows): the fake game is always in front (test_foreground_guard)
+    monkeypatch.setattr(runner_mod.ForegroundGuard, "supported", staticmethod(lambda: False))
     clock = [50_000_000]
     monkeypatch.setattr(event_watch, "_now_ms", lambda: clock[0])
     steps = []

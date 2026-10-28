@@ -529,3 +529,33 @@ which took game 9.1.3a at the scheduled restart of 2026-10-23 15:18. Logical px.
   mission's rewards (paw medallion, crystal chest) put 0.0056 of gem purple in
   MR_GEM_DIALOG_RECT (limit 0.002): the owner's mission-gem-dialog.png captures; the gem
   counter did not move (14,774).
+
+## 2026-10-28 — the chest step's cost, empty slots of the chest grid (logs, captures)
+
+See also the bag section of 2026-10-01. Owner's logs 2026-10-01..28 (Epic, new style,
+1920x1009; game 9.1.3a from 2026-10-23 15:18), a player's video (Steam, classic style,
+9.1.3a), the owner's bag capture of 2026-09-05 (new style, the game before 9.1.3a).
+
+- Chest step, 28,205 visits: 94.4% open nothing and take 21.3 s (median; p10 21.1, p90
+  21.8), 31.8 s when something is opened (5.6%: Common 636 times, Uncommon 200, Rare 169,
+  Oracle's gift 153, Solar 110, Comet 109, Lunar 108, Golden 95, Epic 87, Diamond 51,
+  Legendary 43, Nebula 41, Mythic 40, Mystery box, Iron, Wooden 28 each). Opening the bag on
+  its Chests tab 3.6 s; each chest type with an icon reference 0.95 s (status line 0.3 s,
+  pointer parked 0.3 s, grid read), each one searched by colour 0.32 s, each gift kind 1.3 s
+  (wheel), the celestial wheel 0.9 s, closing 1.2 s. Cycle: median 76 s (2026-10-24..28).
+- One read of the grid (15 slots, 25 positions each): 0.21..0.24 s on the owner's PC, 85% of
+  it in the 8x8 thumbnails.
+- Empty slots (`_empty` reference): the owner's capture, 12 chests then 3 empty slots, every
+  slot named, the empty ones at 0.0..1.2 (runner-up 24.5); the same capture scaled 2x, 1.5x,
+  0.75x, 2/3, 1/2, 0.445 and 1/3 reads all 15 slots right (the chests up to 9.4 at 1/3; at 1/4
+  Diamond is lost, the empty slots still read). The video (854x480 of a 1920x1080 screen,
+  client 1920x1009): the panel's X at logical (1889, 249), rows from 373; the mystery box is
+  32..35 from every reference (unknown), its 14 empty slots 1..4 (runner-up 24..26), also at
+  3/4 and 1/2 of the video's size. While the gift dialog fades in, the dimmed slots read
+  6..13 (unknown past 10), never a chest.
+- The list is packed from the top left, empty slots after the last chest: 12 then 3
+  (owner), 1 then 14 (video). Order in the owner's bag: gear chests Common..Mythic, jewel
+  chests Wooden..Emerald, then celestial chests, gifts and boxes.
+- Expected with one look per visit (not measured live): opening 3.6 s, the look 1.0 s (two
+  reads 0.3 s apart), the seven colour searches 0.2 s, closing 1.2 s: about 6 s instead of
+  21.3 s on the owner's account; the first visit of a run and one an hour go the old way.

@@ -45,7 +45,8 @@ from firestone_bot.features import (
     shop,
 )
 from firestone_bot.features.heartbeat import send_heartbeat
-from firestone_bot.game import BotStopped, Game, ScreenNotReached
+from firestone_bot.foreground import BACK, FRONT, GONE, ForegroundGuard
+from firestone_bot.game import BotStopped, Game, GameNotInFront, ScreenNotReached
 from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.platform import capture, process
 from firestone_bot.platform.types import GameWindowNotFound
@@ -97,6 +98,9 @@ class Runner:
         self._style_seen: str | None = None  # interface style of the previous cycle
         self.on_finished = None  # optional callback, called from the worker when a run ends
         game.heartbeat_cb = self._heartbeat
+        if getattr(game, "front_guard", None) is None and ForegroundGuard.supported():
+            # Windows: no click or key while the game is not in front (foreground.py)
+            game.front_guard = ForegroundGuard()
 
     # -- lifecycle ------------------------------------------------------------------------
     def _heartbeat(self, msg: str, is_stop: bool, important: bool) -> None:
@@ -207,6 +211,11 @@ class Runner:
         self._last_request = 0
         self._launch_failures = 0
         self._restart_ms = float(s.get("RestartGameTime") or 0) * 3600000
+        guard = getattr(g, "front_guard", None)
+        if guard is not None:
+            guard.reset()
+        # Game.vars outlives a Stop: the bag's first visit of each run tries every chest
+        g.vars.pop(open_chests.FULL_CHECK_KEY, None)
         while True:  # loop:
             try:
                 if self._cycle() is False:
@@ -214,6 +223,9 @@ class Runner:
             except UserInterrupted:
                 g.status("New cycle requested after mouse / keyboard activity")
                 self._back_to_main_screen()
+            except GameNotInFront:
+                if self._wait_for_front():
+                    self._back_to_main_screen()
 
     def _launch_failed(self, g: Game) -> bool:
         """The game did not start: wait and try again rather than stop, unless it is a dry
@@ -264,7 +276,68 @@ class Runner:
                 # (owner, 2026-10-22); the next cycle launches the game
                 g.status("No game window after the pause; the next cycle starts the game")
                 return
+            except GameNotInFront:
+                # out of the front again (or gone): nothing was sent, and the next cycle
+                # meets it at its first input, or before a restart, and waits again (the
+                # guard said why, once)
+                return
         g.status("Could not reach the main screen after the pause; the cycle starts anyway")
+
+    def _wait_for_front(self) -> bool:
+        """After GameNotInFront: wait, sending nothing, until the game window is in front
+        again (True: back to the main screen, then a new cycle). False when the game window
+        is gone (the next cycle launches the game) or a game restart is due (scheduled, or
+        asked for by a feature) and can clear what is in front (the next cycle does it: a
+        hung game shows a ghost window that never comes to the front). A restart cannot move
+        another program's window, and the relaunched game's start button is never clicked
+        while it is in front, so that restart waits for the end of the episode (the next
+        cycle finds it due, _restart_waits_for_front). Stop ends the wait (BotStopped); a
+        new cycle chosen in the mouse guard's pop-up too, also while the poll waits for a
+        game it restored from the taskbar."""
+        g = self.g
+        guard = getattr(g, "front_guard", None)
+        if guard is None:
+            return True
+        postponed = False
+        while True:
+            try:
+                g.sleep(guard.POLL_MS)
+                state = guard.poll(g)
+            except UserInterrupted:
+                return True
+            if state == FRONT:
+                return True
+            if state == GONE:
+                return False
+            if self.settings.flag("RestartGame") and (
+                g.vars.get("restart_requested") or self._due(g, quiet=True)
+            ):
+                if guard.restart_helps(g):
+                    g.status("The game restart is due: restarting the game meanwhile")
+                    return False
+                if not postponed:
+                    postponed = True
+                    g.status(
+                        "The game restart is due; it is done once the game is in front (a "
+                        "restart would not remove what is in front)"
+                    )
+
+    def _restart_waits_for_front(self, g, requested: str) -> None:
+        """Before a game restart: with another program's window in front, the relaunched
+        game's start button would never be clicked (nothing is sent while the game is not in
+        front), and Epic leaves the game on its start screen until the next restart while
+        Steam's launch kills it again and again (review 2026-10-28). So the restart waits for
+        the game to be in front: GameNotInFront takes the runner to _wait_for_front, and a
+        feature's request is kept for the cycle that finds the game there. A hung game or a
+        dialog of the game is what a restart clears (restart_helps): it goes ahead, and so
+        does a restart of a game whose window is gone. Windows only (the guard), never in a
+        dry run."""
+        guard = getattr(g, "front_guard", None)
+        if guard is None or g.dry_run or guard.poll(g) != BACK or guard.restart_helps(g):
+            return
+        if requested:
+            g.vars["restart_requested"] = requested
+        raise GameNotInFront("the game restart waits for the game to be in front")
 
     def _step(self, name: str, fn, town: bool = False) -> None:
         """Run one feature of the cycle. A feature whose screen is not reached, or that
@@ -276,7 +349,9 @@ class Runner:
         was playing) walked into the settings window and its "Patch notes" button while it
         believed it was in the tavern (owner, 2026-09-09).
 
-        Stop requests and the mouse-guard pause still unwind the whole cycle."""
+        Stop requests, the mouse-guard pause and a game that cannot be brought to the front
+        (GameNotInFront: nothing may be clicked, not even by the recovery) still unwind the
+        whole cycle."""
         g = self.g
         if town and not open_town.town_is_open(g) and not open_town.open_town(g):
             # something is in the way of the T key (a reward animation, or a panel a previous
@@ -293,7 +368,7 @@ class Runner:
         try:
             fn()
             return
-        except (BotStopped, UserInterrupted):
+        except (BotStopped, UserInterrupted, GameNotInFront):
             raise
         except ScreenNotReached as e:
             g.status(f"{name}: its screen ({e}) did not show, step skipped")
@@ -323,11 +398,12 @@ class Runner:
             return ""
         return reason
 
-    def _due(self, g) -> bool:
+    def _due(self, g, quiet: bool = False) -> bool:
         """Whether the game has been running for longer than RestartGameTime. The age of the
         game process is used when it can be read, so a game left running before the bot
         started is restarted on time (owner, 2026-09-10); otherwise the time since the last
-        restart the bot did, like the AHK bot."""
+        restart the bot did, like the AHK bot. `quiet`: no status line (the cycle that does
+        the restart writes it)."""
         if self._restart_ms <= 0:
             return False
         uptime = process.game_uptime_s()
@@ -335,7 +411,8 @@ class Runner:
             return _ms() - self._last_restart >= self._restart_ms
         if uptime * 1000 < self._restart_ms:
             return False
-        g.status(f"Game restart: the game has been running for {fmt_duration(uptime * 1000)}")
+        if not quiet:
+            g.status(f"Game restart: the game has been running for {fmt_duration(uptime * 1000)}")
         return True
 
     def restart_timing_snapshot(self, game_uptime_s: float | None, observed_at: float) -> dict:
@@ -383,6 +460,7 @@ class Runner:
             )
             requested = ""
         if requested or (s.flag("RestartGame") and (s.flag("RestartGameTest") or self._due(g))):
+            self._restart_waits_for_front(g, requested)
             if requested:
                 g.status(f"Game restart: {requested}")
                 self._last_request = _ms()
@@ -547,7 +625,10 @@ class Runner:
             g.status(f"Delay setting {s.get('Delay')!r} not recognised; bot stopped")
             return False
         if delay:
-            g.move_to(atlas.END_OF_CYCLE_PARK)
+            try:
+                g.move_to(atlas.END_OF_CYCLE_PARK)
+            except GameNotInFront:
+                pass  # the park only moves the pointer: the cycle is done, the Delay is kept
             g.status(f"Cycle {self.cycles} done in {took}, waiting {delay} s")
             g.sleep(delay * 1000)
         else:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 import time
 
-from firestone_bot.game import BotStopped, Game
+from firestone_bot.game import BotStopped, Game, GameNotInFront
 from firestone_bot.platform import process, window
 from firestone_bot.platform.window import GameWindowNotFound, find_game_window
 from firestone_bot.vision import atlas
@@ -21,18 +21,32 @@ START_BUTTON_TIMEOUT_S = 300
 
 
 def wait_for_start_button(g: Game, timeout_s: float = START_BUTTON_TIMEOUT_S) -> bool:
-    """Poll the loading screen for the green start button and click it (AHK loop)."""
+    """Poll the loading screen for the green start button and click it (AHK loop).
+
+    A relaunched game that cannot be brought to the front (GameNotInFront, Windows) gets no
+    move and no click: the wait polls on rather than unwind a half-done restart
+    (2026-10-25 20:39: three relaunches whose windows never came to the front). While
+    another program's window holds the front, the wait does not run out either: a timeout
+    reads as "no start screen", and the callers would kill the game (and restart Steam)
+    every few minutes for as long as that window stays (review 2026-10-28). A hung game, a
+    dialog of the game or a window that went away keep the timeout (restart_helps)."""
     start = time.monotonic()
     while time.monotonic() - start < timeout_s:
         g.focus()  # WinActivate / WinWaitActive / ControlFocus
         g.sleep(500)
         if g.window is not None and g.window.client.w > 0:
-            g.move_to(atlas.RESTART_HOVER)
-            g.sleep(1000)
-            if g.found(atlas.RESTART_START_BUTTON):
-                g.click()
+            try:
+                g.move_to(atlas.RESTART_HOVER)
                 g.sleep(1000)
-                return True
+                if g.found(atlas.RESTART_START_BUTTON):
+                    g.click()
+                    g.sleep(1000)
+                    return True
+            except GameNotInFront as e:
+                # nothing was sent; the next round tries again
+                guard = getattr(g, "front_guard", None)
+                if not e.gone and guard is not None and not guard.restart_helps(g):
+                    start = time.monotonic()
         g.sleep(5000)
     return False
 
