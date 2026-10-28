@@ -1,11 +1,13 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]  # 77: the SPDX `license` string and `license-files` (PEP 639)
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "firestone-bot"
 version = "0.3.34"
 description = "Python port of the Firestone Idle RPG AutoHotkey bot"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "customtkinter>=5.2.2,<6",

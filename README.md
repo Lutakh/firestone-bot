@@ -1,9 +1,10 @@
 # Firestone Bot
 
 Automation bot for Firestone Idle RPG (Steam and Epic builds), written in Python 3.12. It is a
-behaviour-for-behaviour port of the original AutoHotkey bot: same features, same
-`settings.ini`, same screen-reading approach (pixel probes and simulated input, no memory
-reading, no network calls to the game).
+behaviour-for-behaviour port of Deaeth85's AutoHotkey Firestone Bot, which GeSpot1 also worked
+on: same features, same `settings.ini`, same screen-reading approach (pixel probes and
+simulated input, no memory reading, no network calls to the game). Free and open source under
+the MIT license, with their agreement (see [License](#license)).
 
 ## Requirements
 
@@ -29,6 +30,18 @@ Download `FirestoneBot-windows.zip` from the Releases page, unzip anywhere and r
 
 The executable is not code-signed: Windows SmartScreen shows "Windows protected your PC" the
 first time; click "More info", then "Run anyway".
+
+**Uninstall**: close the bot and delete its folder (its settings, log, captures and the
+version kept by the last update are inside), and a `FirestoneBot.update` folder next to it if
+an update was interrupted. On macOS, delete `FirestoneBot.app` and
+`~/Library/Application Support/FirestoneBot`. The bot adds no registry key, service or
+start-up entry. Leftovers: an update or restore that could not swap the files leaves its
+`firestone-update-*` script in the temp folder (`%TEMP%` on Windows). On Windows, undo the
+antivirus steps below if you took them: the folder exclusion (Exclusions > Add or remove
+exclusions > the folder > Remove) and, if you allowed the file, its entry under Allowed
+threats (Don't allow). On macOS, the Screen Recording and Accessibility permissions stay after
+the app is deleted: remove FirestoneBot from those lists in System Settings > Privacy &
+Security (the minus button), or run `tccutil reset All com.lutakh.firestone-bot`.
 
 ### Antivirus warnings (Windows Defender)
 
@@ -56,7 +69,10 @@ Get-FileHash .\FirestoneBot.exe
 
 `Hash` must equal the value on that file's line of `SHA256SUMS.txt` (upper or lower case does
 not matter). If it differs, delete the file and download the release again from this
-project's Releases page; do not run it.
+project's Releases page; do not run it. The notes of the releases after 0.3.34 also link the
+VirusTotal report of their `FirestoneBot.exe`: what some 70 antivirus engines say of that
+exact file (Microsoft's engine there can disagree with Defender on your PC: VirusTotal's
+engines are not always set up like the installed products).
 
 **Restore and allow it** (a quarantined file can only be checked once restored: check it as
 above before running it, and delete it if the hash differs):
@@ -267,8 +283,15 @@ attaches everything to the GitHub release with the tag message as body (the tag 
 `v` + `__version__`). The bot falls back to the tag annotation when a release has no body.
 The Windows build compiles PyInstaller's bootloader from source (the version pinned in
 `pyproject.toml`) and gives the exe a version resource (`firestone_bot/tools/win_version.py`).
-After a release, submit its `FirestoneBot.exe` to Microsoft as a software developer (same
-page as above) if Defender or VirusTotal flags it: each release is a new file.
+A last job of the run, `virustotal`, which neither the archives nor the release wait for,
+gives that exe to VirusTotal (`firestone_bot/tools/virustotal.py`, repository secret
+`VT_API_KEY`, the key of a free VirusTotal account) and waits for the analysis, a few minutes:
+the run summary lists the engines that flag it, an annotation warns when one does, and on a
+tag the job then adds the report's link to the release notes. Before announcing a release,
+open that link or the summary of the tag's run: the branch's run of the same commit builds
+and scans another exe (every build is a new file). After a release, submit its
+`FirestoneBot.exe` to Microsoft as a software developer (same page as above) if Defender or
+VirusTotal flags it: each release is a new file.
 `python -m firestone_bot --start` starts the bot as soon as the window is up. On Windows the
 packaged `FirestoneBot.exe --start` first re-creates itself through WMI, outside the job of
 the program that launched it (an IDE, an assistant app, a terminal): those programs end what
@@ -531,7 +554,8 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   the next start; the opening page is always Camp. The file is safe to delete.
 - Journal shows the bot's log stream (`firestone-bot.log` at INFO level); status
   lines posted without a log entry are added to it too. The log file holds one day: at
-  midnight it becomes `firestone-bot.log.YYYY-MM-DD`, and only the last 7 days are kept.
+  midnight it becomes `firestone-bot.log.YYYY-MM-DD`, and the files of the 7 previous days the
+  bot ran are kept besides it.
 - Shortcuts: Win+Esc exits (global; Cmd+Esc on macOS), F5 re-checks the environment, Ctrl+S saves now,
   Ctrl+1..4 switch pages, Ctrl+5 opens Skin, Ctrl+K focuses search, Ctrl+Q exits.
 
@@ -553,7 +577,9 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
 `ruff check .`, `pytest -q`, `python -m firestone_bot.tools.build_exe` (keeps the user files
 next to the exe; on macOS it replaces `dist/FirestoneBot.app` and signs it). GitHub Actions
 runs the tests and builds the Windows ZIP, the Linux tarball and the macOS ZIP on every push
-(downloadable from the run's artifacts); tagged `v*` releases get the archives attached. Plan, progress and measurements: `docs/`.
+(downloadable from the run's artifacts, with the VirusTotal verdict on the Windows exe in the
+run summary); tagged `v*` releases get the archives attached. Plan, progress and
+measurements: `docs/`; code signing: `docs/CODE_SIGNING.md`.
 
 ## Icon
 
@@ -563,3 +589,51 @@ bot icon, deliberately different from the game's so the two are told apart in th
 `python -m firestone_bot.tools.make_icons` (needs Pillow, development only). Windows caches
 exe icons: after an icon change, `ie4uinit.exe -show` or a log-off refreshes the desktop
 shortcut.
+
+## Privacy
+
+The bot reads the screen where the game window is (whatever covers the game at that moment,
+a notification or another window, is read and captured too) and sends clicks and keys to the
+game. What it sees stays on your computer, in the bot's folder (on macOS in
+`~/Library/Application Support/FirestoneBot`): the log, one file per day the bot ran, today's
+and those of the 7 previous days kept; the `diagnostics/` captures, deleted after 7 days (when
+the bot starts or saves a new one); and a few captures of a screen it could not read
+(`account-level-miss.png`, `guild-banner-miss.png`, `hero-mode-*.png`), each replaced by the
+next one of its name. It never talks to the game's servers. It connects to:
+
+- **GitHub** (`api.github.com`; downloads from `github.com`, which sends them on to its file
+  host): at start-up and once a day it asks GitHub's public API for the latest release, with
+  no account and nothing about you (GitHub sees your IP address, as any website does). A new
+  version is downloaded only when you click **Download**, and installed only when you click
+  **Install and restart**.
+- **The maintainer's server** `fs-bot-logs.lutak.ovh`, in two cases you choose:
+  - the **heartbeat** (Workshop), off by default: once you turn it on and enter your Discord
+    ID, the bot sends that Discord ID, its `ClientID` (in `settings.ini`: the date and time it
+    was first needed and a random number; it moves with that file, so imported settings keep
+    it) and its progress messages (what it did, game restarts, pauses, errors);
+  - **Send report** (bottom bar), only when you click it: a zip of the logs (your user folder
+    written `~`), the recent captures of the game area (with whatever covered it then) unless
+    you untick them, your settings without `DiscordID` and `ClientID`, the bot's version, your
+    system and game window details and the note you type, sent with the `ClientID`, and with
+    your Discord ID only when its box is ticked.
+
+  The reports stay on the server, readable by the maintainer only, and are deleted after 30
+  days. Like any website, the server sees the IP address of each connection: it keeps the
+  address a report came from (or a hash of it) with that report, and counts reports per
+  address to limit them. The server passes the important heartbeat messages on to Discord
+  with your Discord ID, and tells the maintainer on Discord about each report (its ID,
+  version, platform, size, the `ClientID`, your note and, when you sent it, your Discord ID);
+  that part goes through Discord ([Discord's privacy policy](https://discord.com/privacy)).
+
+Nothing else: no telemetry, no analytics, no advertising.
+
+## License
+
+MIT: see [LICENSE](LICENSE). The bot started as a port of Deaeth85's AutoHotkey Firestone Bot,
+which GeSpot1 also contributed to; both agreed to this Python bot being published under the
+MIT license. The license covers this branch (the Python bot); the AutoHotkey bot on the
+`main` branch has no license file.
+
+Firestone Idle RPG and its artwork belong to Holyday Studios; this project is not affiliated
+with or endorsed by them. The captures in `tests/fixtures` are screenshots of the game, kept
+for the tests.

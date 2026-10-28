@@ -291,20 +291,34 @@
 
 - Antivirus (several players, 2026-10-28: Microsoft Defender quarantines FirestoneBot.exe as
   Trojan:Win32/Bearfoos.B!ml, a machine-learning verdict; microsoft/apm#487 has the same):
-  the exe carries a version resource (Lutakh, Firestone Bot, the version; no
-  LegalCopyright: the owner's to write, the code descends from another author's AHK bot and
-  the repository has no licence), PyInstaller is pinned (6.22.3) and the Windows CI job
-  compiles its bootloader from source (the stock one stays when that fails, a warning says
-  which one was used), a smoke test runs the built exe, SHA256SUMS lists the exe too, and
-  the README tells players how to check, restore and report it. Not done: optimize=2 (the
-  exe 17.6 % smaller, its effect unknown, needs a live run), append_pkg=False (every
-  installed updater would leave the new FirestoneBot.pkg behind). The owner's levers: report
-  each release's exe to Microsoft (WDSI, as a software developer), check it on VirusTotal
-  before announcing (the owner's Defender has cloud protection off and cannot reproduce the
-  players' verdict); code signing (SignPath Foundation, free, needs an OSI licence; Certum
-  Open Source, about 50-70 EUR; Azure Artifact Signing is not open to individuals in
-  France). First release with the compiled bootloader: run the CI artifact on the owner's PC
-  and check it on VirusTotal before the tag.
+  the exe carries a version resource (Lutakh, Firestone Bot, the version, the license's
+  copyright line), PyInstaller is pinned (6.22.3) and the Windows CI job compiles its
+  bootloader from source (the stock one stays when that fails, a warning says which one was
+  used), a smoke test runs the built exe, a `virustotal` job that nothing waits for gives the
+  exe to VirusTotal (tools/virustotal.py, secret VT_API_KEY, set by the owner 2026-10-28) and
+  puts the verdict in the run summary and, on a tag, the report link in the release notes,
+  SHA256SUMS lists the exe too, and the README tells players how to check, restore and report
+  it. This branch is MIT since 2026-10-28 (LICENSE; Deaeth85 and GeSpot1, authors of the AHK
+  bot, agreed; main, the AHK bot, has no license). Not done: optimize=2 (the exe 17.6 % smaller, its
+  effect unknown, needs a live run), append_pkg=False (every installed updater would leave
+  the new FirestoneBot.pkg behind). The owner's levers: report each release's exe to
+  Microsoft (WDSI, as a software developer; 0.3.34 prepared in dist/wdsi-0.3.34, owner's
+  machine) when Defender or VirusTotal flags it (the owner's Defender has cloud protection
+  off and cannot reproduce the players' verdict); code signing by SignPath Foundation
+  (docs/CODE_SIGNING.md: the owner's 2FA, python-rework as default branch, the application;
+  then the README section and the CI step). First release with the compiled bootloader: run
+  the CI artifact on the owner's PC before the tag. Before the SignPath application: the
+  privacy policy shown at the first start and from the heartbeat card and the report dialog,
+  and a switch for the automatic update check (docs/CODE_SIGNING.md), not done. Third-party
+  notices: the archives carry LICENSE, numpy's license files (its dist-info, collected by
+  PyInstaller) and Tk's license.terms, but not the other notices: the Python runtime (PSF-2.0,
+  which asks that its license agreement be kept; the Windows Python's LICENSE.txt also covers
+  the OpenSSL, libffi and MSVC runtime DLLs it brings), psutil, customtkinter, mss,
+  darkdetect, six, packaging and, in the macOS archive, pyobjc (BSD/MIT, which ask for their
+  notice in binary copies); certifi is MPL-2.0, which also asks that users are told where its
+  source is; pynput (LGPL-3.0) and, in the Linux tarball, python-xlib (LGPL-2.1+) also ask
+  that users can swap them, hard inside the PYZ. Build the notice set from what PyInstaller
+  collects on each platform, not by hand; not done.
 
 - Other findings of the 2026-10-28 log review (owner, ANHNX9), not done: an empty mailbox
   opened every cycle for hours while its bell stays lit (512 visits in 17 h); ANHNX9's

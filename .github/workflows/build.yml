@@ -184,3 +184,53 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release edit "$GITHUB_REF_NAME" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
+
+  virustotal:
+    # VirusTotal verdict on this run's Windows exe (firestone_bot/tools/virustotal.py; secret
+    # VT_API_KEY, the key of a free VirusTotal account, owner 2026-10-28). Players' Defender
+    # quarantined releases as Trojan:Win32/Bearfoos.B!ml. Every build is a new file
+    # (PyInstaller stamps the build time), so the exe is uploaded and its analysis waited for,
+    # minutes: a job of its own that neither the archives nor the release wait for, and that
+    # never fails the run. On a tag it comes after the release and adds the report's link to
+    # the release notes: the branch run of the same commit scans another exe.
+    needs: [build, release]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}  # also when release is skipped
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    timeout-minutes: 20
+    permissions:
+      contents: write  # the release notes of a tag
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: FirestoneBot-windows.zip
+          path: artifacts
+      - name: VirusTotal verdict on FirestoneBot.exe
+        # run from the checkout, standard library only: nothing to install. Its own time limit,
+        # under the job's: virustotal.md is written as soon as VirusTotal holds the file, and
+        # the next step still adds it to a tag's notes when the analysis wait runs out of time
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          unzip -q artifacts/FirestoneBot-windows.zip FirestoneBot.exe -d exe
+          python -m firestone_bot.tools.virustotal exe/FirestoneBot.exe --summary "$GITHUB_STEP_SUMMARY" --notes virustotal.md
+      - name: Report link in the release notes (tag)
+        # the body the release job wrote (the tag message) without the exact link line an
+        # earlier attempt added (tools/virustotal.py notes_line), then this one; a failed read
+        # stops the step before any edit
+        if: startsWith(github.ref, 'refs/tags/v') && needs.release.result == 'success' && hashFiles('virustotal.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body --jq .body > body.md
+          body=$(grep -vE '^VirusTotal report of FirestoneBot\.exe: https://www\.virustotal\.com/gui/file/[0-9a-f]{64}[[:space:]]*$' body.md || true)
+          if [ -n "$body" ]; then printf '%s\n\n' "$body" > notes.md; else : > notes.md; fi
+          cat virustotal.md >> notes.md
+          cat notes.md
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file notes.md

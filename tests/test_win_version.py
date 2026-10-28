@@ -50,12 +50,24 @@ def test_string_table_names_the_product_and_its_version():
         "FileDescription": "Firestone Bot",
         "FileVersion": "0.3.34",
         "InternalName": "FirestoneBot",
+        "LegalCopyright": "Copyright (c) 2025-2026 Lutakh, Deaeth85, GeSpot1. MIT License",
         "OriginalFilename": "FirestoneBot.exe",
         "ProductName": "Firestone Bot",
         "ProductVersion": "0.3.34",
     }
     with pytest.raises(ValueError):
         win_version.string_table("not a version")
+
+
+def test_the_copyright_line_names_the_holders_of_the_license_file():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(root, "LICENSE"), encoding="utf-8") as f:
+        text = f.read()
+    assert text.startswith("MIT License\n") and "MIT License" in win_version.COPYRIGHT
+    holders = [line.split()[2:] for line in text.splitlines() if line.startswith("Copyright (c)")]
+    names = [words[1] if words[0][0].isdigit() else words[0] for words in holders]
+    assert names == ["Lutakh", "Deaeth85", "GeSpot1"]
+    assert all(name in win_version.COPYRIGHT for name in names)
 
 
 def _query(path: str, key: str) -> str | None:

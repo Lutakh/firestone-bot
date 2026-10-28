@@ -17,6 +17,8 @@ import re
 
 PRODUCT_NAME = "Firestone Bot"
 PUBLISHER = "Lutakh"  # the GitHub account that publishes the releases
+# the holders named by LICENSE (MIT since 2026-10-28, with the AutoHotkey bot's authors' leave)
+COPYRIGHT = "Copyright (c) 2025-2026 Lutakh, Deaeth85, GeSpot1. MIT License"
 EXE_NAME = "FirestoneBot.exe"
 # String table key = language 0x0409 (U.S. English) + code page 1200 (Unicode); the
 # VarFileInfo "Translation" entry names the same pair.
@@ -39,15 +41,14 @@ def version_tuple(version: str) -> tuple[int, ...]:
 
 
 def string_table(version: str) -> dict[str, str]:
-    """The StringFileInfo entries (Properties > Details) of the exe released as `version`.
-    No LegalCopyright: the code descends from another author's AutoHotkey bot and the
-    repository has no licence yet; that line is the owner's to write."""
+    """The StringFileInfo entries (Properties > Details) of the exe released as `version`."""
     version_tuple(version)  # same validation as the numeric fields
     return {
         "CompanyName": PUBLISHER,
         "FileDescription": PRODUCT_NAME,
         "FileVersion": version,
         "InternalName": "FirestoneBot",
+        "LegalCopyright": COPYRIGHT,
         "OriginalFilename": EXE_NAME,
         "ProductName": PRODUCT_NAME,
         "ProductVersion": version,

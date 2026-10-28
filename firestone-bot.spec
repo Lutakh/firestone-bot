@@ -23,7 +23,8 @@ a = Analysis(
     pathex=["."],
     datas=collect_data_files("customtkinter")  # theme JSON + fonts under _internal/customtkinter/assets
     + collect_data_files("firestone_bot")  # vision/*.json (digit templates, map landmark)
-    + [("assets/icon-256.png", "assets"), ("assets/icon.ico", "assets")],  # window icon
+    + [("assets/icon-256.png", "assets"), ("assets/icon.ico", "assets")]  # window icon
+    + [("LICENSE", ".")],  # the MIT notice goes with every copy (_internal/, Contents/Resources)
     hiddenimports=collect_submodules("firestone_bot.features")
     + collect_submodules("firestone_bot.gui")
     + collect_submodules("firestone_bot.platform")
