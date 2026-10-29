@@ -13,7 +13,7 @@ from firestone_bot.gui import theme
 from firestone_bot.gui.automation_catalog import WORKSHOP_GROUPS
 from firestone_bot.gui.catalog import OPTIONS, READ_ONLY_LABELS, format_ahk_stamp
 from firestone_bot.gui.context import PageContext
-from firestone_bot.gui.help_text import HOME_SECTIONS, SHORTCUTS, WHERE_THINGS_ARE
+from firestone_bot.gui.help_text import HOME_SECTIONS, PRIVACY, SHORTCUTS, WHERE_THINGS_ARE
 from firestone_bot.gui.search_catalog import SEARCH_TARGETS
 from firestone_bot.gui.widgets import (
     Card,
@@ -261,6 +261,11 @@ class Workshop:
             copy=True,
         )
         banner = card.banner("warn", "Heartbeats are not sent without a Discord ID.", visible=False)
+        card.note(
+            "Heartbeats go to the maintainer's server (fs-bot-logs.lutak.ovh) with your Discord ID "
+            "and this Client ID; the important ones are passed on to Discord."
+        )
+        card.buttons(("Privacy policy", lambda: self.ctx.call("open_privacy")))
 
         def sync(*_):
             enabled = self.controls["EnableHeartbeat"].control.var.get() == "1"
@@ -476,9 +481,8 @@ class Workshop:
         card = place_card(Card(content, self.ctx, "Application updates"))
         self.targets["updates"] = card
         card.note(f"Firestone Bot {__version__}")
-        self.update_label = card.note(
-            "The bot checks the project's GitHub releases at startup and once a day."
-        )
+        self.update_label = card.note(self._update_idle_text())
+        self.controls["AutoUpdateCheck"] = card.option("AutoUpdateCheck")
         self._action(card, "check_update", "Check for updates now", "check_updates")
         install = self._action(
             card,
@@ -503,9 +507,7 @@ class Workshop:
             )
 
         def sync():
-            text = getattr(self.ctx.window, "update_text", "") or (
-                "The bot checks the project's GitHub releases at startup and once a day."
-            )
+            text = getattr(self.ctx.window, "update_text", "") or self._update_idle_text()
             label = getattr(self.ctx.window, "update_button", None) or "Install available update"
             if self.update_label.cget("text") != text:
                 self.update_label.configure(text=text)
@@ -513,6 +515,12 @@ class Workshop:
                 install.configure(text=label)
 
         self._tick(sync)
+
+    def _update_idle_text(self) -> str:
+        """The updates card's line while no update notice is up."""
+        if self.ctx.settings.flag("AutoUpdateCheck"):
+            return "The bot checks the project's GitHub releases at startup and once a day."
+        return "Automatic checks are off: Check for updates now looks for a new release."
 
     def _help(self, content) -> None:
         requirements = place_card(Card(content, self.ctx, "Requirements"))
@@ -528,6 +536,10 @@ class Workshop:
             requirements.add(title_label, always_enabled=True, pady=(12, 2))
             self.targets[f"help:{title}"] = title_label
             requirements.note(body)
+        privacy = place_card(Card(content, self.ctx, "Privacy"))
+        self.targets["privacy"] = privacy
+        privacy.note(PRIVACY)
+        privacy.buttons(("Open the full privacy policy", lambda: self.ctx.call("open_privacy")))
         navigation = place_card(Card(content, self.ctx, "Find your way"))
         self.targets["navigation"] = navigation
         navigation.note(WHERE_THINGS_ARE)

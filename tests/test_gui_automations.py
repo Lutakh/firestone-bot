@@ -6,6 +6,7 @@ import pytest
 
 from firestone_bot.gui.automation_catalog import (
     AUTOMATIONS,
+    CARD_OPTIONS,
     CATEGORIES,
     GROUPS_BY_ID,
     WORKSHOP_GROUPS,
@@ -32,7 +33,9 @@ def enabled(model, group_id, key, progress=None):
 
 def test_catalog_places_every_current_option_once():
     counts = Counter(key for group in (*AUTOMATIONS, *WORKSHOP_GROUPS) for key in group.keys)
-    assert set(counts) == set(OPTIONS)
+    # every option once: in one group, or in its hand-built card (CARD_OPTIONS)
+    assert set(counts) | set(CARD_OPTIONS) == set(OPTIONS)
+    assert not set(counts) & set(CARD_OPTIONS)
     assert set(counts.values()) == {1}
     assert len(GROUPS_BY_ID) == len(AUTOMATIONS) + len(WORKSHOP_GROUPS)
     assert {group.category for group in AUTOMATIONS} == set(CATEGORIES) - {"All"}

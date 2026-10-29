@@ -3,7 +3,7 @@
 A user who downloads a release by hand unzips it somewhere new and starts it there: no
 settings.ini next to the exe, defaults in use, the previous folder still holds their real
 settings. At start-up the GUI offers to copy them over (see App._offer_settings_import);
-Advanced > Files has the same import for any folder. Existing files are never overwritten.
+Workshop > Files & app has the same import for any folder. Existing files are never overwritten.
 """
 
 from __future__ import annotations

@@ -72,3 +72,28 @@ SHORTCUTS: list[tuple[str, str]] = [
     ("Ctrl+1 … Ctrl+4", "Open Camp, Automations, Journal or Workshop"),
     ("Ctrl+Q", "Exit"),
 ]
+
+# The privacy policy in short; README "Privacy" is the whole one. SignPath's terms ask for the
+# policy to be shown at installation and the zip has none: the top banner shows
+# PRIVACY_NOTICE from the first start until it is closed once (app.py), Workshop > Help keeps
+# PRIVACY, and the heartbeat card and the report dialog link to PRIVACY_URL.
+PRIVACY_URL = "https://github.com/Lutakh/firestone-bot#privacy"
+# one line of the top banner, whose label does not wrap: short enough for a 980 px window
+PRIVACY_NOTICE = (
+    "Privacy: by itself the bot only sends an update check to GitHub, at start-up and daily."
+)
+PRIVACY = (
+    "The bot reads the screen where the game is and clicks in the game. What it sees stays on "
+    "this computer, in the bot's folder (macOS: ~/Library/Application Support/FirestoneBot): "
+    "the log and the captures.\n"
+    "It goes online only for:\n"
+    "- GitHub, at start-up and once a day, to look for a new version. Nothing about you is "
+    "sent. Workshop > Files & app > Check for updates automatically turns it off.\n"
+    "- The maintainer's server (fs-bot-logs.lutak.ovh), when you turn on the heartbeat (your "
+    "Discord ID, this install's Client ID and the bot's progress messages; the important ones "
+    "are passed on to Discord) or click Send report (the logs, the captures you leave ticked, "
+    "your settings without the IDs, your system and game window details and your note, sent "
+    "with this install's Client ID and, when its box is ticked, your Discord ID; the server "
+    "tells the maintainer on Discord, with the note and those IDs).\n"
+    "No telemetry, no analytics, no advertising. The full privacy policy: " + PRIVACY_URL
+)

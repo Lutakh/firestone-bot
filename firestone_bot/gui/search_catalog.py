@@ -6,9 +6,9 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-from firestone_bot.gui.automation_catalog import AUTOMATIONS, WORKSHOP_GROUPS
+from firestone_bot.gui.automation_catalog import AUTOMATIONS, CARD_OPTIONS, WORKSHOP_GROUPS
 from firestone_bot.gui.catalog import OPTIONS, READ_ONLY_LABELS, TREE_GROUPS
-from firestone_bot.gui.help_text import HOME_SECTIONS, SHORTCUTS, WHERE_THINGS_ARE
+from firestone_bot.gui.help_text import HOME_SECTIONS, PRIVACY, SHORTCUTS, WHERE_THINGS_ARE
 
 
 @dataclass(frozen=True)
@@ -250,6 +250,13 @@ WORKSHOP_VALUES = (
         "Application, Python and customtkinter versions.",
         ("version", "about"),
     ),
+    (
+        "help",
+        "privacy",
+        "Privacy",
+        PRIVACY,
+        ("privacy policy", "personal data", "what is sent", "telemetry", "data"),
+    ),
 )
 
 # Root-owned destinations: Camp data, the command dock, the Skin menu and Journal toolbar.
@@ -486,6 +493,12 @@ def _build_targets() -> tuple[SearchResult, ...]:
                 )
     for section, key, title, description, aliases in WORKSHOP_ACTIONS:
         targets.append(_target("workshop", section, key, title, description, *aliases))
+    # after the actions: an equal score keeps "Check for updates now" before its switch
+    for key, (page, section) in CARD_OPTIONS.items():
+        option = OPTIONS[key]
+        targets.append(
+            SearchResult(f"option:{key}", option.label, option.help, page, section, key, (key,))
+        )
     for section, key, title, description, aliases in WORKSHOP_VALUES:
         targets.append(
             _target("workshop", section, key, title, description, *aliases, kind="value")

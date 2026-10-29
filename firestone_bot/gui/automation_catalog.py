@@ -395,6 +395,10 @@ WORKSHOP_GROUPS: tuple[AutomationGroup, ...] = (
 
 GROUPS_BY_ID = {group.id: group for group in (*AUTOMATIONS, *WORKSHOP_GROUPS)}
 
+# Options shown in a hand-built card instead of a group: key -> (page, section). The update
+# switch sits in the updates card of Files & app, next to the buttons it goes with.
+CARD_OPTIONS = {"AutoUpdateCheck": ("workshop", "files")}
+
 
 def setting_on(settings: Settings, key: str) -> bool:
     """Positive UI meaning of a switch, regardless of the historical INI key name."""

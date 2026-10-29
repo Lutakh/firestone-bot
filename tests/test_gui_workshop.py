@@ -55,6 +55,7 @@ def workshop(tmp_path_factory):
             "check_updates",
             "install_update",
             "rollback_update",
+            "open_privacy",
         )
     }
     callbacks["is_running"] = lambda: flags["running"]
@@ -208,6 +209,43 @@ def test_sections_are_cached_and_selection_is_restorable(workshop):
     assert workshop.section == "files"
     workshop.open_section("unknown old section")
     assert workshop.section == "session"
+
+
+def _buttons(widget, text):
+    found, stack = [], [widget]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, ctk.CTkButton) and item.cget("text") == text:
+            found.append(item)
+        stack.extend(item.winfo_children())
+    return found
+
+
+def test_the_update_switch_is_bound_and_rewords_the_idle_line(workshop):
+    workshop.open_section("files")
+    workshop.ctx.window.update_text = ""
+    switch = workshop.controls["AutoUpdateCheck"].control
+    assert workshop.ctx.settings.flag("AutoUpdateCheck")  # on by default
+    for value, words in (("0", "Automatic checks are off"), ("1", "at startup and once a day")):
+        switch.var.set(value)
+        refresh(workshop)
+        assert workshop.ctx.settings.get("AutoUpdateCheck") == value
+        assert words in workshop.update_label.cget("text")
+    assert workshop.reveal_target("AutoUpdateCheck")
+
+
+def test_help_shows_the_privacy_policy_and_the_heartbeat_card_links_it(workshop):
+    calls = workshop.test_state.calls
+    workshop.open_section("help")
+    workshop.ctx.root.update()
+    assert workshop.reveal_target("privacy")
+    _buttons(workshop.targets["privacy"], "Open the full privacy policy")[0].invoke()
+    assert calls[-1] == "open_privacy"
+    calls.clear()
+    workshop.open_section("heartbeat")
+    workshop.ctx.root.update()
+    _buttons(workshop.targets["heartbeat"], "Privacy policy")[0].invoke()
+    assert calls == ["open_privacy"]
 
 
 def test_destroyed_workshop_releases_view_callbacks(workshop):

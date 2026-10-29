@@ -246,7 +246,9 @@ would ask for them again after each update.
 ## Updates
 
 The bot checks the project's GitHub releases at start-up and once a day (public API, no
-account). When a newer version exists an orange banner across the top of the window says
+account), unless Workshop > Files & app > **Check for updates automatically** is off (then only
+**Check for updates now** looks). When a newer version exists an orange banner across the top
+of the window says
 "Version X is available" with an **Update** button that opens the release notes; **Download**
 fetches the archive for the current OS, its
 SHA256 checked against the release's `SHA256SUMS.txt`, unpacked next to the install, and
@@ -256,7 +258,7 @@ small script moves the program files aside
 program files move: the `.app` on macOS, `FirestoneBot.exe` + `_internal/` on Windows
 (`FirestoneBot` + `_internal/` on Linux), so `settings.ini`, `MapStartState.ini`,
 `gui_state.json` and the log, which sit next to the exe, are never touched. Workshop > Files & app >
-Updates has a "Check for updates now" button. Running from source only gets the
+Application updates has a "Check for updates now" button. Running from source only gets the
 notification (update with `git pull`). Nothing is downloaded or installed without a click.
 
 **Going back.** The version you had before the update is kept next to the install as
@@ -603,9 +605,11 @@ next one of its name. It never talks to the game's servers. It connects to:
 
 - **GitHub** (`api.github.com`; downloads from `github.com`, which sends them on to its file
   host): at start-up and once a day it asks GitHub's public API for the latest release, with
-  no account and nothing about you (GitHub sees your IP address, as any website does). A new
-  version is downloaded only when you click **Download**, and installed only when you click
-  **Install and restart**.
+  no account and nothing about you (GitHub sees your IP address, as any website does:
+  [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement));
+  Workshop > Files & app > **Check for updates automatically** turns that off, and **Check
+  for updates now** still looks when you click it. A new version is downloaded only when you
+  click **Download**, and installed only when you click **Install and restart**.
 - **The maintainer's server** `fs-bot-logs.lutak.ovh`, in two cases you choose:
   - the **heartbeat** (Workshop), off by default: once you turn it on and enter your Discord
     ID, the bot sends that Discord ID, its `ClientID` (in `settings.ini`: the date and time it
@@ -625,7 +629,10 @@ next one of its name. It never talks to the game's servers. It connects to:
   version, platform, size, the `ClientID`, your note and, when you sent it, your Discord ID);
   that part goes through Discord ([Discord's privacy policy](https://discord.com/privacy)).
 
-Nothing else: no telemetry, no analytics, no advertising.
+Nothing else: no telemetry, no analytics, no advertising. The bot shows this policy in short in
+a banner at the top of its window from its first start until you close it once (until then,
+the start-up update check waits a minute after the banner appears, time to turn it off), and
+in Workshop > Help > Privacy; the heartbeat card and the Send report dialog link to it.
 
 ## License
 

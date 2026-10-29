@@ -140,6 +140,9 @@ EXTRA_SETTINGS: dict[str, tuple[str, str]] = {
     "InterfaceStyle": ("PythonOptions", "auto"),  # main-screen layout: auto/classic/new
     "MapOpen": ("PythonOptions", "auto"),  # world map: auto/icon/hotkey
     "MapHotkey": ("PythonOptions", "m"),  # key pressed when the hotkey is used
+    # the start-up and daily look for a new release; off: only "Check for updates now" looks
+    # (SignPath's privacy terms: what goes online by itself can be turned off, 2026-10-29)
+    "AutoUpdateCheck": ("PythonOptions", "1"),
     # Statistics of every cycle ever run (runner._cycle, shown on the dashboard)
     "CyclesTotal": ("Stats", "0"),
     "CycleMsTotal": ("Stats", "0"),

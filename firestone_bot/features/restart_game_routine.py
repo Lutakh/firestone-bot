@@ -34,7 +34,7 @@ def restart_game_routine(g: Game) -> bool:
         g.heartbeat("Error: Could not determine if game is Steam or Epic.", important=True)
         g.status(
             "Game restart skipped: the store could not be told (Steam or Epic); set it in "
-            "Advanced > Game launch > Game platform"
+            "Workshop > Game setup > Store used to launch the game"
         )
         g.vars["lastRestartTime"] = int(time.monotonic() * 1000)
         return False

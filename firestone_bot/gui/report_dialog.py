@@ -22,9 +22,19 @@ log = logging.getLogger("firestone_bot.gui")
 WHAT = (
     "The report holds the bot's newest logs (your user folder shows as ~), your settings "
     "without your Discord ID and client ID, and the latest screenshots the bot saved in its "
-    "diagnostics folder. It goes to the maintainer's server only, with the bot's client ID. "
+    "diagnostics folder. It goes to the maintainer's server only, with the bot's client ID; "
+    "the server tells the maintainer on Discord, with the report ID, version, platform, size, "
+    "client ID, your note and, if ticked, your Discord ID. "
     "You get a report ID: give it on Discord."
 )
+
+
+def _open_privacy() -> None:
+    import webbrowser
+
+    from firestone_bot.gui.help_text import PRIVACY_URL
+
+    webbrowser.open(PRIVACY_URL)
 
 
 class ReportDialog:
@@ -145,6 +155,11 @@ class ReportDialog:
             row, text="Close", width=100, height=34, command=self._close, **secondary
         )
         self.close_btn.pack(side="left")
+        # narrow: Close, this, Copy ID, Save as file and Send share the 572 px row once sent
+        self.privacy_btn = ctk.CTkButton(
+            row, text="Privacy", width=80, height=34, command=_open_privacy, **secondary
+        )
+        self.privacy_btn.pack(side="left", padx=(8, 0))
 
         self.top.protocol("WM_DELETE_WINDOW", self._close)
         self.top.bind("<Escape>", lambda _e: self._close())

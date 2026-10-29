@@ -252,7 +252,7 @@ class App:
         usual places and offer to copy it, never moving or overwriting anything. On macOS
         only the folder holding the .app is looked at, and only when that folder is not a
         protected one (Desktop, Documents, Downloads: reading them would trigger a privacy
-        prompt); Advanced > Files imports from anywhere on an explicit click."""
+        prompt); Workshop > Files & app imports from anywhere on an explicit click."""
         from tkinter import messagebox
 
         from firestone_bot import userfiles
@@ -266,7 +266,7 @@ class App:
             log.info("no settings.ini next to the bot and none found nearby")
             return
         best = found[0]
-        more = f"\n\n({len(found) - 1} other folder(s) found; Advanced > Files imports any.)"
+        more = f"\n\n({len(found) - 1} other folder(s) found; Workshop > Files & app imports any.)"
         if not messagebox.askyesno(
             "Import your settings?",
             "There is no settings.ini next to this bot, so defaults are in use.\n\n"
@@ -279,7 +279,7 @@ class App:
         self._import_from(best.folder)
 
     def import_settings(self) -> None:
-        """Advanced > Files: pick a folder and copy the user files from it."""
+        """Workshop > Files & app: pick a folder and copy the user files from it."""
         from tkinter import filedialog
 
         folder = filedialog.askdirectory(
@@ -341,7 +341,8 @@ class App:
         self.window.root.after(100, self.present)
         self.window.root.after(2000, self._update_cleanup)
         self.window.root.after(2500, self._announce_previous)
-        self.window.root.after(3000, self.check_updates)
+        self.window.root.after(2800, self._privacy_notice)
+        self.window.root.after(3000, lambda: self._auto_check_updates(first=True))
         self.window.root.after(60_000, self._update_tick)
 
     def _run_finished(self) -> None:
@@ -590,13 +591,13 @@ class App:
             return
         self.window.show_update(
             f"Updated to {update.__version__}. Version {marker.get('version')} is kept: "
-            "Advanced > Updates restores it in one click.",
+            "Workshop > Files & app restores it in one click.",
             None,
         )
         self.window.root.after(30_000, lambda: self.window.show_update("", None))
 
     def rollback_update(self) -> None:
-        """Advanced > Updates: swap FirestoneBot.previous back in and restart."""
+        """Workshop > Files & app: swap FirestoneBot.previous back in and restart."""
         from tkinter import messagebox
 
         from firestone_bot import update
@@ -628,8 +629,35 @@ class App:
 
     def _update_tick(self) -> None:
         if time.monotonic() - self._update["last"] > self.UPDATE_CHECK_INTERVAL_S:
-            self.check_updates()
+            self._auto_check_updates()
         self.window.root.after(60_000, self._update_tick)
+
+    PRIVACY_SEEN = "privacy_notice_shown"  # gui_state.json: the notice was closed once
+    PRIVACY_GRACE_MS = 60_000  # until then, the start-up check waits this long after the notice
+
+    def _auto_check_updates(self, first: bool = False) -> None:
+        """The start-up (`first`) and daily checks; Workshop > Files & app > Check for updates
+        automatically turns them off (the button still checks). While the privacy notice has
+        never been closed, the start-up check waits PRIVACY_GRACE_MS: the policy is shown, and
+        the switch can be turned off, before anything goes out by itself."""
+        if not self.settings.flag("AutoUpdateCheck"):
+            return
+        if first and not self.window.gui_state.get(self.PRIVACY_SEEN):
+            self._update["last"] = time.monotonic()  # the daily tick waits as well
+            self.window.root.after(self.PRIVACY_GRACE_MS, self._auto_check_updates)
+            return
+        self.check_updates()
+
+    def _privacy_notice(self) -> None:
+        """What the bot sends, in the top banner with a button to the privacy policy, until the
+        user closes it once (gui_state.json). SignPath's terms ask for the policy to be shown
+        at installation, and the zip has none. It waits behind an update notice and never
+        blocks: an unattended --start run goes on, and the notice is there when someone looks."""
+        from firestone_bot.gui.help_text import PRIVACY_NOTICE
+
+        win = self.window
+        if not win.gui_state.get(self.PRIVACY_SEEN):
+            win.show_notice(PRIVACY_NOTICE, "Privacy policy", win.open_privacy, self.PRIVACY_SEEN)
 
     def check_updates(self, manual: bool = False) -> None:
         """Query GitHub on a worker thread; show the banner when a newer release exists."""
@@ -757,7 +785,7 @@ class App:
             headline=f"Install version {rel.version}?",
             subtitle="The bot closes, the new version replaces the program files (your "
             "settings.ini and counters stay) and starts again. The current version is kept "
-            "for a one-click rollback (Advanced > Updates).",
+            "for a one-click rollback (Workshop > Files & app).",
             notes=rel.notes,
             buttons=[("Install and restart", self._install_now, True), ("Later", None, False)],
         )

@@ -144,6 +144,8 @@ class MainWindow:
         self.update_text = ""
         self.update_button: str | None = None
         self.update_kind = "info"
+        # a one-off notice waiting to be closed (show_notice): (text, button, action, seen key)
+        self.notice: tuple[str, str, Callable[[], None], str] | None = None
         self._last_env: dict[str, str] | None = None
         self._report_dialog = None  # gui.report_dialog.ReportDialog while open
         self._last_poll = 0.0
@@ -172,6 +174,7 @@ class MainWindow:
                 "refresh_status": self.refresh_status,
                 "exit": self.request_exit,
                 "check_updates": lambda: self.on_check_updates() if self.on_check_updates else None,
+                "open_privacy": self.open_privacy,
                 "install_update": lambda: (
                     self.on_install_update() if self.on_install_update else None
                 ),
@@ -450,7 +453,7 @@ class MainWindow:
             hover=False,
             text_color=theme.MUTED,
             font=theme.font(13),
-            command=lambda: self.show_update("", None),
+            command=self._close_banner,
         )
         self.top_banner_close.grid(row=0, column=3, padx=(0, 10), pady=6)
         self.top_banner.grid_remove()
@@ -645,9 +648,57 @@ class MainWindow:
         self.ui_queue.put(("call", fn))
 
     def show_update(self, text: str, button: str | None = None, kind: str = "info") -> None:
-        """Top banner (Tk thread): `text` shows it (empty hides it), `button` labels the action
-        (None: no button), `kind` picks the colour (info / ok / warn / err)."""
+        """Top banner (Tk thread): `text` shows it (empty hides it, or gives it back to a notice
+        still waiting, see show_notice), `button` labels the action (None: no button), `kind`
+        picks the colour (info / ok / warn / err)."""
         self.update_text, self.update_button, self.update_kind = text, button, kind
+        if not text and self.notice:
+            self._top_banner(self.notice[0], self.notice[1], "info", self._notice_clicked)
+            return
+        self._top_banner(text, button, kind, lambda: self.ctx.call("install_update"))
+
+    def show_notice(
+        self, text: str, button: str, action: Callable[[], None], seen_key: str = ""
+    ) -> None:
+        """A one-off notice in the top banner (Tk thread). It stays until the user closes it
+        (✕) or clicks its button, which also runs `action`; then gui_state[seen_key] is set and
+        written at once. An update notice keeps the banner: this one waits behind it and comes
+        back whenever the banner is free again (an empty show_update, a skin change). It never
+        blocks and leaves update_text / update_button alone (the Workshop's install button)."""
+        self.notice = (text, button, action, seen_key)
+        if not self.update_text:
+            self._top_banner(text, button, "info", self._notice_clicked)
+
+    def _notice_done(self) -> None:
+        notice, self.notice = self.notice, None
+        if notice and notice[3]:
+            self.gui_state[notice[3]] = True
+            self._write_state()
+
+    def _notice_clicked(self) -> None:
+        action = self.notice[2] if self.notice else None
+        self._notice_done()
+        self.show_update("", None)
+        if action is not None:
+            action()
+
+    def _close_banner(self) -> None:
+        """✕: closes what the banner shows; a notice shown there counts as read."""
+        if not self.update_text and self.notice:
+            self._notice_done()
+        self.show_update("", None)
+
+    def open_privacy(self) -> None:
+        """The privacy policy (README "Privacy" on GitHub) in the browser."""
+        import webbrowser
+
+        from firestone_bot.gui.help_text import PRIVACY_URL
+
+        webbrowser.open(PRIVACY_URL)
+
+    def _top_banner(
+        self, text: str, button: str | None, kind: str, command: Callable[[], None]
+    ) -> None:
         b = self.top_banner
         if not text:
             if b.winfo_manager():
@@ -657,7 +708,7 @@ class MainWindow:
         self.top_banner_dot.set(kind)
         self.top_banner_text.configure(text=text, text_color=theme.colour(kind))
         if button:
-            self.top_banner_btn.configure(text=button)
+            self.top_banner_btn.configure(text=button, command=command)
             if not self.top_banner_btn.winfo_manager():
                 self.top_banner_btn.grid()
         elif self.top_banner_btn.winfo_manager():

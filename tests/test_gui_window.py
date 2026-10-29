@@ -70,6 +70,7 @@ def test_pages_build_and_every_key_is_bound(window):
         window.ctx.extras["automations"].open_group(group.id)
     for group in WORKSHOP_GROUPS:
         window.ctx.extras["workshop"].open_section(group.id)
+    window.ctx.extras["workshop"].open_section("files")  # the update switch's card
     window.root.update()
     assert window.binder.keys() | READ_ONLY_KEYS == set(SETTINGS_MAP) | set(EXTRA_SETTINGS)
 
@@ -224,6 +225,45 @@ def test_camp_keeps_persisted_cycle_statistics_across_skins(window):
         assert window.dash.stat_values["average"].cget("text") == "1m00s"
         assert window.dash.stat_values["total"].cget("text") == "3m00s"
         assert window.dash.cycle_value.cget("text") == "1m15s"
+
+
+def test_a_notice_waits_behind_an_update_and_stays_until_it_is_closed(window, monkeypatch):
+    clicks = []
+    window.on_install_update = lambda: clicks.append("install")
+    window.gui_state.pop("seen-test", None)
+    window.show_update("Version 9.9.9 is available.", "Update")
+    window.show_notice(
+        "Privacy: a notice", "Privacy policy", lambda: clicks.append("p"), "seen-test"
+    )
+    assert window.top_banner_text.cget("text") == "Version 9.9.9 is available."  # update first
+    window.top_banner_btn.invoke()
+    assert clicks == ["install"]
+    window.top_banner_close.invoke()  # the update closed: the notice takes the banner
+    assert window.top_banner.winfo_manager()
+    assert window.top_banner_text.cget("text") == "Privacy: a notice"
+    assert window.update_text == "" and window.update_button is None  # the install button's state
+    assert "seen-test" not in window.gui_state
+    window.set_skin("Retro")  # a rebuilt shell shows it again
+    window.root.update()
+    assert window.top_banner_text.cget("text") == "Privacy: a notice"
+    window.set_skin("Fieldbook")
+    window.root.update()
+    window.top_banner_btn.invoke()  # its button: the action runs, it counts as read, it goes
+    assert clicks == ["install", "p"]
+    assert window.gui_state["seen-test"] is True
+    with open(window.state_path, encoding="utf-8") as f:
+        assert json.load(f)["seen-test"] is True  # written at once, not at the next exit
+    assert not window.top_banner.winfo_manager() and window.notice is None
+    window.show_notice("Another notice", "Read", lambda: clicks.append("never"), "seen-two")
+    window.top_banner_close.invoke()  # the close button counts as read too
+    assert window.gui_state["seen-two"] is True and clicks == ["install", "p"]
+    assert not window.top_banner.winfo_manager()
+    window.show_update("")  # nothing waits any more: the banner stays hidden
+    assert not window.top_banner.winfo_manager()
+    opened = []
+    monkeypatch.setattr("webbrowser.open", opened.append)
+    window.ctx.call("open_privacy")
+    assert opened == ["https://github.com/Lutakh/firestone-bot#privacy"]
 
 
 def test_request_exit_from_thread_calls_on_exit(window):

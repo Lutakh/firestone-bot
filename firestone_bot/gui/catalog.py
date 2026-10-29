@@ -694,6 +694,12 @@ OPTIONS: dict[str, Option] = {
         "(Windows 10+, macOS); on Linux it sits on the top edge of the game.",
         "switch",
     ),
+    "AutoUpdateCheck": Option(
+        "Check for updates automatically",
+        "At start-up and once a day the bot asks GitHub's public API for the latest release; "
+        "nothing about you is sent. Off: only Check for updates now looks.",
+        "switch",
+    ),
     "EnableHeartbeat": Option(
         "Send heartbeats to the maintainer's log server",
         "Off by default. Sends progress messages (feature names, start/stop) only when on AND a "

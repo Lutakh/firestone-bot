@@ -8,7 +8,7 @@ one release to the next. SignPath Foundation signs open-source projects for free
 the project's CI built from its repository is signed, and a team member approves every
 signing request.
 
-## State (2026-10-28)
+## State (2026-10-29)
 
 - Done: the MIT license (`LICENSE`; Deaeth85 and GeSpot1, authors of the AutoHotkey bot this
   one was ported from, agreed); the README's Privacy section (the privacy policy SignPath asks
@@ -17,24 +17,23 @@ signing request.
   uninstall paragraph; the exe's version resource with the license's copyright line; Windows,
   macOS and Linux builds by GitHub Actions on every push and tag (the Linux build cannot drive
   the game yet); releases on GitHub since 2025-12.
-- The owner, before applying:
-  - two-factor authentication on the GitHub account (SignPath requires multi-factor
-    authentication of every team member, on the repository and on SignPath);
-  - `python-rework` as the repository's default branch (Settings > General > Default
-    branch), so that the homepage shows this bot, its README and its license, not the
-    AutoHotkey bot of `main`.
-- Not done, before applying (code): SignPath's terms ask software that sends user data to
-  systems the user did not choose to display its privacy policy during installation and to
-  let the user turn those functions off; the other way is the statement "This program will
-  not transfer any information to other networked systems unless specifically requested by
-  the user or the person installing or operating it". The heartbeat (off by default) and Send
-  report (a click) are requested by the user, but the zip has no installer and the update
-  check runs by itself (an anonymous request that carries the bot's version in its
-  User-Agent). So: show the README's Privacy section, or a link to it, at the first start and
-  from the heartbeat card and the report dialog, and add a switch for the automatic update
-  check.
-- The owner: the application at <https://signpath.org/apply> (personal fields, reCAPTCHA,
-  Code of Conduct), answers below.
+- Done by the owner: two-factor authentication on the GitHub account (already on, confirmed
+  2026-10-29; SignPath requires multi-factor authentication of every team member, on the
+  repository and on SignPath: the SignPath account will need it too); `python-rework` as the
+  repository's default branch (2026-10-29), so that the homepage shows this bot, its README
+  and its license (GitHub now reads it as MIT), not the AutoHotkey bot of `main`.
+- Done 2026-10-29 (code): SignPath's terms ask software that sends user data to systems the
+  user did not choose to display its privacy policy during installation and to let the user
+  turn those functions off. The zip has no installer, so from the first start the top banner
+  shows the policy in short, with a button to the README's Privacy section, until the user
+  closes it once (gui_state.json); until then the start-up update check waits a minute after
+  the banner appears, so the policy is shown and the check can be turned off before anything
+  goes out. Workshop > Help > Privacy keeps the policy, the heartbeat card and the Send report
+  dialog link to it; the heartbeat is off by default, a report leaves only on a click, and
+  Workshop > Files & app > Check for updates automatically turns off the update check, the
+  one request the bot makes by itself.
+- Left, the owner: the application at <https://signpath.org/apply> (personal fields,
+  reCAPTCHA, Code of Conduct), answers below.
 - After acceptance: the README section and the CI step below.
 
 ## Application answers

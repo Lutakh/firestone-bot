@@ -305,11 +305,16 @@
   Microsoft (WDSI, as a software developer; 0.3.34 prepared in dist/wdsi-0.3.34, owner's
   machine) when Defender or VirusTotal flags it (the owner's Defender has cloud protection
   off and cannot reproduce the players' verdict); code signing by SignPath Foundation
-  (docs/CODE_SIGNING.md: the owner's 2FA, python-rework as default branch, the application;
+  (docs/CODE_SIGNING.md: the application;
   then the README section and the CI step). First release with the compiled bootloader: run
-  the CI artifact on the owner's PC before the tag. Before the SignPath application: the
-  privacy policy shown at the first start and from the heartbeat card and the report dialog,
-  and a switch for the automatic update check (docs/CODE_SIGNING.md), not done. Third-party
+  the CI artifact on the owner's PC before the tag. SignPath prerequisites done 2026-10-29
+  (the privacy policy in the top banner until closed once, in Workshop > Help and linked from
+  the heartbeat card and the report dialog; the AutoUpdateCheck switch; python-rework
+  default branch; the owner's 2FA, already on): the application is the owner's
+  (docs/CODE_SIGNING.md). Not done: an imported gui_state.json is overwritten by the
+  running window's state at the first exit (MainWindow read it before the start-up import
+  copied it; older than this), so its layout and the privacy notice's closed mark are
+  lost. Third-party
   notices: the archives carry LICENSE, numpy's license files (its dist-info, collected by
   PyInstaller) and Tk's license.terms, but not the other notices: the Python runtime (PSF-2.0,
   which asks that its license agreement be kept; the Windows Python's LICENSE.txt also covers

@@ -154,3 +154,17 @@ def test_closing_while_it_sends_only_hides_the_dialog(root, tmp_path, monkeypatc
     assert len(calls["upload"]) == 1
     dialog._close()
     assert not dialog.alive()
+
+
+def test_the_dialog_says_where_the_report_goes_and_links_the_policy(root, tmp_path, monkeypatch):
+    from firestone_bot.gui import report_dialog
+    from firestone_bot.gui.help_text import PRIVACY_URL
+
+    assert "Discord" in report_dialog.WHAT
+    opened = []
+    monkeypatch.setattr("webbrowser.open", opened.append)
+    dialog = ReportDialog(root, str(tmp_path), _settings(tmp_path))
+    root.update()
+    dialog.privacy_btn.invoke()
+    assert opened == [PRIVACY_URL]
+    dialog._close()
