@@ -271,7 +271,9 @@
 - Game window not in front (owner, 2026-10-28: "do something for this case instead of
   clicking in the void"): on 2026-10-25 17:18..00:34 the game could not be brought to the
   foreground (5,605 warnings) while the bot sent some 3,000 clicks and 2,000 T presses to
-  whatever window was in front. Done, not verified live: on Windows every click, key and
+  whatever window was in front. Done, verified live 2026-10-29 (PickerHost.exe,
+  Shell_SystemDialog, held the front 02:18-03:12: one Paused line, no input, then the bot
+  went on by itself; released in 0.3.35): on Windows every click, key and
   wheel notch is checked first (foreground.py); when three activations fail nothing is
   sent, one line names what is in front by its exe and window class (never its title), one
   coarse capture (game-not-in-front.png, about 240 px wide, no readable text) and, after
@@ -306,8 +308,10 @@
   machine) when Defender or VirusTotal flags it (the owner's Defender has cloud protection
   off and cannot reproduce the players' verdict); code signing by SignPath Foundation
   (docs/CODE_SIGNING.md: the application;
-  then the README section and the CI step). First release with the compiled bootloader: run
-  the CI artifact on the owner's PC before the tag. SignPath prerequisites done 2026-10-29
+  then the README section and the CI step). First release with the compiled bootloader
+  (0.3.35): its CI artifact ran on the owner's PC before the tag (2026-10-29: SmartScreen's
+  unknown-publisher prompt, then the window and the privacy banner). SignPath
+  prerequisites done 2026-10-29
   (the privacy policy in the top banner until closed once, in Workshop > Help and linked from
   the heartbeat card and the report dialog; the AutoUpdateCheck switch; python-rework
   default branch; the owner's 2FA, already on): the application is the owner's
@@ -379,13 +383,16 @@
   once the button is gone), awaiting Qualitas's confirmation.
 
 - Chest step (a user's suggestion, 2026-10-28: check whether the bag is empty instead of
-  going through the whole list): done, not verified live. The visible slots are read once
+  going through the whole list): done, verified live 2026-10-29 (released in 0.3.35): a
+  visit with nothing to open went from 21.4 s to 6.5 s (medians of 1,026 visits on
+  2026-10-27 and 965 on 2026-10-29, Mail line to Open Town line), and 56 visits opened
+  chests. The visible slots are read once
   (two reads that agree) and a chest with an icon reference is tried only when a slot holds
   it; chests without one are still searched by colour; no wheel when the list ends in view.
   Reads that disagree, the bag's X not seen, a dry run, the first visit of a run and one an
   hour go the old way (a full check counts once it saw the bag's X). Expected 21.3 s -> about 6 s a visit on the owner's account
-  (MEASUREMENTS 2026-10-28). To check live: the "the bag shows ..." line against the bag, a
-  run with a chest to open, bag-look.png if it ever shows. Left: opening the bag takes 3.6 s,
+  (MEASUREMENTS 2026-10-28). Still to check: the "the bag shows ..." line against the bag
+  itself, bag-look.png if it ever shows. Left: opening the bag takes 3.6 s,
   probably 2.5 s of it in waits that run out (wait_still on the animated battlefield, the
   click on a Chests tab that is already open; not traced); a grid read is 0.2 s of Python
   loops (an integral image would make it a few ms).

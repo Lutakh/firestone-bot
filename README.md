@@ -537,7 +537,8 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   logs every probe and click, to check the setup without touching the game.
 - **Safety cap** (Workshop > Run behavior): 3 by default; 0 disables the cap. The original has loops
   that wait forever for a screen change (arena battle, liberation mission, hero upgrades,
-  main-menu finder); a cap of N stops such a loop after N iterations.
+  main-menu finder); a cap of N stops such a loop after N iterations. The arena battle wait
+  counts 20 s per iteration and stops after 3 minutes at most, even at 0.
 - **Send report** (bottom bar, next to Dry run): sends the maintainer a zip of the bot's
   logs (newest 8 MB of text, the user folder written `~`), the newest screenshots of
   `diagnostics/` (a box leaves them out), the settings without `DiscordID` and `ClientID`,
