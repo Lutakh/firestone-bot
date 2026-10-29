@@ -304,8 +304,12 @@
   bot, agreed; main, the AHK bot, has no license). Not done: optimize=2 (the exe 17.6 % smaller, its
   effect unknown, needs a live run), append_pkg=False (every installed updater would leave
   the new FirestoneBot.pkg behind). The owner's levers: report each release's exe to
-  Microsoft (WDSI, as a software developer; 0.3.34 prepared in dist/wdsi-0.3.34, owner's
-  machine) when Defender or VirusTotal flags it (the owner's Defender has cloud protection
+  Microsoft (WDSI, as a software developer; 0.3.34 prepared in dist/wdsi-0.3.34, 0.3.35's
+  text in dist/wdsi-0.3.35, owner's machine) when Defender or VirusTotal flags it (VirusTotal,
+  2026-10-29: the branch builds of b74bca7 and 666d343 were flagged by SecureAge only,
+  1/70 and 1/71; the v0.3.35 tag build, e7aa2e38..., by Microsoft too, as
+  Trojan:Win32/Wacatac.B!ml, 2/71: the ML verdict differs from one build to the next, so
+  every release needs its own look; the owner's Defender has cloud protection
   off and cannot reproduce the players' verdict); code signing by SignPath Foundation
   (docs/CODE_SIGNING.md: the application;
   then the README section and the CI step). First release with the compiled bootloader
