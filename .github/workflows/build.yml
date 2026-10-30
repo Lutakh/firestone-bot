@@ -31,7 +31,9 @@ jobs:
             archive: FirestoneBot-windows.zip
           - os: ubuntu-22.04
             archive: FirestoneBot-linux.tar.gz
-          - os: macos-14
+          # macos-14 images retire on 2026-11-02 and go through scheduled brownouts before
+          # (run 41141782986, 2026-10-30: the macOS job cancelled at start)
+          - os: macos-15
             archive: FirestoneBot-macos.zip
     runs-on: ${{ matrix.os }}
     steps:
