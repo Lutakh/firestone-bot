@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
 from firestone_bot.features import map_detect
@@ -36,7 +38,8 @@ def test_labels_found_and_isolated_shapes_ignored():
 
 
 def test_find_missions_maps_labels_to_logical_icon_centres():
-    img = np.full((800, 1600, 3), (60, 120, 200), np.uint8)
+    x1, y1, x2, y2 = map_detect.atlas.MAP_DETECT_AREA
+    img = np.full((y2 - y1, x2 - x1, 3), (60, 120, 200), np.uint8)  # 1 px per logical px
     _label(img, 200, 400)
 
     class G:
@@ -49,10 +52,8 @@ def test_find_missions_maps_labels_to_logical_icon_centres():
 
     (x, y), *rest = map_detect.find_missions(G())
     assert not rest
-    x1, y1, x2, y2 = map_detect.atlas.MAP_DETECT_AREA
-    fx, fy = (x2 - x1) / 1600, (y2 - y1) / 800
-    assert x == x1 + int((200 + 200 + 3 * 16 + 12) / 2 * fx)
-    assert y == y1 + int(409 * fy) - map_detect.atlas.MAP_LABEL_TO_ICON
+    assert x == x1 + int((200 + 200 + 3 * 16 + 12) / 2)
+    assert y == y1 + 409 - map_detect.atlas.MAP_LABEL_TO_ICON
 
 
 def test_half_pixel_labels_give_the_points_of_0_3_34_on_the_reference_client():
@@ -116,6 +117,94 @@ def test_points_are_clicked_on_their_label_at_16_9():
     ((x, y),) = map_detect.find_missions(G())
     cx, _ = vp.to_screen(x, y, map_detect.atlas.ANCHOR_CENTER)
     assert abs(cx - (sx1 + 493 + 30)) <= 1
+
+
+# Report G8N62Y (2026-10-30, Steam, client 1920x1017, the map dragged down by the detection
+# pass): client x 1190..1500, y 20..104 of 20261030-143600-map-no-icon.png. It holds the
+# squads and honor counters (labels to find_labels, client y 27..45) and the label "4:24:32"
+# of the Doomfire Island mission (client 1269..1317 x 85..95), the only mission left.
+NORTH = np.load(Path(__file__).parent / "fixtures" / "map-north-label-under-hud-1920x1017.npy")
+SEA = (146, 66, 18)  # BGR, the open sea of the same capture
+
+
+def _sea_game(w, h, pastes):
+    """A client of w x h px of open sea with crops pasted at their client (x, y), read like
+    Game.region_image (one default anchor per corner)."""
+    vp = Viewport(Rect(0, 0, w, h))
+    screen = np.empty((h, w, 3), np.uint8)
+    screen[:] = SEA
+    for crop, x, y in pastes:
+        screen[y : y + crop.shape[0], x : x + crop.shape[1]] = crop
+
+    class G:
+        def _viewport(self):
+            return vp
+
+        def region_image(self, rect):
+            x1, y1 = vp.to_screen(rect[0], rect[1])
+            x2, y2 = vp.to_screen(rect[2], rect[3])
+            return screen[y1:y2, x1:x2]
+
+    return G(), vp
+
+
+def _north_game(dy=0):
+    """The 1920x1017 client of report G8N62Y with the fixture at its place, `dy` px lower."""
+    return _sea_game(1920, 1017, [(NORTH, 1190, 20 + dy)])
+
+
+def test_a_mission_at_the_north_edge_is_found_under_the_hud_counters(monkeypatch):
+    """The label sat at client y 89, above the old area (top 160 = client 129): every cycle
+    the bot dragged the map, saw nothing and searched again, for hours. The counters above it
+    read as labels too and stay out (they end at client y 45)."""
+    g, vp = _north_game()
+    ((x, y),) = map_detect.find_missions(g)
+    sx, sy = vp.to_screen(x, y, map_detect.atlas.ANCHOR_CENTER)
+    assert abs(sx - 1293) <= 1 and 60 <= sy <= 80  # the volcano icon, above its label
+    monkeypatch.setattr(map_detect.atlas, "MAP_DETECT_AREA", (100, 160, 1700, 960))
+    assert map_detect.find_missions(g) == []  # 0.3.35's area
+
+
+def test_a_label_whose_icon_is_under_a_counter_is_left():
+    """A label 12 px higher is still inside the area, but its icon would be clicked on the
+    squads counter (bottom edge MAP_DETECT_HUD_BOTTOM)."""
+    g, _vp = _north_game(dy=-12)
+    x1, y1, x2, y2 = map_detect.atlas.MAP_DETECT_AREA
+    labels = map_detect.find_labels(g.region_image((x1, y1, x2, y2)), 1.0)
+    assert len(labels) == 1  # found by its look...
+    assert map_detect.find_missions(g) == []  # ...and left
+
+
+# The owner's 1920x1009 client (captures map_clean.png, client x 180..560, y 85..130: the rank
+# title and the XP numbers "6796 / 17500", which find_labels reads as a label) and
+# map_issue.png (client x 455..510, y 148..170: the "21:23" label of a mission just right of
+# the avatar block).
+AVATAR = np.load(Path(__file__).parent / "fixtures" / "map-avatar-xp-1920x1009.npy")
+NEAR = np.load(Path(__file__).parent / "fixtures" / "map-label-near-avatar-1920x1009.npy")
+
+
+def test_the_xp_numbers_under_the_avatar_are_no_mission(monkeypatch):
+    """The area's new top reaches the XP bar: only MAP_DETECT_AVATAR keeps it out, and it
+    must not reach the mission just beside it."""
+    g, _vp = _sea_game(1920, 1009, [(AVATAR, 180, 85), (NEAR, 455, 148)])
+    x1, y1, x2, y2 = map_detect.atlas.MAP_DETECT_AREA
+    assert len(map_detect.find_labels(g.region_image((x1, y1, x2, y2)), 1.0)) == 2
+    assert map_detect.find_missions(g) == [(482, 172)]
+    monkeypatch.setattr(map_detect.atlas, "MAP_DETECT_AVATAR", (0, 0))
+    assert map_detect.find_missions(g) == [(380, 120), (482, 172)]
+
+
+def test_a_label_whose_icon_is_under_the_info_button_is_left():
+    """A map left 74..86 px too high (alignment given up) put a label under the green "i"
+    beside the rank title: the click would open the rank info. Found again lower once the
+    map is dragged down, like before the area grew."""
+    img = np.empty((50, 800, 3), np.uint8)
+    img[:] = SEA
+    _label(img, 10, 10)  # client centre x 592 once pasted at x 552
+    _label(img, 711, 10)  # client centre x 1293
+    g, vp = _sea_game(1920, 1009, [(img, 552, 66)])
+    ((x, y),) = map_detect.find_missions(g)
+    assert abs(vp.to_screen(x, y, map_detect.atlas.ANCHOR_CENTER)[0] - 1293) <= 1
 
 
 def test_thresholds_follow_the_capture_factor():

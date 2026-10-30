@@ -165,11 +165,21 @@ def find_missions(g: Game) -> list[tuple[int, int]]:
     # their icon on a 1920x1080 client (report ANHNX9, 2026-10-25), 170 px at 21:9.
     ox, oy = vp.to_screen(x1, y1)
     panel_x = vp.to_screen(PANEL_MAX_X, 0, (0.0, 0.0))[0]  # the HUD panel is left-anchored
+    avatar_x, avatar_y = vp.to_screen(*atlas.MAP_DETECT_AVATAR, (0.0, 0.0))
+    hud_bottom = vp.to_screen(0, atlas.MAP_DETECT_HUD_BOTTOM, (0.0, 0.0))[1]
+    info_x, info_y = vp.to_screen(*atlas.MAP_DETECT_INFO, (0.0, 0.0))
+    to_icon = atlas.MAP_LABEL_TO_ICON * vp.rel_scale
     points = []
     for lx0, ly0, lx1, ly1 in find_labels(img, img.shape[1] / (x2 - x1)):
         sx, sy = ox + (lx0 + lx1) / 2, oy + (ly0 + ly1) / 2
         if sx < panel_x:
             continue  # remaining time of a running mission in the left HUD panel
+        if sx < avatar_x and sy < avatar_y:
+            continue  # the XP numbers or the rank title under the avatar
+        if sy - to_icon < hud_bottom:
+            continue  # its icon is under a HUD counter: the click would hit the counter
+        if sx < info_x and sy - to_icon < info_y:
+            continue  # the click would open the rank info; found again lower once dragged
         # floored first: on the reference client the points are 0.3.34's exactly (MapState
         # remembers the points clicked, exact matches)
         cx, cy = vp.to_logical(math.floor(sx), math.floor(sy), atlas.ANCHOR_CENTER)

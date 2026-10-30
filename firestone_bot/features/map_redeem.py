@@ -8,12 +8,40 @@ from firestone_bot.features.map_close import map_close
 from firestone_bot.features.map_start import map_start
 from firestone_bot.game import Game
 from firestone_bot.state import MapState
-from firestone_bot.vision import atlas, gems
+from firestone_bot.vision import atlas, buttons, gems
+from firestone_bot.vision.atlas import Point
 
 PAID_OFF = "map_paid_off"  # Game.vars: a gem met after a click believed free: no more this run
 GEM_SEEN = "map_gem_seen"  # Game.vars: speed-ups in a row followed by a gem in the dialog
 CHECKS_CAP = 12  # completed missions claimed per visit (one per loop; SafetyCap 3 cut it short
 # with four missions done at once, owner's cycle 2026-09-07)
+# The Okay of the Mission Rewards dialog that follows a free speed-up, logical px, centre
+# anchor: its edges within 1 px on the four captures of 2026-10-29/30 (1280x673 to 3024x1589).
+# The game's generic one-button box ("You need ... more", rift_shop_end.png) puts its OK 27..32
+# px lower: not taken for it. The Okay's row holds no gem on those captures (the purple
+# rewards sit above it).
+REWARDS_OKAY = (805, 598, 1115, 669)
+REWARDS_OKAY_TOL = 12
+REWARDS_OKAY_ROW = (560, 560, 1360, 705)
+
+
+def _rewards_dialog(g: Game) -> tuple[str, Point | None]:
+    """The dialog shown after a free speed-up, told by its look: ("okay", the Okay's centre)
+    for the Mission Rewards dialog, ("priced", None) when its Okay's row shows a gem, else
+    ("unknown", None). The rewards and the medallion can be gem purple (the World domination
+    event's mystery box, the paw mission's medallion and crystal chest, 2026-10-29/30): gem
+    purple anywhere in the dialog read as a price, the dialog was closed unconfirmed and, the
+    second time in a row, free speed-ups were off for the run (the owner's bot and report
+    G8N62Y). A price shows where the paying button is."""
+    boxes = buttons.green_boxes(g, atlas.MR_GEM_DIALOG_RECT, anchor=atlas.ANCHOR_CENTER)
+    if len(boxes) != 1 or any(
+        abs(a - b) > REWARDS_OKAY_TOL for a, b in zip(boxes[0], REWARDS_OKAY, strict=True)
+    ):
+        return "unknown", None
+    if gems.shows_gem(g, REWARDS_OKAY_ROW, atlas.ANCHOR_CENTER):
+        return "priced", None
+    x1, y1, x2, y2 = boxes[0]
+    return "okay", Point((x1 + x2) // 2, (y1 + y2) // 2, atlas.ANCHOR_CENTER)
 
 
 def _checks(g: Game) -> None:
@@ -61,14 +89,18 @@ def _checks(g: Game) -> None:
                 g.wait_still()
                 # the screen after a free speed-up was never captured: one a run
                 _diagnostic_once(g, "mission-after-speed-up.png")
-                if gems.shows_gem(g, atlas.MR_GEM_DIALOG_RECT, atlas.ANCHOR_CENTER):
-                    # a gem confirmation: never confirmed blind; twice in a row, no more
-                    # speed-ups this run (a purple mission icon of the map could make one)
+                kind, okay = _rewards_dialog(g)
+                if kind == "priced" or (
+                    kind == "unknown"
+                    and gems.shows_gem(g, atlas.MR_GEM_DIALOG_RECT, atlas.ANCHOR_CENTER)
+                ):
+                    # a gem where a price shows, or not the rewards dialog and a gem in it:
+                    # never confirmed blind; twice in a row, no more speed-ups this run
                     _paid_met(g, "a gem showed after a speed-up click")
                     map_close(g)
                     return  # Goto, Troops
                 g.vars[GEM_SEEN] = 0
-                g.tap(atlas.MR_DIALOG_OK, 1000)
+                g.tap(okay or atlas.MR_DIALOG_OK, 1000)
             else:
                 # check 2nd mission in case of greyed out first mission bug
                 if g.found(atlas.MR_SECOND_MISSION_NOT_DONE):

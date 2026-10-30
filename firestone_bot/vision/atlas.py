@@ -1449,7 +1449,19 @@ MAP_LANDMARK_SEARCH = 100
 MAP_LANDMARK_SEARCH_WIDE = 260  # covers a detection drag (MAP_DETECT_SCROLL) left undone
 # Mission detection mode (features/map_detect.py): the map area searched for duration labels
 # (HUD panels, the zoom slider and the buttons excluded) and the label-to-icon distance.
-MAP_DETECT_AREA = (100, 160, 1700, 960)
+# Its top reaches just under the HUD counters (squads, honor, gems: client y 15..55 at
+# 1920x1009): a mission on an island at the north edge keeps its label there even with the map
+# dragged down by MAP_DETECT_SCROLL (Doomfire Island, report G8N62Y 2026-10-30: "4:24:32" at
+# client y 89, above the old top 160 = client 129; the bot searched the map in vain every
+# cycle for hours). The avatar block at the top left (rank title, XP numbers) is left out
+# (labels left of and above MAP_DETECT_AVATAR, top-left anchored), and so is a mission whose
+# icon would be clicked above MAP_DETECT_HUD_BOTTOM: the click would land on a counter, or
+# left of and above MAP_DETECT_INFO: on the green "i" beside the rank title (logical
+# 565..630 x 43..108, top-left anchored; a map left 74..86 px too high put a label there).
+MAP_DETECT_AREA = (100, 96, 1700, 960)
+MAP_DETECT_AVATAR = (560, 180)
+MAP_DETECT_HUD_BOTTOM = 92
+MAP_DETECT_INFO = (650, 112)
 MAP_LABEL_TO_ICON = 18
 # Detection mode fallback: how far (logical px) the map is dragged to reveal the missions
 # hidden beyond the top / bottom edge when idle troops remain (owner, 2026-09-06).

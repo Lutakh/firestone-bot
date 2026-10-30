@@ -1,5 +1,42 @@
 # Backlog (owner requests, not yet done)
 
+- Any screen shape (owner, 2026-10-30: "the bot must work at every resolution; can we do it
+  another way than with pixels?"): the screen is the only view of the game, but positions
+  need not be fixed. An audit (five agents, 2026-10-30) found about a third of the bot
+  already finding its targets by their look; the rest clicks atlas points through one
+  guessed anchor each (the thirds rule, 77 % of 449 entries), wrong whenever the game's own
+  anchor differs: 63 logical px at 16:9 on centred dialogs read edge-anchored, 236 at
+  2560x1080, 56 / 168 vertically at 16:10 / 4:3 (no dialog was ever seen on a client taller
+  than 16:9). The scale model (min(w/1920, h/1080)) is right to 0.2 %: the misses are anchor
+  (origin) errors. Plan, in this order:
+  1. Map mission popups by their look (one read of the panel: start / in progress / Mission
+     Rewards / unknown; buttons found inside it and clicked in screen px; close by the
+     popup's own X; every click confirmed by the next read; never a map click while a panel
+     is open). The Start probe misses below aspect 1.6 (16:10 fullscreen, 4:3, 5:4,
+     MacBook): "goes to the next mission, which it also doesn't start" (a player,
+     2026-10-30). MR_DIALOG_OK lands on a start popup's middle reward ("the honor symbol")
+     at every shape. Left mission list by look; MR_NO_MISSIONS never matches (sea 0x114292),
+     3.7 s and two blind taps per empty-map visit.
+  2. Daily reset (SHOP_MYSTERY_CLAIM_READY, (left, bottom) on the centred shop: misses at
+     16:10, 4:3, 21:9, and every daily counter then freezes; add a time-based fallback);
+     chaos rift entry (CHAOS_DOT / CHAOS_OPEN right-anchored on the centred guild map: 63 px
+     off at 16:9, chaos hits and rift books silently never happen at 1920x1080); chests
+     (new-style row and bag grid at 16:10 / 4:3); town buildings (six anchors on one
+     picture); battle pass, quests and settings close (BP_CLOSE, NS_OPTIONS_CLOSE miss at
+     16:9; game 9.1.3a's quest reward popup stops the quests loop at any shape); search
+     helpers called without an anchor (per-corner stretch, then a thirds-rule click).
+  3. Alchemist, game start button, new-style columns, daily missions, guardian, oracle,
+     personal tree (blind clicks that spend points), garage, exotic upgrades.
+  A test bench renders the real crops at about 25 client shapes (scene model independent of
+  the atlas: clicks must land inside the true button, never on a paid or forbidden one).
+  A measurement session on the owner's 1920x1080 screen (windowed 1600x1000, ~1333x1000,
+  1250x1000, 1900x815 via tools/window_tool.py, the game restarted in each for the map) would
+  settle the vertical placement of dialogs on taller clients and the map's scale at 21:9.
+  Done 2026-10-30: the Mission Rewards dialog after a free speed-up is told by its look (the
+  event's purple mystery box was read as a gem price: free speed-ups were off for the run on
+  the owner's bot at 22:56 and in report G8N62Y); detection reaches labels just under the HUD
+  counters (report G8N62Y, the Doomfire Island mission).
+
 - Activity overlay not visible on Windows (owner, 2026-09-07): the log says "overlay ready
   (capture-safe: True)" and the panel hides for clicks under it, so it exists but the owner
   never sees it over the game; to check on the Windows machine (topmost / click-through

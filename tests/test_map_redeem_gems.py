@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from firestone_bot.features import map_redeem
-from firestone_bot.vision import atlas, gems
+from firestone_bot.vision import atlas, buttons, gems
 
 # The owner's "Refresh Now" button (2026-10-22): orange, a gem and "120", BGR
 PAID_REFRESH = np.load(Path(__file__).parent / "fixtures" / "map-refresh-paid.npy")
@@ -151,6 +151,108 @@ def test_a_gem_dialog_after_a_speed_up_is_never_confirmed():
     g.dialog_gem = False
     map_redeem._checks(g)  # the next visit of the run: no speed-up click at all
     assert g.clicks.count(EARLY) == 2
+
+
+# The Mission Rewards dialog after the free speed-up of a World domination mission (owner,
+# 2026-10-30 22:56, client 1920x1009, game 9.1.3a): client x 740..1180, y 380..650 at half
+# size (game.coarse_image(crop, 2)). Rewards: laurel x2, shield x10, a purple mystery box x2,
+# then the green Okay (client 804..1116 x 566..640).
+REWARDS = np.load(Path(__file__).parent / "fixtures" / "mission-rewards-mystery-box-913a-half.npy")
+PARCHMENT = (127, 163, 202)  # BGR, the dialog's panel
+
+
+GREEN = (8, 160, 10)  # GREEN_BUTTON, BGR
+
+
+def _rewards_band(dy=0, rewards_purple=True):
+    """MR_GEM_DIALOG_RECT at 1 px per logical px (the reference client): the panel with the
+    fixture at its place (client y + 31 = logical), `dy` px lower; without its purple (the
+    mystery box) when `rewards_purple` is False."""
+    bx, by, bx2, by2 = atlas.MR_GEM_DIALOG_RECT
+    band = np.empty((by2 - by, bx2 - bx, 3), np.uint8)
+    band[:] = PARCHMENT
+    full = np.repeat(np.repeat(REWARDS, 2, axis=0), 2, axis=1)
+    top = 411 + dy - by
+    band[top : top + full.shape[0], 740 - bx : 740 - bx + full.shape[1]] = full
+    if not rewards_purple:
+        band[gems.gem_mask(band)] = PARCHMENT
+    return band
+
+
+def _paint(band, x1, y1, x2, y2, colour):
+    """Paint a logical rect of the band."""
+    bx, by = atlas.MR_GEM_DIALOG_RECT[:2]
+    band[y1 - by : y2 - by, x1 - bx : x2 - bx] = colour
+    return band
+
+
+class RewardsMap(FakeMap):
+    """A free speed-up followed by the real Mission Rewards dialog."""
+
+    def __init__(self, band, **kw):
+        super().__init__(**kw)
+        self.band = band
+
+    def region_image(self, rect, anchor=None):
+        bx, by, bx2, by2 = atlas.MR_GEM_DIALOG_RECT
+        x1, y1, x2, y2 = rect
+        inside = bx <= x1 and by <= y1 and x2 <= bx2 and y2 <= by2
+        if EARLY in self.clicks and anchor == atlas.ANCHOR_CENTER and inside:
+            return self.band[y1 - by : y2 - by, x1 - bx : x2 - bx]
+        return super().region_image(rect, anchor)
+
+
+def test_the_mystery_box_reward_is_no_gem():
+    """World domination (2026-10-29/30): the purple reward made 0.3 % of the dialog gem
+    purple; the bot closed it unconfirmed and, the second time in a row (the paw mission is
+    purple too), turned free speed-ups off for the run with an important heartbeat (owner's
+    bot 22:56, report G8N62Y). The Okay is found by its look and holds no gem: tapped."""
+    band = _rewards_band()
+    assert gems.gem_share(band) > gems.GEM_SHARE_MAX  # the old reading: a gem in the dialog
+    g = RewardsMap(band)
+    map_redeem._checks(g)  # one speed-up per pass, CHECKS_CAP passes: that many in a row
+    assert g.clicks[-1] == (960, 633)  # the centre of the Okay found (MR_DIALOG_OK: 971, 628)
+    assert g.clicks.count(EARLY) == g.clicks.count((960, 633)) == map_redeem.CHECKS_CAP
+    assert not any("a gem showed" in line for line in g.lines)
+    assert not g.vars.get(map_redeem.PAID_OFF) and not g.beats
+    assert g.vars[map_redeem.GEM_SEEN] == 0
+
+
+def _refused(band):
+    g = RewardsMap(band)
+    map_redeem._checks(g)
+    return (
+        g.clicks.count(EARLY) == 1
+        and g.clicks[-1] == (atlas.MAP_POPUP_CLOSE.x, atlas.MAP_POPUP_CLOSE.y)
+        and "Mission Check: a gem showed after a speed-up click: not confirmed" in g.lines
+    )
+
+
+def test_a_price_in_the_okay_row_is_never_tapped():
+    """A gem icon in the Okay (523 px, as on the paid Speed up) is a price even when nothing
+    else is purple: the old rule (0.002 of the whole dialog) would have tapped it."""
+    band = _paint(_rewards_band(rewards_purple=False), 1040, 615, 1063, 638, GEM)
+    assert gems.gem_share(band) < gems.GEM_SHARE_MAX
+    assert _refused(band)
+    assert _refused(_paint(_rewards_band(), 1040, 615, 1063, 638, GEM))  # with the box too
+
+
+def test_other_dialogs_fall_back_to_the_old_rule():
+    """Only the Rewards dialog's own Okay is tapped. A green button under it merges into one
+    box too big; a second one beside it is a choice; the generic one-button box puts its OK
+    28 px lower. Each falls back to the old rule (a gem anywhere: not confirmed)."""
+    rect, centre = atlas.MR_GEM_DIALOG_RECT, atlas.ANCHOR_CENTER
+    cases = {
+        "under": (_paint(_rewards_band(), 600, 690, 860, 750, GREEN), 1),
+        "beside": (_paint(_rewards_band(), 1130, 600, 1350, 660, GREEN), 2),
+        "lower": (_rewards_band(dy=28), 1),
+    }
+    for name, (band, n_boxes) in cases.items():
+        g = RewardsMap(band)
+        g.clicks.append(EARLY)  # the band is served after the speed-up click
+        assert len(buttons.green_boxes(g, rect, anchor=centre)) == n_boxes, name
+        assert map_redeem._rewards_dialog(g) == ("unknown", None), name
+        assert _refused(band), name
 
 
 def test_a_paid_map_reset_happens_once_a_visit_whatever_the_safety_cap(tmp_path):
