@@ -177,6 +177,11 @@ def enlighten(g: Game) -> int:
     except BotStopped:
         stopped = True  # the user stopped the bot: not one more click, not even to restore
         raise
+    except Exception:
+        # a Stop set while the pause or the game leaving the front unwinds: the same
+        stop = getattr(g, "stop_event", None)
+        stopped = stop is not None and stop.is_set()
+        raise
     finally:
         if not stopped and v.mult != before and _step_multiplier_to(g, before) != before:
             g.status(f"{v.prefix} the guardian multiplier could not be put back to x{before}")

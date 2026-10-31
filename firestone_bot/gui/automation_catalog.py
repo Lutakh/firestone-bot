@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from firestone_bot.gui.catalog import INVERTED_KEYS, OPTIONS, PRIORITY_KEYS, WM_NONE
+from firestone_bot.gui.catalog import INVERTED_KEYS, OPTIONS, WM_NONE
 from firestone_bot.progress import Progress
 from firestone_bot.settings import Settings
 
@@ -234,19 +234,9 @@ AUTOMATIONS: tuple[AutomationGroup, ...] = (
         title="Map missions",
         category="Expeditions",
         context="World map",
-        summary="Claim and dispatch missions. Choose fixed coordinates or detection from screen icons.",
-        keys=(
-            "MapMissions",
-            "MapOpen",
-            "MapHotkey",
-            "MapMode",
-            "Priority1",
-            "Priority2",
-            "Priority3",
-            "Priority4",
-            "Priority5",
-            "MapReset",
-        ),
+        summary="Claim finished missions and send idle troops to the missions found on the map "
+        "by their duration labels (a fixed list of points on a window too small to read them).",
+        keys=("MapMissions", "MapOpen", "MapHotkey", "MapReset"),
         master="MapMissions",
     ),
     AutomationGroup(
@@ -483,10 +473,6 @@ def disabled_reason(
         or (settings.get("MapOpen") == "auto" and settings.get("InterfaceStyle") == "new")
     ):
         return "The shortcut key is used only when the map is opened with the keyboard."
-    if key in PRIORITY_KEYS and settings.get("MapMode") == "detect":
-        return (
-            "Detection mode reads visible mission icons; category priority uses coordinates mode."
-        )
     if key == "DungeonQuest" and not on("Liberation"):
         return "Turn on liberation missions to include dungeon missions."
     if key in ("WMOptions", "Blueprints") and settings.get("UpgradeWM") == WM_NONE:

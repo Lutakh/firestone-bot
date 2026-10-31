@@ -38,7 +38,6 @@ CELESTIAL_CHOICES = [
     "Cosmic and Higher",
     "Galaxy",
 ]
-PRIORITY_CHOICES = ["2 Squad", "War", "Medium", "Short", "Leftover"]
 WM_NONE = "Don't Upgrade WM's"
 WM_CHOICES = [WM_NONE] + [
     f"Upgrade {n}"
@@ -92,7 +91,6 @@ SELL_LABELS = [
     "Sell all exotic items",
     "Sell nothing",
 ]
-PRIORITY_KEYS = [f"Priority{i}" for i in range(1, 6)]
 RESEARCH_PRIORITY_KEYS = [f"ResearchPriority{i}" for i in range(1, 6)]
 METEORITE_PRIORITY_KEYS = [f"MeteoritePriority{i}" for i in range(1, 6)]
 NO_PRIORITY = {"": "(none)"}
@@ -488,8 +486,9 @@ OPTIONS: dict[str, Option] = {
     ),
     "MapMissions": Option(
         "Run the map missions",
-        "Master switch of the whole map visit: mission claims, troop dispatch (priority order "
-        "below), campaign and liberation.",
+        "Master switch of the whole map visit: mission claims, troop dispatch to the missions "
+        "found on the map by the duration label under their icon (on a window too small to "
+        "read the labels, to a fixed list of mission points), campaign and liberation.",
         "switch",
     ),
     "Campaign": Option("Claim the campaign", "Campaign rewards after the map missions.", "switch"),
@@ -550,24 +549,6 @@ OPTIONS: dict[str, Option] = {
         "text",
         pattern=r"^[A-Za-z]?$",
     ),
-    "MapMode": Option(
-        "How missions are found on the map",
-        "Coordinates: the fixed list of mission points below, clicked in category order (the "
-        "map must be in its default position, which the bot restores). Detection: the bot "
-        "looks for the duration label under every mission icon on the screen and clicks only "
-        "those, so nothing is clicked in the void; the categories are ignored and the missions "
-        "are taken top to bottom. Detection was measured in the new-adventure style on macOS.",
-        "choice",
-        ("coordinates", "detect"),
-        {"coordinates": "Coordinates (fixed list)", "detect": "Detection (icons on screen)"},
-    ),
-    "Priority1": Option(
-        "1st", "Mission category filled first.", "ordered", tuple(PRIORITY_CHOICES)
-    ),
-    "Priority2": Option("2nd", "Mission category.", "ordered", tuple(PRIORITY_CHOICES)),
-    "Priority3": Option("3rd", "Mission category.", "ordered", tuple(PRIORITY_CHOICES)),
-    "Priority4": Option("4th", "Mission category.", "ordered", tuple(PRIORITY_CHOICES)),
-    "Priority5": Option("5th", "Mission category filled last.", "ordered", tuple(PRIORITY_CHOICES)),
     "MapReset": Option(
         "⚠ Reset the map cooldown with gems",
         "Spends gems whenever the mission reset is on cooldown.",

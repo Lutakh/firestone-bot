@@ -607,3 +607,23 @@ vision/mission_popup.py. Client px; W = the panel's width.
   mostly empty, and the bar's grey top line (120,121,140) runs across the grey Cancel's
   columns 74 px above it; a button's labels leave rows short of its colour for 0.013 W at
   most (the start popup's "Complete instantly").
+
+## 2026-10-31 — the world map at small client sizes (Epic, game 9.1.3a, the owner's PC)
+
+The game's window resized while the game ran (tools/window_tool, from the maximised 1920x1009
+client), the map aligned first, about 15 duration labels on it (missions running and
+available, 16:55 after the 16:47 refresh); the same sizes on the empty map (16:08). Captures
+in captures/sizes-20261031 and captures/sizes-20261031-empty (1:1, not committed).
+
+- Scale: on 16:9 and wider windows the map follows Viewport.rel_scale (= h/1009 there). On a
+  window made taller than 16:9 it follows the window's height, not the canvas: map art
+  matched against the 1920x1009 capture gives 0.895..0.903 at 1440x900 (rel_scale 0.803,
+  h/1009 0.892), 0.987..0.995 at 1600x1000 (0.892, 0.991), 1.012 at 1280x1024 (0.714, 1.015),
+  centred; the landmark is not found on those three (0.21..0.23).
+- find_missions (labels after the panel, avatar, HUD and info exclusions), 0.3.36 -> the drawn
+  scale with the small-map thresholds (white 220 under 0.9, outline reach 2 px at least):
+  1920x1009 10 -> 10, 1600x900 10 -> 10, 1600x1000 10 -> 10, 1920x823 0 -> 10, 1440x900
+  3 -> 10, 1366x768 1 -> 9, 1280x720 0 -> 9, 1280x1024 1 -> 8; the empty map 0 everywhere.
+  find_labels alone (no exclusion), the reference 15: a white of 210 finds 25 there (the
+  extra 10 are the rows of three white stars over the mission icons; 0 on the empty map),
+  225 the same 15.

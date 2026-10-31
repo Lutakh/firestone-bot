@@ -1,8 +1,11 @@
 """settings.ini compatibility layer.
 
-Same sections and keys as `Gui.ahk` (SettingsMap). The file may be UTF-16 LE with BOM (AHK
-default on the example) or UTF-8; it is written back in the encoding it was read with. Values
-are kept as strings like AHK; `Settings.flag(name)` gives the boolean view used by the runtime.
+Same sections and keys as `Gui.ahk` (SettingsMap), but for the mission categories (see
+MissionPriority below). The file may be UTF-16 LE with BOM (AHK default on the example) or
+UTF-8; it is written back in the encoding it was read with. Values are kept as strings like
+AHK; `Settings.flag(name)` gives the boolean view used by the runtime. Keys the port does not
+know (the AHK bot's own, those of a removed option) are kept in `extra` and written back as
+they are, never read.
 
 The object is LIVE: the GUI writes into it on every change and feature modules read it at
 call time, mirroring the AHK `GuiControlGet` behaviour.
@@ -65,12 +68,10 @@ SETTINGS_MAP: dict[str, tuple[str, str]] = {
     "UpgradeH4": ("HeroOptions", "1"),
     "UpgradeH5": ("HeroOptions", "1"),
     # --- Mission Priority ---
-    "MapMode": ("MissionPriority", "coordinates"),
-    "Priority1": ("MissionPriority", "2 Squad"),
-    "Priority2": ("MissionPriority", "War"),
-    "Priority3": ("MissionPriority", "Medium"),
-    "Priority4": ("MissionPriority", "Short"),
-    "Priority5": ("MissionPriority", "Leftover"),
+    # MapMode and the category order Priority1..5 are no settings since 2026-10-31 (owner: the
+    # missions are found by their labels, the fixed list of points only as the automatic
+    # fallback on a map drawn too small for them, in the default category order); left in an
+    # older settings.ini they stay in `extra`, unused.
     "MapReset": ("MissionPriority", "0"),
     # --- QoL/Rare Options ---
     "Beer": ("QoL/RareOptions", "0"),

@@ -402,42 +402,83 @@ Input & notifications > "Close notification banners", on by default). It uses th
 permission it already has to perform the banner's own Close action, so the notification
 stays in Notification Center. Nothing happens on Windows and Linux.
 
-## World-map missions: coordinates or detection
+## World-map missions
 
-Automations > Map missions > "How missions are found on the map". **Coordinates** (default)
-clicks the fixed list of mission points in category order, on a map the bot first puts back
-in place (next section). **Detection** looks for the duration label drawn under every
-mission icon (bold white digits with a dark outline: "27:36", "4:57", "2:15:35") in the
-current screen capture and clicks only those icons, top to bottom, so nothing is clicked in
-the void; the categories are ignored. The label, not the icon, is the cue because the icon
-changes with the mission and pulses. Labels close to the top or bottom edge fall outside
-the capture: when idle troops remain after the visible missions, the map is dragged down
-(north revealed) then up (south revealed) and searched again, and it is put back in place
-with the alignment below before the bot leaves. Measured on macOS in the new-adventure style
-(five out of five icons on the reference capture); other resolutions scale with the capture.
+The bot finds the missions on the map by the duration label drawn under every mission icon
+(bold white digits with a dark outline: "27:36", "4:57", "2:15:35") in the current screen
+capture and clicks only those icons, top to bottom, so nothing is clicked in the void. The
+label, not the icon, is the cue because the icon changes with the mission and pulses. Labels
+close to the top or bottom edge fall outside the capture: when idle troops remain after the
+visible missions, the map is dragged down (north revealed) then up (south revealed) and
+searched again, and it is put back in place with the alignment below before the bot leaves.
+When such a search is cut short by the mouse guard's pause or the game window leaving the
+front, the bot tries to bring the game back to the front and drag the map back itself. When
+the game cannot be brought to the front, or after a Stop (then nothing more is sent), the map
+stays down and the next alignment drags it up to find its title and puts it back. The labels'
+size follows the scale the map is drawn at: the window's size and the way the game sized the
+map when it started, which the alignment measures (except on a window made taller than 16:9
+after the game started, below). Measured on macOS in the new-adventure style (five out of five
+icons on the reference capture) and on the Windows reference client (1920x1009). Smaller
+windows read their thinner labels with lower thresholds: on real captures of the owner's map
+(2026-10-31, the window resized while the game ran), 9 or 10 of its 10 missions are found at
+clients of 1600x900, 1440x900, 1920x823, 1366x768 and 1280x720, 8 at 1280x1024, and nothing
+on the empty map at any of those sizes. The map is the same in both interface styles.
 
-In both modes the mission windows a click opens (start, in progress, Mission Rewards) are
-read by their look, at any screen shape: the bot finds the window's frame, its buttons and
-their colours, and clicks the buttons where they are. It presses a Start only when the
-"Complete instantly" beside it shows its gem price, a speed-up only in the free layout (grey
-Cancel, no price), a Mission Rewards' Okay only when no gem shows in its row, and closes
-anything else (by its X, else beside it). Something it does not recognise is closed, never
-clicked through; a window that stays open stops the map for that visit. The diagnostics
-folder then holds a picture of it (mission-popup-stuck.png, mission-popup-unread.png,
-mission-start-unpriced.png): please send a report with it.
+On a game window under 706 px tall (its client: the bot compares 0.7 with the client's
+height against 1009 px, which the map's measured scale never exceeds), the bot clicks a fixed
+list of 78 mission points instead (the AutoHotkey bot's, plus a few measured since), in the
+order of five mission categories ("2 Squad", "War", "Medium", "Short", "Leftover"), placed by
+the map's measured scale. That covers a maximised window on a screen 768 px tall or less
+(1366x768 or 1280x720: about 697 px once the taskbar and the title bar are taken; 0.7 is a
+safety margin there, the labels are probably still readable) and smaller windows, 1152x648 or
+1024x576 for instance. That was the "coordinates mode", a setting and the default up to 0.3.36 (its
+point placement was checked on one icon in a window resized to 1280x720; it was never run end
+to end at a small size); it misses the missions the list does not cover (they come at random
+from a pool) and clicks where no mission is, so it is only the fallback (the owner's decision,
+2026-10-31). The Activity log says once a run which way the bot took and why, for example
+"Map: the window is too small for the labels (height 0.691 of the reference, under 0.7);
+missions are clicked from the fixed list". No setting chooses the way: an older `settings.ini` keeps its `MapMode`
+and `Priority1`..`Priority5` lines; the bot ignores them.
+
+The mission windows a click opens (start, in progress, Mission Rewards) are read by their
+look, at any screen shape: the bot finds the window's frame, its buttons and their colours,
+and clicks the buttons where they are. It presses a Start only when the "Complete instantly"
+beside it shows its gem price, a speed-up only in the free layout (grey Cancel, no price), a
+Mission Rewards' Okay only when no gem shows in its row, and closes anything else (by its X,
+else beside it). Something it does not recognise is closed, never clicked through; a window
+that stays open stops the map for that visit. The diagnostics folder then holds a picture of
+it (mission-popup-stuck.png, mission-popup-unread.png, mission-start-unpriced.png): please
+send a report with it.
 
 ## World-map alignment
 
-The mission points of the map are fixed coordinates, so the map must be at its default zoom
-and position. Before the missions are clicked the bot checks both: the knob of the zoom
-slider (bottom right) must sit at the left end, otherwise the wheel is scrolled down over
-the map until it is; and the "World of Alandria" title is looked for around its reference
-place (`vision/map_landmark.json`, recorded with `python -m firestone_bot.tools.map_landmark`
-on a map in its default state). A moved map is dragged back on open sea by the measured
-offset (a drag keeps the map offset even after closing and reopening it). Lines "Map:
-zoomed in..." / "Map: moved by (dx, dy) px, dragging it back" show in the Activity log
-when a correction happens; "Map: landmark not found" leaves the map alone (a popup was
-over it).
+The missions are looked for on the map at its default zoom and position: a zoomed or dragged
+map hides missions beyond the edges of the screen, the drags that reveal its north and south
+edges start from there, the missions already clicked are remembered by their place on the
+map (`MapStartState.ini`), and the fallback's fixed points are valid only there. Before the
+missions are looked for the bot checks both: the knob of the zoom slider (bottom right) must
+sit at the left end, otherwise the wheel is scrolled down over the map until it is; and the
+"World of Alandria" title is looked for around its reference place
+(`vision/map_landmark.json`, recorded with `python -m firestone_bot.tools.map_landmark` on a
+map in its default state). A moved map is dragged back on open sea by the measured offset (a
+drag keeps the map offset even after closing and reopening it). The title also tells the
+scale the game drew the map at (fitted to the width of a 16:9 window it started on, or at
+the scale of its canvas), which sizes the labels and places the fixed points; which of the
+two is used depends on the window's height only. The check runs again after a search that moved the map, and once when a
+full search starts nothing while troops are idle. Lines "Map: zoomed in..." / "Map: moved by
+(dx, dy) px, dragging it back" show in the Activity log when a correction happens. When the
+title is not found, the map is dragged up once by the length of the search's drag (a search
+beyond the north edge whose drag back never came leaves the title under the bottom HUD, out
+of sight) and looked at again; still not found, that drag is undone and "Map: landmark not
+found" leaves the map alone (a popup or a panel over the title). The drag up is then not
+tried again in the run, unless a search may have left the map down since. When no dialog's X
+shows at the top right (the map did not open and the main screen is there), nothing is
+dragged: "Map: the map is not open, alignment skipped". A window made taller than 16:9 after
+the game started shows the map at the window's height, centred, where the title is not found
+either: the first alignment of each run drags the map up and back once to look for it, then
+leaves it as it is; there the labels are sized at the canvas scale, smaller than the map
+(0.714 for 1.015 at 1280x1024), and are still found (10, 10 and 8 of 10 at 1440x900,
+1600x1000 and 1280x1024).
 
 ## Activity overlay over the game
 
@@ -512,8 +553,8 @@ Settings belonging to a disabled parent remain saved. Legacy talent values are r
   (`Beer`, `Scarab`, `NoGuild`, `NoEng`, `Pickaxes`, `Alch`, `Dust`, `DragonBlood`, `Research`,
   `SkipOracle`, `NoHero`) the interface keeps their stored polarity internally. The file keeps the AHK keys and values, so it stays compatible with the AutoHotkey bot.
 - **Unknown values** found in `settings.ini` (a legacy `GuardianTrain=Vermilion`, an
-  unexpected chest rarity, an invalid priority order) are shown as `(unknown) value` with a
-  warning and are never rewritten until you pick something else.
+  unexpected chest rarity, an invalid chaos-rift upgrade order) are shown as `(unknown) value`
+  with a warning and are never rewritten until you pick something else.
 - **Game launch**: START (and every cycle start) launches the game through Steam or Epic when
   it is not running (Workshop > Game setup, auto-detected by default) and restores it when it
   is minimised; the Camp check does the same instead of reporting an error.

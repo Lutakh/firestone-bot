@@ -9,12 +9,18 @@ for at capture resolution inside the map area, the icon sits a fixed distance ab
 Measured on the Mac client (3024x1709), new-adventure style: digits 14..34 px tall, a label
 45..200 px wide, the ring centre about 18 logical px above the label centre. On the Windows
 reference client (1920x1009, 2026-09-06) the same digits are 10 px tall and a label 43 px
-wide, so every threshold below is in LOGICAL px and scaled by the capture factor (capture px
-per logical px: 1.0 on that client, about 1.6 on the Mac).
+wide, so every threshold below is in LOGICAL px and scaled by the size factor: capture px per
+px of the reference client's map, the scale the map is drawn at (map_align.drawn_scale: 1.0
+on that client, about 1.6 on the Mac).
 
 The left HUD panel lists the missions in progress with their remaining time, in the same
 font: labels there are not missions on the map and are dropped (owner's cycle 2026-09-06:
 the bot opened the running Trade Route from that panel every cycle).
+
+Under map_start.DETECT_MIN_SCALE the labels are not looked for and the fixed mission points
+are clicked instead. 8558a26's detector found 0 or 1 of 27 at 1366x768 and 1280x720 (the
+size factor was taken from the stretched search area); with the drawn scale and the small-map
+thresholds below, the real captures of 2026-10-31 give 9 of 10 there (MEASUREMENTS).
 """
 
 from __future__ import annotations
@@ -24,13 +30,26 @@ from collections import deque
 
 import numpy as np
 
+from firestone_bot.features import map_align
 from firestone_bot.game import Game
 from firestone_bot.vision import atlas
 
 WHITE_MIN = 240  # every channel at least this: the digit body
+# A map drawn under SMALL_SCALE (1600x900, 1440x900, 1366x768, 1280x720 clients) thins a digit
+# to a stroke or two whose pixels blend with the outline and stay under WHITE_MIN: the digits
+# broke into fragments. There the body is WHITE_MIN_SMALL. Synthetic (2026-10-31): the owner's
+# 27-label capture resampled to 0.65..0.85 of its size, 23..27 labels found instead of 4..24
+# with WHITE_MIN, none of the map's art taken for one (210 took some); the real 1280x720
+# capture of 2026-09-03 (the game of that day), its 3 labels instead of 1. The reference
+# client and larger maps keep WHITE_MIN: nothing changes there.
+WHITE_MIN_SMALL = 220
+SMALL_SCALE = 0.9
 DARK_MAX = 90  # every channel below this: the outline
-# Logical px (multiplied by the capture factor in find_labels)
+# Logical px (multiplied by the size factor in find_labels)
 OUTLINE_REACH = 2  # between a digit pixel and its outline
+# ...but never under 2 capture px: at 0.71 the reach rounded to 1 px and 1 label of 27 was
+# found (10 with 2 px, the white above unchanged)
+OUTLINE_MIN_PX = 2
 DIGIT_H = (8, 21)  # digit blob height (a whole digit)
 FRAGMENT_H = 4  # a digit cut in two by anti-aliasing at the zoomed-out size (a "0" or a "5"
 # splits into 5 + 6 px halves, Windows 2026-09-08): fragments join a label but do not make one
@@ -104,17 +123,18 @@ def _join_split(digits, digit_h, gap):
 
 def find_labels(img: np.ndarray, factor: float = 1.0) -> list[tuple[int, int, int, int]]:
     """Label rectangles (capture px) in a BGR image: rows of outlined white digit blobs.
-    `factor` = capture px per logical px (scales the size thresholds)."""
+    `factor` = capture px per logical px of the map as drawn (scales the size thresholds;
+    under SMALL_SCALE the digits' white is WHITE_MIN_SMALL)."""
     f = max(factor, 0.5)
     digit_h = (DIGIT_H[0] * f, DIGIT_H[1] * f)
     digit_w = (DIGIT_W[0] * f, DIGIT_W[1] * f)
     row_gap, row_align = ROW_GAP * f, ROW_ALIGN * f
     label_w = (LABEL_W[0] * f, LABEL_W[1] * f)
     a = img.astype(int)
-    white = a.min(axis=2) >= WHITE_MIN
+    white = a.min(axis=2) >= (WHITE_MIN if f >= SMALL_SCALE else WHITE_MIN_SMALL)
     dark = a.max(axis=2) < DARK_MAX
     near = np.zeros_like(dark)
-    r = max(1, round(OUTLINE_REACH * f))
+    r = max(OUTLINE_MIN_PX, round(OUTLINE_REACH * f))
     for dy in range(-r, r + 1):
         for dx in range(-r, r + 1):
             near |= np.roll(np.roll(dark, dy, 0), dx, 1)
@@ -162,7 +182,10 @@ def find_missions(g: Game) -> list[tuple[int, int]]:
     # The capture's corners follow the HUD edges (region_image's anchors) but the map is
     # centred, so a label goes through its screen pixel and the centre anchor. Scaled by the
     # area's corners and clicked with the thirds rule, labels were clicked up to 45 px beside
-    # their icon on a 1920x1080 client (report ANHNX9, 2026-10-25), 170 px at 21:9.
+    # their icon on a 1920x1080 client (report ANHNX9, 2026-10-25), 170 px at 21:9. Their size
+    # is the map's too: the area's width gave 1.386 at 2560x1080 where the map is drawn at
+    # 1.070, 0.657 at 1280x720 for 0.714 (review of 8558a26: 1 label of 27 found at each).
+    factor = map_align.drawn_scale(g)
     ox, oy = vp.to_screen(x1, y1)
     panel_x = vp.to_screen(PANEL_MAX_X, 0, (0.0, 0.0))[0]  # the HUD panel is left-anchored
     avatar_x, avatar_y = vp.to_screen(*atlas.MAP_DETECT_AVATAR, (0.0, 0.0))
@@ -170,7 +193,7 @@ def find_missions(g: Game) -> list[tuple[int, int]]:
     info_x, info_y = vp.to_screen(*atlas.MAP_DETECT_INFO, (0.0, 0.0))
     to_icon = atlas.MAP_LABEL_TO_ICON * vp.rel_scale
     points = []
-    for lx0, ly0, lx1, ly1 in find_labels(img, img.shape[1] / (x2 - x1)):
+    for lx0, ly0, lx1, ly1 in find_labels(img, factor):
         sx, sy = ox + (lx0 + lx1) / 2, oy + (ly0 + ly1) / 2
         if sx < panel_x:
             continue  # remaining time of a running mission in the left HUD panel

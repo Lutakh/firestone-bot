@@ -258,6 +258,10 @@ class Game:
                 raise BotStopped
             if self.guard_check is not None:
                 self.guard_check(self)
+                if self.stop_event.is_set():
+                    # a Stop pressed during the mouse guard's pause: the wait ends here, not
+                    # once its time is up (the next input went out after the Stop)
+                    raise BotStopped
             left = end - time.monotonic()
             if left <= 0:
                 return

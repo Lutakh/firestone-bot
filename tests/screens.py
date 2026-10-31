@@ -959,8 +959,8 @@ class SceneGame(Game):
             self.scene.source = None
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, anchor=None) -> None:
+        super().drag(x1, y1, x2, y2, anchor)  # refused (the game not in front): nothing moves
         self.scene.map_offset += y2 - y1
-        super().drag(x1, y1, x2, y2, anchor)
 
     def client_image(self):
         self.scene.on_read()

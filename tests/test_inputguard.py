@@ -74,6 +74,33 @@ def test_check_continues_or_interrupts(monkeypatch):
     assert not guard.triggered.is_set()
 
 
+def test_a_stop_during_the_pause_moves_nothing_and_ends_the_wait(monkeypatch):
+    """The Stop pressed while the pause pop-up is up (in it or in the main window: the
+    pop-up then says "continue"): no focus, no pointer put back, and the wait the pause
+    happened in ends at once with BotStopped, not once its time is up (the next input went
+    out after the Stop; review of 3cba41f)."""
+    from firestone_bot.game import BotStopped
+
+    monkeypatch.setattr(inp, "last_injection", lambda: (0.0, None))
+    restored = []
+    monkeypatch.setattr(inp, "restore_position", lambda: restored.append(1))
+    g = Game(Settings(), time_scale=0.01)
+    focused = []
+    monkeypatch.setattr(g, "focus", lambda: focused.append(1))
+
+    def pause(gd):
+        g.stop_event.set()  # the Stop, during the pause
+        return "continue"
+
+    guard = inputguard.InputGuard(pause)
+    guard.arm()
+    g.guard_check = guard.check
+    guard._on_move(300, 300)
+    with pytest.raises(BotStopped):
+        g.sleep(1)  # a wait shorter than the pause: it used to return normally
+    assert focused == [] and restored == []
+
+
 def test_game_sleep_calls_the_guard():
     g = Game(Settings(), time_scale=0.01)
     calls = []

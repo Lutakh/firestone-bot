@@ -137,6 +137,9 @@ class InputGuard:
         finally:
             self.paused = False
             self.triggered.clear()
+        stop = getattr(game, "stop_event", None)
+        if stop is not None and stop.is_set():
+            return  # a Stop during the pause: no focus, no pointer moved (Game.sleep stops)
         if decision == "continue":
             game.status("Continuing the cycle where it stopped")
             game.focus()

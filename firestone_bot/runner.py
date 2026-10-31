@@ -34,6 +34,7 @@ from firestone_bot.features import (
     main_menu,
     map_align,
     map_redeem,
+    map_start,
     meteorite,
     open_chests,
     open_town,
@@ -214,8 +215,16 @@ class Runner:
         guard = getattr(g, "front_guard", None)
         if guard is not None:
             guard.reset()
-        # Game.vars outlives a Stop: the bag's first visit of each run tries every chest
-        g.vars.pop(open_chests.FULL_CHECK_KEY, None)
+        # Game.vars outlives a Stop: the bag's first visit of each run tries every chest, the
+        # map says again how its missions are found, and its alignment tries again (a Stop
+        # during a search beyond the edge leaves the map dragged: it looks higher up for it)
+        for key in (
+            open_chests.FULL_CHECK_KEY,
+            map_start.WAY_KEY,
+            map_align.RECOVERY_OFF,
+            map_align.ALIGN_OFF,
+        ):
+            g.vars.pop(key, None)
         while True:  # loop:
             try:
                 if self._cycle() is False:

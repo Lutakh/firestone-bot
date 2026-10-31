@@ -23,8 +23,6 @@ from firestone_bot.gui.catalog import (
     HERO_TARGET_KEYS,
     INVERTED_KEYS,
     OPTIONS,
-    PRIORITY_CHOICES,
-    PRIORITY_KEYS,
     SELL_KEYS,
     SELL_LABELS,
     TREE_GROUPS,
@@ -41,7 +39,6 @@ from firestone_bot.gui.widgets import (
     reveal_widget,
 )
 from firestone_bot.progress import Progress
-from firestone_bot.settings import SETTINGS_MAP
 
 # These clarify cross-editor behavior without changing any saved option or runner action.
 EDITOR_NOTES = {
@@ -51,7 +48,7 @@ EDITOR_NOTES = {
     "enlightenment": "Uses the guardian chosen in Guardian training. The limits combine and the strictest wins, except for the Decorated Heroes event's 3 daily enlightenments (60 dust): they are made at x1 even above the dust cap and the reserve, and count toward the totals. The screen's multiplier is put back after each visit.",
     "oracle": "Upgrade blessings also controls celestial chests in the bag, even when oracle visits are off. The oracle itself requires account level 200.",
     "engineer": "War machine upgrades happen inside the engineer visit. A machine and a blueprint-capable mode must be selected to edit blueprint choices.",
-    "map": "Category priority is used only in Coordinates mode. Detection mode reads visible mission icons from the screen.",
+    "map": "Missions are found by the duration label under their icon and started top to bottom. On a window too small to read the labels, a fixed list of mission points is clicked instead (the Activity log says which). The map is put back at its default zoom and position first.",
     "campaign": "Campaign runs during the map visit. Dungeon missions are part of the liberation routine.",
     "guild": "Guild visits also enable the separate Hero awakening, Personal tree, Chaos rift and Arcane crystal editors.",
     "tree": "Choose upgrade targets below. These upgrades run during the guild visit.",
@@ -179,26 +176,6 @@ class AutomationEditor(ctk.CTkFrame):
                 )
                 self.composites["selling"] = (row, tuple(SELL_KEYS))
                 skipped.update(SELL_KEYS)
-            elif key in PRIORITY_KEYS:
-                ordered = OrderedList(
-                    card.body,
-                    ctx,
-                    PRIORITY_CHOICES,
-                    keys=PRIORITY_KEYS,
-                    row_labels=["1st", "2nd", "3rd", "4th", "5th"],
-                )
-                card.note("Mission category priority · first filled at the top")
-                card.add(ordered)
-                self.composites["priority"] = (ordered, tuple(PRIORITY_KEYS))
-                (self.reset_order_button,) = card.buttons(
-                    (
-                        "Reset category order",
-                        lambda ordered=ordered: ordered.reset(
-                            [SETTINGS_MAP[k][1] for k in PRIORITY_KEYS]
-                        ),
-                    )
-                )
-                skipped.update(PRIORITY_KEYS)
             elif key == "ChaosGuardianOrder":
                 card.note("Chaos-rift upgrade order · first upgraded at the top")
                 ordered = OrderedList(
@@ -266,17 +243,12 @@ class AutomationEditor(ctk.CTkFrame):
             if key in COUNTERS:
                 counter, label = COUNTERS[key]
                 row.control.set_live(f"{daily._int(settings, counter)} {label}")
-        for name, (control, keys) in self.composites.items():
-            enabled = all(reasons[key] is None for key in keys)
+        for control, keys in self.composites.values():
             if any(
                 key not in self._last_reasons or reasons[key] != self._last_reasons[key]
                 for key in keys
             ):
-                control.set_enabled(enabled)
-            if name == "priority":
-                state = "normal" if enabled else "disabled"
-                if self.reset_order_button.cget("state") != state:
-                    self.reset_order_button.configure(state=state)
+                control.set_enabled(all(reasons[key] is None for key in keys))
         self._last_reasons = reasons
         reason = progress.locked_reason(group.feature) if group.feature else None
         self.lock_banner.set_visible(bool(reason))
@@ -497,10 +469,6 @@ class AutomationsPage(ctk.CTkFrame):
             if key in self.group_buttons:
                 self.open_group(key)
                 reveal_widget(self.inspector, self.editors[key])
-                return True
-            if key == "reset_category_order":
-                self.open_group("map")
-                reveal_widget(self.inspector, self.editors["map"].reset_order_button)
                 return True
             composite_name, separator, action = key.rpartition(":")
             if separator and action in ("all", "none"):

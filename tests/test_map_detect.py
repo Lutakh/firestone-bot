@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import MappingProxyType
 
 import numpy as np
+import pytest
 
-from firestone_bot.features import map_detect
+from firestone_bot.features import map_align, map_detect
 from firestone_bot.platform.window import Rect
 from firestone_bot.vision.viewport import Viewport
 
 REF = Viewport(Rect(0, 0, 1920, 1009))  # the reference client: every anchor agrees
+NOT_MEASURED = MappingProxyType({})  # Game.vars before the landmark measured the map's scale
 
 
 def _digit(img, x, y, w=12, h=18):
@@ -43,6 +46,8 @@ def test_find_missions_maps_labels_to_logical_icon_centres():
     _label(img, 200, 400)
 
     class G:
+        vars = NOT_MEASURED
+
         def _viewport(self):
             return REF
 
@@ -64,6 +69,8 @@ def test_half_pixel_labels_give_the_points_of_0_3_34_on_the_reference_client():
         _digit(img, 201 + i * 16, 401, w=13, h=19)  # 61 x 19: the centre on half pixels
 
     class G:
+        vars = NOT_MEASURED
+
         def _viewport(self):
             return REF
 
@@ -85,6 +92,8 @@ def test_panel_labels_are_not_missions():
     _label(img, 600, 400)  # on the map
 
     class G:
+        vars = NOT_MEASURED
+
         def _viewport(self):
             return REF
 
@@ -108,6 +117,8 @@ def test_points_are_clicked_on_their_label_at_16_9():
     _label(img, 20, 150)  # the left HUD panel (client x 157): not a mission
 
     class G:
+        vars = NOT_MEASURED
+
         def _viewport(self):
             return vp
 
@@ -137,6 +148,8 @@ def _sea_game(w, h, pastes):
         screen[y : y + crop.shape[0], x : x + crop.shape[1]] = crop
 
     class G:
+        vars = NOT_MEASURED
+
         def _viewport(self):
             return vp
 
@@ -250,3 +263,89 @@ def test_split_shapes_alone_are_not_labels():
     _split(img, 116, 100, w=12)
     _digit(img, 132, 100, w=4, h=10)
     assert map_detect.find_labels(img, 1.0) == []
+
+
+# --- the size of the labels: the scale the map is drawn at (review of 8558a26) ----------------
+@pytest.mark.parametrize(
+    ("client", "scale", "factor"),
+    [
+        ((1920, 1009), None, 1.0),  # the owner's client: as before, exactly
+        ((1920, 1009), 1.0, 1.0),
+        ((1920, 1080), map_align.FITTED_SCALE, 1.0),  # ANHNX9: a map fitted at 16:9 (0.986)
+        ((2560, 1080), 1.0, 1.070),  # 21:9: the area's stretched width said 1.386
+        ((3440, 1440), 1.0, 1.427),  # 1.864 by the area
+        ((1366, 768), map_align.FITTED_SCALE, 0.711),  # a game started at 1366x768 (0.702)
+        ((1366, 768), None, 0.761),  # before the landmark measured it: the client's alone
+    ],
+)
+def test_the_labels_are_sized_by_the_scale_the_map_is_drawn_at(monkeypatch, client, scale, factor):
+    """find_labels' thresholds follow the map, not the detection area: its corners follow
+    the HUD edges and stretch with the client's shape (1 label of 27 found at 2560x1080 in
+    the review's synthetic test, 11 with the map's scale, 27 drawn crisp)."""
+    vp = Viewport(Rect(0, 0, *client))
+    seen = []
+    monkeypatch.setattr(map_detect, "find_labels", lambda img, f: seen.append(f) or [])
+
+    class G:
+        vars = NOT_MEASURED if scale is None else MappingProxyType({map_align.SCALE_KEY: scale})
+
+        def _viewport(self):
+            return vp
+
+        def region_image(self, rect):
+            return np.zeros((10, 10, 3), np.uint8)
+
+    assert map_detect.find_missions(G()) == [] and seen == [factor]
+
+
+def _thin_digit(img, x, y, w=2, h=7, white=230):
+    """A digit as a map drawn at about 2/3 of the reference size shows it: a 2 px stroke whose
+    white blends with its 1 px dark outline (under WHITE_MIN, the outline 2 px away)."""
+    img[y - 2 : y + h + 2, x - 2 : x + w + 2] = (40, 40, 40)
+    img[y - 1 : y + h + 1, x - 1 : x + w + 1] = (150, 150, 150)
+    img[y : y + h, x : x + w] = (white, white, white)
+
+
+def _thin_label(img, x, y, digits=4):
+    for i in range(digits):
+        _thin_digit(img, x + i * 8, y)
+
+
+def test_thin_digits_of_a_small_map_are_a_label(monkeypatch):
+    """1280x720 (a game started there: 0.667): the label is read with the small-map white
+    and the 2 px reach; with either of the reference ones it is not (the review of 8558a26
+    found 1 label of 27 at that size). The same shapes are no label at the reference size,
+    where nothing changed, and a bright stroke without an outline (snow, a cloud) is none."""
+    img = np.full((60, 120, 3), (60, 120, 200), np.uint8)
+    _thin_label(img, 20, 20)
+    img[40:47, 80:82] = (230, 230, 230)  # bright, no outline
+    img[40:47, 88:90] = (230, 230, 230)
+    assert map_detect.find_labels(img, 0.667) == [(20, 20, 46, 27)]
+    assert map_detect.find_labels(img, 1.0) == []
+    monkeypatch.setattr(map_detect, "OUTLINE_MIN_PX", 1)
+    assert map_detect.find_labels(img, 0.667) == []
+    monkeypatch.setattr(map_detect, "OUTLINE_MIN_PX", 2)
+    monkeypatch.setattr(map_detect, "SMALL_SCALE", 0.0)  # WHITE_MIN at every size
+    assert map_detect.find_labels(img, 0.667) == []
+
+
+def _shrunk(img, k):
+    """`img` drawn k times smaller (each pixel the mean of its footprint, like a smaller
+    render of the same art)."""
+    from tests import screens
+
+    h, w = img.shape[:2]
+    out = screens.resample(img, 0, 0, 1 / k, round(w * k), round(h * k), "smooth")
+    return np.rint(out).clip(0, 255).astype(np.uint8)
+
+
+def test_a_real_label_of_a_small_map_is_read(monkeypatch):
+    """The "21:23" label of the owner's map (map_issue.png) drawn at the sizes of the small
+    clients (1366x768 fitted 0.711, 1280x720 0.714 / 0.667, a maximised 1366x768 window
+    0.699, 0.65): read at every one; with the reference thresholds it was lost at some."""
+    sizes = (0.75, 0.714, 0.711, 0.7, 0.699, 0.667, 0.65)
+    for k in sizes:
+        assert len(map_detect.find_labels(_shrunk(NEAR, k), k)) == 1, k
+    monkeypatch.setattr(map_detect, "OUTLINE_MIN_PX", 1)
+    monkeypatch.setattr(map_detect, "SMALL_SCALE", 0.0)
+    assert any(not map_detect.find_labels(_shrunk(NEAR, k), k) for k in sizes)

@@ -234,7 +234,15 @@ def test_runtime_polls_on_worker_while_idle_and_running(launcher, running):
 
 @pytest.mark.parametrize(
     "query",
-    ["UpgradeH5", "Heal", "Priority5", "SellNone", "heroes:all", "ClientID", "display mode"],
+    [
+        "UpgradeH5",
+        "Heal",
+        "ChaosGuardianOrder",
+        "SellNone",
+        "heroes:all",
+        "ClientID",
+        "display mode",
+    ],
 )
 def test_composite_and_read_only_destinations_are_revealed_without_edits(
     launcher, monkeypatch, query

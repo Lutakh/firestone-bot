@@ -23,16 +23,36 @@ def _game(monkeypatch, tmp_path, scene, name, **settings):
     return screens.scene_game(monkeypatch, scene, folder, **settings)
 
 
-def _detect(monkeypatch, scene, points):
-    """Detection mode: `points` (logical) are the missions found with the map in place."""
+POINTS = [(800, 500), (1100, 600)]  # the labels found (map_detect), logical
+LABELS_LINE = "Map: missions are found by their duration labels"
+POINTS_LINE = "Map: the window is too small for the labels"
+
+
+def _detect(monkeypatch, scene, points=POINTS):
+    """`points` (logical): the missions found with the map in place; no alignment."""
     monkeypatch.setattr(
         map_detect, "find_missions", lambda g: list(points) if scene.map_offset == 0 else []
     )
     monkeypatch.setattr(map_align, "align_map", lambda g: None)
 
 
+def _fixed_list(monkeypatch):
+    """The fallback's fixed list on the bench's reference-size popups: the switch's threshold
+    raised over every scale (as a map drawn too small for its labels); no alignment."""
+    monkeypatch.setattr(map_start, "DETECT_MIN_SCALE", 2.0)
+    monkeypatch.setattr(map_align, "align_map", lambda g: None)
+
+
+def _way(g):
+    """The way the visit took, by the line said (once)."""
+    lines = [line for line in g.lines if line.startswith((LABELS_LINE, POINTS_LINE))]
+    assert len(lines) == 1, g.lines
+    return "labels" if lines[0].startswith(LABELS_LINE) else "points"
+
+
 def _start_two(monkeypatch, tmp_path, scene, **settings):
-    """Two missions started, then no idle squad left."""
+    """Two missions started, then no idle squad left; by their labels, or from the fixed
+    list on a map drawn too small for them (the switch's own choice)."""
     scene.queue, scene.idle = ["start", "start"], 4
     g = _game(monkeypatch, tmp_path, scene, "start", **settings)
     assert map_start.map_start(g) is True
@@ -42,6 +62,8 @@ def _start_two(monkeypatch, tmp_path, scene, **settings):
     assert scene.presses("start", "start", inset=0.1) == presses == scene.clicks_on("start")
     assert g.diagnostics.count("mission-start-popup.png") == 1
     assert scene.faults == []
+    labels = round(scene.h / atlas.REF.h, 3) >= map_start.DETECT_MIN_SCALE
+    assert _way(g) == ("labels" if labels else "points")
     return g
 
 
@@ -65,8 +87,11 @@ def test_the_map_popups_at_every_shape(monkeypatch, tmp_path, w, h, placement):
     def scene():
         return screens.Scene(w, h, placement)
 
-    # coordinates mode (the default): Start pressed inside it, the mission counted
-    _start_two(monkeypatch, tmp_path, scene())
+    # Start pressed inside it, the mission counted (found by its label, or from the fixed
+    # list at 800x600)
+    s = scene()
+    _detect(monkeypatch, s)
+    _start_two(monkeypatch, tmp_path, s)
 
     # more than 3 minutes left: the paid Speed up and the Cancel never pressed, closed by X
     s = scene()
@@ -99,24 +124,80 @@ def test_the_map_popups_at_every_shape(monkeypatch, tmp_path, w, h, placement):
 def test_a_client_inside_a_larger_screen(monkeypatch, tmp_path):
     """A window away from the screen's corner: every box is clicked in screen px."""
     (w, h), origin, screen = screens.OFFSET
-    _start_two(monkeypatch, tmp_path, screens.Scene(w, h, origin=origin, screen=screen))
+    s = screens.Scene(w, h, origin=origin, screen=screen)
+    _detect(monkeypatch, s)
+    _start_two(monkeypatch, tmp_path, s)
     s = screens.Scene(w, h, origin=origin, screen=screen)
     _list(monkeypatch, tmp_path, s, ["free"])
     assert s.speed_ups == 1 and s.claimed == 1
 
 
-@pytest.mark.parametrize("shape", [(1920, 1009, "centre"), (1600, 1200, "top")])
-def test_detection_mode_presses_the_start_inside(monkeypatch, tmp_path, shape):
+@pytest.mark.parametrize(
+    ("shape", "scale", "way"),
+    [
+        # the owner's client: the labels (scale 1.0, nothing changed)
+        ((1920, 1009), None, "labels"),
+        # a game started at 1280x720 (the map fitted, 0.667, its height 0.714): on the side
+        # DETECT_MIN_SCALE puts it, so that it can be moved alone
+        ((1280, 720), map_align.FITTED_SCALE, None),
+        # a game started at 1024x576 (fitted 0.533, its height 0.571): the fixed list, its
+        # points placed by the scale the landmark measured
+        ((1024, 576), map_align.FITTED_SCALE, "points"),
+        # a window made taller than 16:9 (drawn 0.571 at the canvas scale, its height 0.761:
+        # the map follows the height): the labels
+        ((1024, 768), None, "labels"),
+    ],
+)
+def test_the_way_at_both_sides_of_the_threshold(monkeypatch, tmp_path, shape, scale, way):
+    """map_start searches the labels on a map drawn at DETECT_MIN_SCALE or more, and clicks
+    the fixed list under it, said once a run: the first click lands on the first label, or
+    on the first listed point (Pirate Cove, 384,1009) moved towards the centre by the map's
+    scale."""
     s = screens.Scene(*shape)
-    _detect(monkeypatch, s, [(800, 500), (1100, 600)])
-    _start_two(monkeypatch, tmp_path, s, MapMode="detect")
+    s.queue, s.idle = ["start", "start"], 4
+    searched = []
+
+    def find(g):
+        searched.append(s.map_offset)
+        return list(POINTS) if s.map_offset == 0 else []
+
+    monkeypatch.setattr(map_detect, "find_missions", find)
+    monkeypatch.setattr(map_align, "align_map", lambda g: None)
+    g = _game(monkeypatch, tmp_path, s, "way")
+    if scale is not None:
+        g.vars[map_align.SCALE_KEY] = scale
+    switch = round(shape[1] / atlas.REF.h, 3)
+    drawn = map_align.drawn_scale(g)
+    assert drawn <= switch
+    if way is None:
+        way = "labels" if switch >= map_start.DETECT_MIN_SCALE else "points"
+    assert (switch >= map_start.DETECT_MIN_SCALE) == (way == "labels"), "the case moved sides"
+    assert map_start.map_start(g) is True
+    assert s.started == 2 and s.faults == [] and _way(g) == way
+    first = next((x, y) for src, x, y, _popup in s.events if src == "map")
+    vp = g._viewport()
+    if way == "labels":
+        assert searched and first == vp.to_screen(*POINTS[0], atlas.ANCHOR_CENTER)
+        assert (
+            f"{LABELS_LINE} (window height {switch:.3f} of the reference, map drawn at {drawn:.3f})"
+        ) in g.lines
+    else:
+        assert searched == []
+        f = scale or 1.0
+        cx, cy = atlas.REF.x + atlas.REF.w / 2, atlas.REF.y + atlas.REF.h / 2
+        x, y = round(cx + (384 - cx) * f), round(cy + (1009 - cy) * f)
+        assert first == vp.to_screen(x, y, atlas.ANCHOR_CENTER)
+        assert (
+            f"{POINTS_LINE} (height {switch:.3f} of the reference, under "
+            f"{map_start.DETECT_MIN_SCALE}); missions are clicked from the fixed list"
+        ) in g.lines
 
 
 def test_the_owners_setup_in_fast_timing(monkeypatch, tmp_path):
-    """1920x1009, detection mode, fast timing: screen-change waits and still-screen waits."""
+    """1920x1009, fast timing: screen-change waits and still-screen waits."""
     s = screens.Scene(1920, 1009)
-    _detect(monkeypatch, s, [(800, 500), (1100, 600)])
-    _start_two(monkeypatch, tmp_path, s, MapMode="detect", Timing="fast")
+    _detect(monkeypatch, s)
+    _start_two(monkeypatch, tmp_path, s, Timing="fast")
     s = screens.Scene(1920, 1009)
     _list(monkeypatch, tmp_path, s, ["free", "rewards"], Timing="fast")
     assert s.speed_ups == 1 and s.claimed == 2
@@ -128,7 +209,7 @@ def test_a_start_button_showing_a_gem_is_never_pressed(monkeypatch, tmp_path, sh
     s = screens.Scene(*shape)
     s.queue, s.idle = ["start-gem"], 4
     _detect(monkeypatch, s, [(800, 500)])
-    g = _game(monkeypatch, tmp_path, s, "gem", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "gem")
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == []
     _closed_by_x(s, "start-gem")
@@ -141,8 +222,8 @@ def test_a_popup_the_bot_does_not_know_is_closed_and_captured(monkeypatch, tmp_p
     Start drawn dark): closed by its X, nothing of it pressed, one capture a run."""
     s = screens.Scene(1680, 1050, "top")
     s.queue, s.idle = ["start-dark", "paid"], 4
-    _detect(monkeypatch, s, [(800, 500), (1100, 600)])
-    g = _game(monkeypatch, tmp_path, s, "unknown", MapMode="detect")
+    _detect(monkeypatch, s)
+    g = _game(monkeypatch, tmp_path, s, "unknown")
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == [] and s.closed_x == 2
     assert s.presses("x", "start-dark") == s.clicks_on("start-dark")
@@ -156,7 +237,7 @@ def test_a_start_that_does_not_take_is_not_counted(monkeypatch, tmp_path):
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = ["start-deaf"], 4
     _detect(monkeypatch, s, [(800, 500)])
-    g = _game(monkeypatch, tmp_path, s, "deaf", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "deaf")
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == [] and s.closed_x == 1
     assert len(s.presses("dead", "start-deaf", inset=0.1)) == 1
@@ -178,16 +259,18 @@ def test_the_bench_sees_a_paid_press_on_a_popup_that_takes_no_click():
     assert s.popup == "paid" and s.closed_x == 0 and len(s.faults) == 3
 
 
-@pytest.mark.parametrize("mode", ["coordinates", "detect"])
-def test_a_start_popup_that_stays_stops_the_map_section(monkeypatch, tmp_path, mode):
+@pytest.mark.parametrize("way", ["labels", "points"])
+def test_a_start_popup_that_stays_stops_the_map_section(monkeypatch, tmp_path, way):
     """A Start that does not close the popup: it is not counted, its X is tried, and when it
     stays nothing more is clicked on the map (its Complete instantly costs gems): the taps
     on it are its Start, its X and beside it, never its paid button (the bench records a
-    paid press on a popup that takes no click)."""
+    paid press on a popup that takes no click). The same from the fixed list."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle, s.stuck = ["start", "start", "start"], 6, True
     _detect(monkeypatch, s, [(800, 500), (1100, 600), (600, 700)])
-    g = _game(monkeypatch, tmp_path, s, "stuck", MapMode=mode)
+    if way == "points":
+        _fixed_list(monkeypatch)
+    g = _game(monkeypatch, tmp_path, s, "stuck-" + way)
     assert map_start.map_start(g) is False
     assert s.started == 0 and s.faults == []
     maps = [e for e in s.events if e[0] == "map"]
@@ -196,17 +279,17 @@ def test_a_start_popup_that_stays_stops_the_map_section(monkeypatch, tmp_path, m
     assert s.presses("start", "start") == [start] and s.presses("x", "start") == [x]
     assert not s.panel("start").contains(*beside)
     assert "Mission Start: the popup stays open after Start; map search stopped" in g.lines
-    assert "mission-start-stuck.png" in g.diagnostics
+    assert "mission-start-stuck.png" in g.diagnostics and _way(g) == way
 
 
 def test_an_in_progress_popup_that_stays_stops_the_detection_search(monkeypatch, tmp_path):
-    """Detection mode (the owner's), a mission click opens an in-progress popup that takes no
-    click: its X, then beside it; nothing more is clicked on the map (its paid Speed up and
-    its Cancel lie where map points fall)."""
+    """A mission click opens an in-progress popup that takes no click: its X, then beside
+    it; nothing more is clicked on the map (its paid Speed up and its Cancel lie over
+    missions)."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle, s.stuck = ["paid", "start"], 4, True
-    _detect(monkeypatch, s, [(800, 500), (1100, 600)])
-    g = _game(monkeypatch, tmp_path, s, "stuck-paid", MapMode="detect")
+    _detect(monkeypatch, s)
+    g = _game(monkeypatch, tmp_path, s, "stuck-paid")
     assert map_start.map_start(g) is False
     assert s.faults == [] and len([e for e in s.events if e[0] == "map"]) == 1
     x, beside = s.clicks_on("paid")
@@ -237,7 +320,7 @@ def test_a_popup_left_open_is_closed_before_any_map_click(monkeypatch, tmp_path)
     monkeypatch.setattr(
         map_detect, "find_missions", lambda g: searched.append(s.popup) or [(800, 500)]
     )
-    g = _game(monkeypatch, tmp_path, s, "left", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "left")
     assert map_start.map_start(g) is True
     assert searched[0] is None and s.started == 1 and s.faults == []
     _closed_by_x(s, "paid")
@@ -415,7 +498,7 @@ def test_a_start_popup_whose_orange_shows_no_price_is_not_started(monkeypatch, t
     s = screens.Scene(*shape)
     s.queue, s.idle = ["start-unpriced"], 2
     _detect(monkeypatch, s, [(800, 500)])
-    g = _game(monkeypatch, tmp_path, s, "unpriced", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "unpriced")
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == []
     _closed_by_x(s, "start-unpriced")
@@ -449,7 +532,7 @@ def test_a_green_beside_an_orange_the_bot_does_not_know(monkeypatch, tmp_path, l
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = [look], 2
     _detect(monkeypatch, s, [(800, 500)])
-    g = _game(monkeypatch, tmp_path, s, "green-" + look, MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "green-" + look)
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == []
     if by_x:
@@ -501,6 +584,7 @@ def test_a_visit_without_a_running_mission_goes_on_to_the_troops(monkeypatch, tm
     nothing, and the visit goes on to start missions (and to the campaign)."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = ["start"], 2
+    _detect(monkeypatch, s, POINTS[:1])
     claimed = []
     monkeypatch.setattr(map_redeem, "claim_campaign", lambda g: claimed.append(1))
     g = _game(monkeypatch, tmp_path, s, "empty", Campaign="1")
@@ -513,6 +597,7 @@ def test_an_empty_list_the_probe_sees(monkeypatch, tmp_path):
     """A probe that matches an empty list (older versions): no tap on it."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle, s.no_missions_probe = ["start"], 2, True
+    _detect(monkeypatch, s, POINTS[:1])
     g = _game(monkeypatch, tmp_path, s, "empty-seen")
     map_redeem.map_redeem(g)
     assert [e[0] for e in s.events][:1] == ["map"] and s.started == 1
@@ -524,6 +609,7 @@ def test_a_popup_that_stays_in_the_troops_step_stops_the_visit(monkeypatch, tmp_
     runner goes back to the main screen), no paid map reset, no campaign under it."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle, s.stuck = ["start"], 4, True
+    _detect(monkeypatch, s, POINTS[:1])
     claimed = []
     monkeypatch.setattr(map_redeem, "claim_campaign", lambda g: claimed.append(1))
     g = _game(monkeypatch, tmp_path, s, "stuck-troops", Campaign="1", MapReset="1")

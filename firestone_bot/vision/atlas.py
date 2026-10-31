@@ -1415,16 +1415,23 @@ END_OF_CYCLE_PARK = Point(947, 755)  # MouseMove before the end-of-cycle delay
 # --- MapStart.ahk ---------------------------------------------------------------------------
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
 # The start popup and its Start (AHK :170-172) are read by their look
-# (vision/mission_popup.py, 2026-10-31).
-# Missions on the north edge of the map (2026-09-05): in a 1920x1009 client the centred map
-# loses ~35 px at the top and bottom compared with the 1920x1080 canvas, so an icon whose
-# centre is above logical y 100 is hidden behind the HUD (only its pin / timer shows) and a
-# click there hits the squad counter. Such points are reached by dragging the map down by
-# MAP_NORTH_DRAG_DY (drag on open sea, verified to move the map by exactly that amount and
-# back), clicking, then dragging back.
+# (vision/mission_popup.py, 2026-10-31). The missions are found by their duration labels
+# (features/map_detect.py, MAP_DETECT_* below). MapStart.ahk's fixed list of mission points
+# (MAP_MISSION_GROUPS at the end of this section), a setting up to 0.3.36 ("coordinates
+# mode"), is only the automatic fallback on a map drawn too small for its labels to be read
+# (map_start.DETECT_MIN_SCALE; owner, 2026-10-31: "fix detection, coordinates as a fallback").
+# Every drag of the map (the alignment, the search beyond the edges, the fallback's north-edge
+# points) starts on open sea south-west of Ebony Jungle (centre anchor): a drag from there
+# moves the map by exactly its length, and back (measured 2026-09-05).
+MAP_DRAG_FROM = (350, 631)
+# The fallback's missions on the north edge of the map (2026-09-05): in a 1920x1009 client the
+# centred map loses ~35 px at the top and bottom compared with the 1920x1080 canvas, so an icon
+# whose centre is above logical y 100 is hidden behind the HUD (only its pin / timer shows)
+# and a click there hits the squad counter. Such points are reached by dragging the map down by
+# MAP_NORTH_DRAG_DY (verified to move the map by exactly that amount and back), clicking, then
+# dragging back.
 MAP_NORTH_DRAG_LIMIT = 100  # logical y below which a point needs the drag
 MAP_NORTH_DRAG_DY = 80
-MAP_NORTH_DRAG_FROM = (350, 631)  # open sea south-west of Ebony Jungle (centre anchor)
 # Map alignment (features/map_align.py, measured 2026-09-06): zoom slider bottom right, its
 # knob's dark rim scanned on a row above the track; home = default zoom (knob at the left
 # end). The mouse wheel over the map zooms (about 1.6 px of knob per notch); 30 notches down
@@ -1438,8 +1445,11 @@ MAP_WHEEL_CENTRE = Point(960, 520, ANCHOR_CENTER)
 MAP_LANDMARK_RECT = (310, 765, 489, 847)  # centre anchor
 MAP_LANDMARK_SCALE = 0.5
 MAP_LANDMARK_SEARCH = 100
-MAP_LANDMARK_SEARCH_WIDE = 260  # covers a detection drag (MAP_DETECT_SCROLL) left undone
-# Mission detection mode (features/map_detect.py): the map area searched for duration labels
+# The wide search covers a map left dragged up by MAP_DETECT_SCROLL (the south-edge search cut
+# short). Dragged down by as much, the landmark lies under the bottom HUD, out of any search:
+# map_align drags the map up once and looks again (review of 8558a26, 2026-10-31).
+MAP_LANDMARK_SEARCH_WIDE = 260
+# Mission detection (features/map_detect.py): the map area searched for duration labels
 # (HUD panels, the zoom slider and the buttons excluded) and the label-to-icon distance.
 # Its top reaches just under the HUD counters (squads, honor, gems: client y 15..55 at
 # 1920x1009): a mission on an island at the north edge keeps its label there even with the map
@@ -1455,10 +1465,14 @@ MAP_DETECT_AVATAR = (560, 180)
 MAP_DETECT_HUD_BOTTOM = 92
 MAP_DETECT_INFO = (650, 112)
 MAP_LABEL_TO_ICON = 18
-# Detection mode fallback: how far (logical px) the map is dragged to reveal the missions
-# hidden beyond the top / bottom edge when idle troops remain (owner, 2026-09-06).
+# How far (logical px) the map is dragged to reveal the missions hidden beyond the top /
+# bottom edge when idle troops remain (owner, 2026-09-06).
 MAP_DETECT_SCROLL = 220
-# World-map mission points (x, y) per category, AHK order. The map must never be moved/zoomed.
+# World-map mission points (x, y) per category, AHK order: the fallback's fixed list
+# (map_start, a map drawn too small for detection), clicked in the order of this dict (the AHK
+# bot's default category order Priority1..5; no setting since 2026-10-31). Measured on a
+# canvas-scaled map at its default zoom and position (map_align puts it there and measures its
+# scale).
 MAP_MISSION_GROUPS: dict[str, tuple[tuple[int, int], ...]] = {
     "2 Squad": (
         (384, 1009),  # Pirate Cove

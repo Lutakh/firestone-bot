@@ -2,7 +2,9 @@
 scenes on the virtual clock): a price drawn a frame late or gone after the first read, a popup
 that never settles, a panel missing from a read, a popup that opens late; and popups the
 reader cannot see (another interface style, or the reader blinded), told by the centre's look
-(map_close.look / changed) and closed beside where any popup draws, never clicked through."""
+(map_close.look / changed) and closed beside where any popup draws, never clicked through;
+from the labels and from the fixed list (a map drawn too small for its labels). And a search
+beyond the edge cut short by the Stop, the mouse guard or the game leaving the front."""
 
 from __future__ import annotations
 
@@ -10,13 +12,14 @@ import numpy as np
 import pytest
 
 from firestone_bot.features import map_align, map_detect, map_redeem, map_start
-from firestone_bot.game import StepAborted
+from firestone_bot.game import BotStopped, GameNotInFront, StepAborted
+from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.vision import atlas, mission_popup
 from tests import screens
 
 UNREAD_LINE = "Map: {} opened something the bot cannot read; closing it"
 UNREAD_STUCK = "Map: what opened stays open after two close taps; map section stopped"
-POINTS = [(800, 500), (1100, 600), (600, 700)]  # detection mode: the labels found
+POINTS = [(800, 500), (1100, 600), (600, 700)]  # the labels found (map_detect), logical
 
 
 def _game(monkeypatch, tmp_path, scene, name, **settings):
@@ -33,9 +36,17 @@ def _detect(monkeypatch, scene, points=POINTS):
     monkeypatch.setattr(map_align, "align_map", lambda g: None)
 
 
-def _one_group(settings: dict) -> dict:
-    """Coordinates mode on the "2 Squad" points only (22): a quicker visit."""
-    return {**settings, **{f"Priority{i}": "" for i in range(2, 6)}}
+SQUADS = atlas.MAP_MISSION_GROUPS["2 Squad"]  # the first category's 22 points: a quicker visit
+
+
+def _fixed_list(monkeypatch, points=None):
+    """The fallback's fixed list on the bench's reference-size popups (the switch's threshold
+    raised over every scale, as on a map drawn too small for its labels), `points` in place
+    of the 78; no alignment."""
+    monkeypatch.setattr(map_start, "DETECT_MIN_SCALE", 2.0)
+    monkeypatch.setattr(map_align, "align_map", lambda g: None)
+    if points is not None:
+        monkeypatch.setattr(map_start, "_listed_points", lambda: list(points))
 
 
 def _closed_beside(scene, popup, times=1):
@@ -106,7 +117,7 @@ def test_a_panel_missing_from_a_read_is_not_gone(monkeypatch, tmp_path, gap, tim
     s = screens.Gap(1920, 1009, gap=gap)
     s.queue, s.idle = ["start-deaf"], 4
     _detect(monkeypatch, s, POINTS[:1])
-    g = _game(monkeypatch, tmp_path, s, "gap", MapMode="detect", Timing=timing)
+    g = _game(monkeypatch, tmp_path, s, "gap", Timing=timing)
     assert map_start.map_start(g) is True
     assert s.started == 0 and s.faults == [] and s.closed_x == 1
     assert "Mission Start: the popup stayed open after Start; closed" in g.lines
@@ -116,14 +127,14 @@ def test_a_panel_missing_from_a_read_is_not_gone(monkeypatch, tmp_path, gap, tim
 # --- a popup that opens late ----------------------------------------------------------------
 @pytest.mark.parametrize("timing", ["safe", "fast"])
 @pytest.mark.parametrize("delay", [1.2, 1.6, 2.5])
-def test_a_start_popup_that_opens_late_is_started_detect(monkeypatch, tmp_path, delay, timing):
-    """Detection mode (every click on a mission's label), a game that hitches: each popup
-    shows 1.2 to 2.5 s after its click. It is started before the next click, none closed,
-    no click made while one is coming."""
+def test_a_start_popup_that_opens_late_is_started(monkeypatch, tmp_path, delay, timing):
+    """A game that hitches (every click on a mission's label): each popup shows 1.2 to 2.5 s
+    after its click. It is started before the next click, none closed, no click made while
+    one is coming."""
     s = screens.LateScene(1920, 1009, delay=delay)
     s.queue, s.idle = ["start"] * 3, 6
     _detect(monkeypatch, s)
-    g = _game(monkeypatch, tmp_path, s, "late", MapMode="detect", Timing=timing)
+    g = _game(monkeypatch, tmp_path, s, "late", Timing=timing)
     assert map_start.map_start(g) is True
     assert s.started == 3 and s.closed_x == s.closed_out == 0, g.lines
     assert s.early == [] and s.faults == []
@@ -131,14 +142,14 @@ def test_a_start_popup_that_opens_late_is_started_detect(monkeypatch, tmp_path, 
 
 @pytest.mark.parametrize("looks", [["start"] * 3, ["start+rb", "paid+rb", "start+rb"]])
 def test_a_popup_later_than_the_wait_is_found_before_the_next_click(monkeypatch, tmp_path, looks):
-    """Detection mode, safe timing, popups 3.5 s after their click (past the 3 s waited
-    for): found by the look before the next click, the last one before the pass ends and
-    the map is dragged (the drag drops that look); started, or of another style closed
-    beside; nothing clicked on them."""
+    """Safe timing, popups 3.5 s after their click (past the 3 s waited for): found by the
+    look before the next click, the last one before the pass ends and the map is dragged
+    (the drag drops that look); started, or of another style closed beside; nothing clicked
+    on them."""
     s = screens.LateScene(1920, 1009, delay=3.5)
     s.queue, s.idle = list(looks), 6
     _detect(monkeypatch, s)
-    g = _game(monkeypatch, tmp_path, s, "later", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "later")
     assert map_start.map_start(g) is True
     assert s.early == [] and s.faults == []
     if looks[0] == "start":
@@ -148,16 +159,16 @@ def test_a_popup_later_than_the_wait_is_found_before_the_next_click(monkeypatch,
 
 
 def test_the_look_before_a_click_is_dropped_when_the_map_moves(monkeypatch, tmp_path):
-    """Detection mode, missions found with the map in place and moved up: the look before
-    the last click (on the moved map) is no reference once the map is dragged back; kept, the
-    next search would take the map's move for something open and tap beside it on the map."""
+    """Missions found with the map in place and moved up: the look before the last click (on
+    the moved map) is no reference once the map is dragged back; kept, the next search would
+    take the map's move for something open and tap beside it on the map."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = ["start", "start"], 6
     scroll = atlas.MAP_DETECT_SCROLL
     found = {0: [(800, 500)], -scroll: [(600, 700 - scroll)]}
     monkeypatch.setattr(map_detect, "find_missions", lambda g: list(found.get(s.map_offset, [])))
     monkeypatch.setattr(map_align, "align_map", lambda g: None)
-    g = _game(monkeypatch, tmp_path, s, "moved", MapMode="detect")
+    g = _game(monkeypatch, tmp_path, s, "moved")
     assert map_start.map_start(g) is True
     assert s.started == 2 and s.faults == [] and s.closed_out == 0
     assert not any("cannot read" in line for line in g.lines)
@@ -165,11 +176,14 @@ def test_the_look_before_a_click_is_dropped_when_the_map_moves(monkeypatch, tmp_
 
 @pytest.mark.parametrize("timing", ["safe", "fast"])
 @pytest.mark.parametrize("delay", [1.2, 2.5])
-def test_a_start_popup_that_opens_late_is_started_coordinates(monkeypatch, tmp_path, delay, timing):
-    """Coordinates mode, the same hitch: every popup is started, none closed, nothing clicked
+def test_a_start_popup_that_opens_late_is_started_from_the_fixed_list(
+    monkeypatch, tmp_path, delay, timing
+):
+    """The fixed list, the same hitch: every popup is started, none closed, nothing clicked
     on an open popup (the next point is clicked while it is still coming: see below)."""
     s = screens.LateScene(1920, 1009, delay=delay)
     s.queue, s.idle = ["start"] * 3, 6
+    _fixed_list(monkeypatch)
     g = _game(monkeypatch, tmp_path, s, "late-xy", Timing=timing)
     assert map_start.map_start(g) is True
     assert s.started == 3 and s.closed_x == s.closed_out == 0 and s.faults == []
@@ -179,12 +193,12 @@ NORTH_FIRST = [(1300, 26), (384, 1009), (484, 920)]  # a north-edge point, then 
 
 
 def test_a_start_popup_that_opens_while_the_map_is_dragged_back_is_started(monkeypatch, tmp_path):
-    """Coordinates mode, a north-edge point (the map dragged down for it, then back): its
-    popup shows 1.2 s after the click, during the drag back; found before the next click
-    and started, nothing clicked on it."""
+    """The fixed list, a north-edge point (the map dragged down for it, then back): its popup
+    shows 1.2 s after the click, during the drag back; found before the next click and
+    started, nothing clicked on it."""
     s = screens.LateScene(1920, 1009, delay=1.2)
     s.queue, s.idle = ["start", "start"], 4
-    monkeypatch.setattr(map_start, "_priority_points", lambda g: list(NORTH_FIRST))
+    _fixed_list(monkeypatch, NORTH_FIRST)
     g = _game(monkeypatch, tmp_path, s, "north")
     assert map_start.map_start(g) is True
     assert s.faults == [] and s.started == 2 and s.closed_x == s.closed_out == 0
@@ -196,7 +210,7 @@ def test_a_popup_the_reader_cannot_see_opening_while_the_map_is_dragged_back(mon
     the click, is closed beside it and the next point is not clicked on it."""
     s = screens.LateScene(1920, 1009, delay=1.2)
     s.queue, s.idle = ["start+rb", "start"], 4
-    monkeypatch.setattr(map_start, "_priority_points", lambda g: list(NORTH_FIRST))
+    _fixed_list(monkeypatch, NORTH_FIRST)
     g = _game(monkeypatch, tmp_path, s, "north-rb")
     assert map_start.map_start(g) is True
     assert s.faults == []
@@ -204,12 +218,12 @@ def test_a_popup_the_reader_cannot_see_opening_while_the_map_is_dragged_back(mon
 
 @pytest.mark.parametrize("look", ["start", "start+rb"])
 def test_a_late_popup_showing_during_a_north_points_drag(monkeypatch, tmp_path, look):
-    """Coordinates mode: the drag before a north-edge point drops the look before the last
+    """The fixed list: the drag before a north-edge point drops the look before the last
     click, so a popup that click opened late is waited for before the drag (and one that
     shows during the drag is read before the north click): never clicked on."""
     s = screens.LateScene(1920, 1009, delay=1.2)
     s.queue, s.idle = [look, "start"], 4
-    monkeypatch.setattr(map_start, "_priority_points", lambda g: [(384, 1009), *NORTH_FIRST])
+    _fixed_list(monkeypatch, [(384, 1009), *NORTH_FIRST])
     g = _game(monkeypatch, tmp_path, s, "north-second")
     map_start.map_start(g)
     assert s.faults == []
@@ -217,29 +231,55 @@ def test_a_late_popup_showing_during_a_north_points_drag(monkeypatch, tmp_path, 
 
 @pytest.mark.xfail(
     strict=True,
-    reason="coordinates mode clicks the next point 1.0 s after a click that showed nothing "
-    "(the AHK timing): waiting 2.5 s for a late popup would cost 1.5 s on every point without "
-    "a mission, up to 2 x 78 points a visit; the late popup is started after that click",
+    reason="the fixed list clicks the next point 1.0 s after a click that showed nothing (the "
+    "AHK timing): waiting 2.5 s for a late popup would cost 1.5 s on every point without a "
+    "mission, up to 2 x 78 points a visit; the late popup is started after that click",
 )
 @pytest.mark.parametrize("delay", [1.2, 2.5])
-def test_coordinates_mode_waits_for_a_late_popup(monkeypatch, tmp_path, delay):
+def test_the_fixed_list_waits_for_a_late_popup(monkeypatch, tmp_path, delay):
     s = screens.LateScene(1920, 1009, delay=delay)
     s.queue, s.idle = ["start"] * 3, 6
+    _fixed_list(monkeypatch)
     g = _game(monkeypatch, tmp_path, s, "late-xy-wait", Timing="fast")
     assert map_start.map_start(g) is True
     assert s.early == []
 
 
+@pytest.mark.parametrize("look", ["start", "start+rb"])
+def test_a_late_popup_on_the_map_moved_beyond_its_edge(monkeypatch, tmp_path, look):
+    """A mission found only once the map is dragged down (north revealed: Doomfire Island,
+    logical (1300, 26) in place), its popup showing 1.2 s after the click, of the known style
+    or not: handled (started, or closed beside it) before the map is dragged back, never
+    dragged or clicked under, and the map back in place."""
+    s = screens.LateScene(1920, 1009, delay=1.2)
+    s.queue, s.idle = [look, "start"], 4
+    scroll = atlas.MAP_DETECT_SCROLL
+    found = {scroll: [(1300, 26 + scroll)]}
+    monkeypatch.setattr(map_detect, "find_missions", lambda g: list(found.get(s.map_offset, [])))
+    monkeypatch.setattr(map_align, "align_map", lambda g: None)
+    g = _game(monkeypatch, tmp_path, s, "edge-" + look)
+    assert map_start.map_start(g) is True
+    assert s.faults == [] and s.early == [] and s.map_offset == 0
+    assert all(popup is None for src, _x, _y, popup in s.events if src == "drag"), s.events
+    if look == "start":
+        assert s.started == 2 and s.closed_x == s.closed_out == 0
+    else:
+        assert s.started == 1
+        _closed_beside(s, "start+rb")
+
+
 # --- popups the reader cannot see ---------------------------------------------------------
-@pytest.mark.parametrize("mode", ["coordinates", "detect"])
-def test_a_mission_popup_of_another_style_is_closed_beside_it(monkeypatch, tmp_path, mode):
+@pytest.mark.parametrize("way", ["labels", "points"])
+def test_a_mission_popup_of_another_style_is_closed_beside_it(monkeypatch, tmp_path, way):
     """A map click opens a popup the reader cannot see (red and blue swapped: another
     interface style): the centre changed, so it is closed beside where any popup draws,
     captured once, and no map point is clicked through it."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = ["start+rb", "paid+rb"], 4
     _detect(monkeypatch, s, POINTS[:2])
-    g = _game(monkeypatch, tmp_path, s, "rb-" + mode, **_one_group({"MapMode": mode}))
+    if way == "points":
+        _fixed_list(monkeypatch, SQUADS)
+    g = _game(monkeypatch, tmp_path, s, "rb-" + way)
     assert map_start.map_start(g) is True
     assert s.faults == [] and s.started == 0 and s.closed_out == 2
     _closed_beside(s, "start+rb")
@@ -255,17 +295,21 @@ def blind(monkeypatch):
     monkeypatch.setattr(mission_popup, "cream_mask", lambda img: np.zeros(img.shape[:2], bool))
 
 
+@pytest.mark.parametrize("way", ["labels", "points"])
 @pytest.mark.parametrize(
     "shape", [(1920, 1009, "centre"), (1280, 1024, "top"), (3440, 1440, "centre")]
 )
 def test_with_the_reader_blind_the_popups_are_closed_beside_them(
-    monkeypatch, tmp_path, blind, shape
+    monkeypatch, tmp_path, blind, shape, way
 ):
     """Every popup a map click opens, unread: closed beside it, nothing of it pressed (its
-    Complete instantly, Speed up and Cancel lie where coordinates-mode points fall)."""
+    Complete instantly, Speed up and Cancel lie over missions and where fixed points fall)."""
     s = screens.Scene(*shape)
     s.queue, s.idle = ["start", "paid", "free"], 4
-    g = _game(monkeypatch, tmp_path, s, "blind", **_one_group({}))
+    _detect(monkeypatch, s)
+    if way == "points":
+        _fixed_list(monkeypatch, SQUADS)
+    g = _game(monkeypatch, tmp_path, s, "blind-" + way)
     assert map_start.map_start(g) is True
     assert s.faults == [] and s.started == s.speed_ups == 0 and s.closed_out == 3
     for popup in ("start", "paid", "free"):
@@ -318,14 +362,16 @@ def test_a_window_the_reader_cannot_see_after_a_claim_is_closed_first(
     assert said == (delay > 0)
 
 
-@pytest.mark.parametrize("mode", ["coordinates", "detect"])
-def test_a_popup_the_reader_cannot_see_that_opens_late(monkeypatch, tmp_path, mode):
+@pytest.mark.parametrize("way", ["labels", "points"])
+def test_a_popup_the_reader_cannot_see_that_opens_late(monkeypatch, tmp_path, way):
     """The hitch and the other style together: closed beside it once it shows, before any
     map click lands on it."""
     s = screens.LateScene(1920, 1009, delay=1.6)
     s.queue, s.idle = ["paid+rb", "start+rb"], 4
     _detect(monkeypatch, s, POINTS[:2])
-    g = _game(monkeypatch, tmp_path, s, "rb-late", **_one_group({"MapMode": mode}))
+    if way == "points":
+        _fixed_list(monkeypatch, SQUADS)
+    g = _game(monkeypatch, tmp_path, s, "rb-late-" + way)
     assert map_start.map_start(g) is True
     assert s.faults == [] and s.started == 0 and s.closed_out == 2
     _closed_beside(s, "paid+rb")
@@ -339,11 +385,11 @@ def test_what_the_list_tap_opens_late_is_closed_before_the_first_map_click(
     """The list tap's popup, of another style, shows after the reads of the check: the
     look before that tap goes with the visit to the troops (map_redeem's Watch), so the
     change is seen before the map is searched and clicked, and closed beside, never clicked
-    through (detection mode: the hitch delays the mission's popup too)."""
+    through (the hitch delays the mission's popup too)."""
     s = screens.LateScene(1920, 1009, delay=1.5)
     s.list_queue, s.queue, s.idle = ["paid+rb"], ["start"], 2
     _detect(monkeypatch, s, POINTS[:1])
-    g = _game(monkeypatch, tmp_path, s, "rb-late-list", MapMode="detect", Timing=timing)
+    g = _game(monkeypatch, tmp_path, s, "rb-late-list", Timing=timing)
     map_redeem.map_redeem(g)
     assert [e[0] for e in s.events] == ["list", "screen", "map", "screen"]
     assert s.faults == [] and s.early == [] and s.started == 1
@@ -368,14 +414,16 @@ def test_a_panel_with_nowhere_to_tap_beside_it_stops_the_visit(monkeypatch, tmp_
     assert g.diagnostics == ["mission-dialog-unknown.png", "mission-popup-stuck.png"]
 
 
-@pytest.mark.parametrize("mode", ["coordinates", "detect"])
-def test_what_a_map_click_opens_unread_and_stuck_stops_the_search(monkeypatch, tmp_path, mode):
+@pytest.mark.parametrize("way", ["labels", "points"])
+def test_what_a_map_click_opens_unread_and_stuck_stops_the_search(monkeypatch, tmp_path, way):
     """A map click opens a popup of another style that the taps beside it do not close:
     said, captured, and nothing more is clicked on the map."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle, s.stuck = ["start+rb", "start"], 4, True
     _detect(monkeypatch, s, POINTS[:2])
-    g = _game(monkeypatch, tmp_path, s, "rb-stuck-map", MapMode=mode)
+    if way == "points":
+        _fixed_list(monkeypatch)
+    g = _game(monkeypatch, tmp_path, s, "rb-stuck-map-" + way)
     assert map_start.map_start(g) is False
     assert [e[0] for e in s.events] == ["map", "screen", "screen"] and s.faults == []
     assert UNREAD_STUCK in g.lines and "mission-popup-stuck.png" in g.diagnostics
@@ -406,12 +454,13 @@ TRADE_THEN_NORTH = [(1255, 853), (1533, 98), (1608, 119)]
 def test_a_popup_shown_during_the_north_drag_is_handled_and_the_map_put_back(
     monkeypatch, tmp_path, look
 ):
-    """Trade Route's popup shows 3.4 s after its click: after the wait before the north drag,
-    during the drag. Read before the north click and handled (started, or closed by its X),
-    the map dragged back, the north point left for the second round."""
+    """The fixed list: Trade Route's popup shows 3.4 s after its click, after the wait
+    before the north drag, during the drag. Read before the north click and handled
+    (started, or closed by its X), the map dragged back, the north point left for the second
+    round."""
     s = screens.LateScene(1920, 1009, delay=3.4)
     s.queue, s.idle = [look, "start"], 6
-    monkeypatch.setattr(map_start, "_priority_points", lambda g: list(TRADE_THEN_NORTH))
+    _fixed_list(monkeypatch, TRADE_THEN_NORTH)
     g = _game(monkeypatch, tmp_path, s, "north-drag-" + look, Timing="fast")
     assert map_start.map_start(g) is True
     assert s.faults == [] and s.map_offset == 0
@@ -455,9 +504,9 @@ def test_a_list_popup_shown_after_the_checks_is_closed_before_the_paid_reset(mon
 
 
 def test_the_look_is_dropped_after_the_final_alignment(monkeypatch, tmp_path):
-    """Detection mode, a mission found only once the map was moved, and the final alignment
-    moving the map (modelled: 120 px): the campaign's check must not compare the screen
-    with the look taken before the last click, which would stop the visit."""
+    """A mission found only once the map was moved, and the final alignment moving the map
+    (modelled: 120 px): the campaign's check must not compare the screen with the look taken
+    before the last click, which would stop the visit."""
     s = screens.Scene(1920, 1009)
     s.queue, s.idle = ["start", "start"], 4
     calls = []
@@ -476,9 +525,112 @@ def test_the_look_is_dropped_after_the_final_alignment(monkeypatch, tmp_path):
     monkeypatch.setattr(map_align, "align_map", align)
     claimed = []
     monkeypatch.setattr(map_redeem, "claim_campaign", lambda g: claimed.append(1))
-    g = _game(
-        monkeypatch, tmp_path, s, "final-align", Timing="fast", MapMode="detect", Campaign="1"
-    )
+    g = _game(monkeypatch, tmp_path, s, "final-align", Timing="fast", Campaign="1")
     map_redeem.map_redeem(g)
     assert claimed == [1] and s.faults == []
     assert not any("cannot read" in line for line in g.lines), g.lines
+
+
+# --- a search beyond the edge cut short (review of 8558a26, F2) -----------------------------
+NORTH = (1300, 26 + atlas.MAP_DETECT_SCROLL)  # Doomfire Island, seen once the map is dragged
+
+
+def _cut_scene(monkeypatch, tmp_path, name, on_north):
+    """No mission in place, Doomfire Island once the map is dragged down: `on_north(g)` is
+    called when the bot searches there (a click on it opens nothing). The real Game's waits,
+    drags and foreground check."""
+    s = screens.Scene(1920, 1009)
+    s.idle = 4
+    scroll = atlas.MAP_DETECT_SCROLL
+    g = _game(monkeypatch, tmp_path, s, name)
+
+    def find(game):
+        if s.map_offset == scroll:
+            on_north(g)
+            return [NORTH]
+        return []
+
+    monkeypatch.setattr(map_detect, "find_missions", find)
+    monkeypatch.setattr(map_align, "align_map", lambda game: None)
+    return s, g
+
+
+def _drags(scene):
+    return [e for e in scene.events if e[0] == "drag"]
+
+
+def test_a_stop_while_the_map_is_dragged_down_sends_nothing_more(monkeypatch, tmp_path):
+    """The Stop pressed during the search beyond the north edge: BotStopped from the next
+    wait, and not one more input (the map stays down, said): the next alignment drags it up
+    to look for its landmark, which lies under the bottom HUD (map_align.RECOVERY_OFF
+    dropped)."""
+    s, g = _cut_scene(monkeypatch, tmp_path, "cut-stop", lambda game: game.stop_event.set())
+    g.vars[map_align.RECOVERY_OFF] = True
+    with pytest.raises(BotStopped):
+        map_start.map_start(g)
+    assert s.map_offset == atlas.MAP_DETECT_SCROLL and len(_drags(s)) == 1 and s.faults == []
+    assert map_align.RECOVERY_OFF not in g.vars
+    assert "Map: stopped with the map dragged; the next alignment looks for it" in g.lines
+
+
+def test_the_mouse_guards_pause_while_the_map_is_dragged_down_drags_it_back(monkeypatch, tmp_path):
+    """The mouse guard's pause decided "new cycle" (UserInterrupted from the next wait, the
+    guard's flag cleared): the map is dragged back before the runner goes on."""
+    raised = []
+
+    def guard(game):
+        if raised == ["armed"]:
+            raised.append("raised")
+            raise UserInterrupted("restart")
+
+    def arm(game):
+        game.guard_check = guard
+        raised.append("armed")
+
+    s, g = _cut_scene(monkeypatch, tmp_path, "cut-guard", arm)
+    with pytest.raises(UserInterrupted):
+        map_start.map_start(g)
+    assert raised == ["armed", "raised"]
+    assert s.map_offset == 0 and len(_drags(s)) == 2 and s.faults == []
+
+
+class _Away:
+    """The runner's foreground guard as Game sees it: GameNotInFront for every input while
+    the game is out of the front, `times` checks (None: until the test brings it back)."""
+
+    def __init__(self):
+        self.times = 0
+
+    def check(self, g):
+        if self.times is None or self.times > 0:
+            if self.times:
+                self.times -= 1
+            raise GameNotInFront("the game window could not be brought to the front")
+        return False
+
+
+@pytest.mark.parametrize("times", [1, None])
+def test_the_game_leaving_the_front_while_the_map_is_dragged_down(monkeypatch, tmp_path, times):
+    """The game out of the front at the click on the dragged map: GameNotInFront goes up.
+    In front again for the drag back, the map is dragged back. Still out, g.drag's check
+    raises again: nothing is sent into another window, the map stays down, said, and the
+    next alignment may drag it up to look for its landmark (map_align.RECOVERY_OFF dropped)."""
+    away = _Away()
+
+    def leave(game):
+        away.times = times
+
+    s, g = _cut_scene(monkeypatch, tmp_path, "cut-front", leave)
+    g.front_guard = away
+    g.vars[map_align.RECOVERY_OFF] = True
+    with pytest.raises(GameNotInFront):
+        map_start.map_start(g)
+    assert not any(e[0] == "map" for e in s.events) and map_align.RECOVERY_OFF not in g.vars
+    if times == 1:
+        assert s.map_offset == 0 and len(_drags(s)) == 2
+    else:
+        assert s.map_offset == atlas.MAP_DETECT_SCROLL and len(_drags(s)) == 1
+        assert (
+            "Map: the map could not be dragged back after a search beyond its edge; the next "
+            "alignment looks for it"
+        ) in g.lines

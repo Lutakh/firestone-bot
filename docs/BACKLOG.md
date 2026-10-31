@@ -32,18 +32,14 @@
      main screen). The free speed-up needs the free layout's grey Cancel; a start popup
      whose Complete instantly shows no price at all is closed unstarted, said and captured
      (mission-start-unpriced.png: never seen; a mission under 3 minutes might show it).
-     Open: the classic style's map popups were never captured; coordinates mode misses at
-     least one 9.1.3a mission position ((424,678) is 36 px from the nearest
-     MAP_MISSION_GROUPS point); with Campaign=0 the Hero upgrades step runs on the map after
-     every visit (its mode button search finds the map's Rank List); coordinates mode clicks
-     the next point 1 s after a click that showed nothing (the AHK timing), so a popup the
-     game shows later (a hitch) is started only after that click, made while it was coming
-     (detection mode waits up to 3 s for it; waiting there too would cost 1.5 s on every
-     point without a mission, up to 2 x 78 a visit: the owner's call). Around its north-edge
-     points, whose drags drop the look before a click, coordinates mode does wait (before
-     the drag, after a click that showed nothing, until 3 s after it; after a north click
-     that showed nothing): about +12 to +16 s of waits per full pass of the 78 points (+18 %
-     at 1920x1009, third review), only on visits that still have idle troops there.
+     Open: with Campaign=0 the Hero upgrades step runs on the map after every visit (its
+     mode button search finds the map's Rank List). The fixed list's own items hold again
+     since it came back as detection's fallback, on small maps only (see "Map missions by
+     detection" below): a 9.1.3a mission 36 px from the nearest point, the next point clicked
+     1 s after a click that showed nothing (the AHK timing: a late popup is started after
+     that click; strict xfail), the waits around its north-edge points (+12 to +16 s per full
+     pass). Closed 2026-10-31: the classic style's map popups need no capture of their own
+     (owner: "the map is the same in the classic style").
   2. Daily reset (SHOP_MYSTERY_CLAIM_READY, (left, bottom) on the centred shop: misses at
      16:10, 4:3, 21:9, and every daily counter then freezes; add a time-based fallback);
      chaos rift entry (CHAOS_DOT / CHAOS_OPEN right-anchored on the centred guild map: 63 px
@@ -97,9 +93,52 @@
   logged; scarab / arena / crystal loops poll every 250 ms). Still to do: measure on a slow
   connection and on an account with everything unlocked (scarab, arena, crystal loops were
   only exercised through unit tests: the owner's account has them locked).
-- Map missions: the missions come at random from a pool, so the list cannot be completed by
-  observation (owner, 2026-09-06); the only way is detecting mission icons by colour instead
-  of a fixed list.
+- Map missions by detection, the fixed list as its fallback (owner, 2026-10-31: "remove the
+  coordinates mode and make detection the default, since it is the only one left"; then,
+  after the review of that change measured detection on small clients: "fix detection +
+  coordinates as a fallback; yes, fix the alignment"): done 2026-10-31. The missions are found
+  by the duration label under their icon (features/map_detect.py): the missions come at
+  random from a pool, so no fixed list can be completed by observation (owner, 2026-09-06).
+  The labels' size is now the scale the map is drawn at (map_align.drawn_scale: the client's
+  canvas scale times the map scale the landmark measures), no longer the detection area's
+  width, which stretches with the client's shape (1.386 at 2560x1080 for a map at 1.070);
+  under 0.9 the digits' white is 220 instead of 240, and the outline reach never under 2 px.
+  The owner's client (1.0) is unchanged. On a client under 706 px tall (map_start compares
+  DETECT_MIN_SCALE 0.7 with the client's height against 1009 px, which drawn_scale never
+  exceeds; a window made taller than 16:9 draws the map at its height) the fixed list of 78
+  points (MAP_MISSION_GROUPS, the default category order of Priority1..5, with its 80 px north
+  drag and the map scale for its points) is clicked instead, said once a run with both
+  values. MapMode and Priority1..5 are no settings: left in an
+  older settings.ini they stay in the file, unused. Fixed with it (review F2): a search
+  beyond the edge cut short by the mouse guard's pause, GameNotInFront or an error tries to
+  drag the map back on its way out, the game brought to the front first; with the game still
+  not in front, or after a Stop (also one pressed during the pause: Game.sleep now ends the
+  wait at once), nothing is sent and the next alignment looks for the map higher up (the
+  runner drops RECOVERY_OFF and map_align_off at each run start);
+  a landmark not found makes the alignment drag the map up 220 px once to look again (a map
+  left down hid it under the bottom HUD for every later visit), only when the map's own X
+  shows (go_map may have given up: "the map is not open, alignment skipped").
+  Real captures (owner's PC, 2026-10-31 16:55, the window resized while the game ran;
+  MEASUREMENTS): 10 of the reference's 10 missions at 1600x900, 1440x900 and 1920x823, 9 at
+  1366x768 and 1280x720, 8 at 1280x1024, none taken from the empty map at any size (0.3.36:
+  10, 3, 0, 1, 0, 1). The map of a window made taller than 16:9 follows the window's height
+  (h/1009) and its landmark is not found there.
+  Open:
+  - No real map under 0.714 (DETECT_MIN_SCALE 0.7: synthetic, 23 or 24 of 27 at 0.68..0.70,
+    17 at 0.62, 14 at 0.60). A maximised window on a screen 768 px tall (about 697 px, 0.691)
+    takes the fixed list by that margin: a real capture there (the owner's window at
+    1366x697 and 1280x656) would tell whether 0.65 is enough; a game started at a shape taller than 16:9 (fitted to its width?) and a game
+    started at 21:9 are unmeasured; the fixed list's points assume the canvas scale, wrong on
+    a window made taller than 16:9 (only tiny ones, under about 706 px tall, take it).
+  - The zoom knob is misread on clients narrower than 1920 (MAP_ZOOM_KNOB_ROW: 1392..1394
+    for the knob at home, 1374 expected, on the 2026-10-31 captures): every alignment there
+    logs "zoomed in" and wheels 30 notches out (harmless at minimum zoom, 1.8..3 s).
+  - With idle squads that no remaining mission can take (the owner, 2026-10-31 18:20 on:
+    "idle troops left but no mission to start was found" at every visit), each visit spends
+    about 20 s searching beyond the edges and re-aligning.
+  - A blind client still looks like an empty map in the log ("0 mission icon(s) detected"):
+    a line or a heartbeat when no label is found in any pass while the map is not empty
+    (review F1's interim item).
 - Windows checks of the 2026-09-06 work: the activity overlay (click-through, excluded from
   captures by `SetWindowDisplayAffinity`), the taskbar icon after an update (`ie4uinit`), the
   rollback button on a packaged install.
@@ -316,18 +355,19 @@
   work properly in the map", Epic fullscreen 1920x1080, coordinates mode, no capture: the
   bot ran from WinRAR's temp folder). A game started at 16:9 draws the map fitted to the
   width, 1009/1080 of the size the mission points were measured at (MEASUREMENTS
-  2026-10-28). Fixed: the landmark measures the map's scale at every alignment (kept when
-  no reference wins clearly, measured also once the alignment is off) and the coordinates
-  are scaled around the centre; an offset too short to drag (under 10 px) no
-  longer turns the alignment off for the run; detection mode maps a label through the
-  centre anchor (it was up to 45 px off at 1080); a label whose digits are cut in two
-  ("15:55") is found. Left: MR_NO_MISSIONS never matches (the empty map is tapped twice and
-  saves mission-dialog-unknown.png; proposed: a probe on the panel's navy band,
-  MR_PANEL (60,220)-(240,240) 0x163059); the gem guard after a free speed-up fires on a
-  purple mission's Rewards (owner, 8 times since 2026-10-22, no gem spent; proposed: no
-  gem in the Okay band = rewards); the zoom knob row is right-anchored on a bottom-centre
-  slider (reads the home value at 1080 by chance). PPJMWR's case is unproven until a
-  report from a real folder.
+  2026-10-28). Fixed: the landmark measures the map's scale at every alignment and the
+  fixed points are scaled around the centre (gone with the coordinates mode on 2026-10-31,
+  back with the fixed list as detection's fallback the same day, the scale now also sizing
+  the labels); an
+  offset too short to drag (under 10 px) no longer turns the alignment off for the run;
+  detection maps a label through the centre anchor (it was up to 45 px off at 1080); a label
+  whose digits are cut in two ("15:55") is found. Left: MR_NO_MISSIONS never matches (the
+  empty map is tapped twice and saves mission-dialog-unknown.png; proposed: a probe on the
+  panel's navy band, MR_PANEL (60,220)-(240,240) 0x163059); the gem guard after a free
+  speed-up fires on a purple mission's Rewards (owner, 8 times since 2026-10-22, no gem
+  spent; proposed: no gem in the Okay band = rewards); the zoom knob row is right-anchored
+  on a bottom-centre slider (reads the home value at 1080 by chance). PPJMWR's case is
+  unproven until a report from a real folder.
 
 - Game window not in front (owner, 2026-10-28: "do something for this case instead of
   clicking in the void"): on 2026-10-25 17:18..00:34 the game could not be brought to the

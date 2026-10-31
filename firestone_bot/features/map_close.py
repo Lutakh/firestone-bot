@@ -5,9 +5,9 @@ MapClose.ahk tapped a fixed point beside the popup (MAP_POPUP_CLOSE, through the
 rule): nothing checked that the popup went, and it was tapped whether a popup showed or not.
 The popup is now read by its look (vision/mission_popup.py), closed by its own X or, without
 one (the Mission Rewards dialog has none), by a tap beside the panel found, and the next
-reads must show it gone. A popup that stays stops the map section: a map point clicked
-through it could land on its paid buttons or its Cancel (several coordinates-mode points do
-at 1920x1009, audit 2026-10-30).
+reads must show it gone. A popup that stays stops the map section: a map click through it
+could land on its paid buttons or its Cancel, drawn over the middle of the map (several of
+the fallback's fixed mission points do at 1920x1009, audit 2026-10-30).
 
 The reader only knows the looks it was measured on. A popup it cannot see (another
 interface style, a game update, a colour shift past its margins) must not be clicked
@@ -59,8 +59,9 @@ class Watch:
     def __init__(self) -> None:
         self.ref: np.ndarray | None = None
         # the map click `ref` was taken for (Game.now) and what it came to: a north-edge
-        # point's drag waits for that click's late popup only when it showed nothing, and
-        # only until LATE_MS after it (unset when the ref is the list tap's)
+        # point's drag (the fixed points of map_start's fallback) waits for that click's late
+        # popup only when it showed nothing, and only until LATE_MS after it (unset when the
+        # ref is the list tap's)
         self.clicked: float | None = None
         self.outcome: str | None = None
 

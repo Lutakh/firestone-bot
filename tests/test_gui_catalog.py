@@ -10,7 +10,6 @@ from firestone_bot.gui.catalog import (
     JEWEL_CHOICES,
     KINDS,
     OPTIONS,
-    PRIORITY_CHOICES,
     READ_ONLY_KEYS,
     WM_CHOICES,
     WM_MODE_CHOICES,
@@ -25,7 +24,7 @@ from firestone_bot.settings import EXTRA_SETTINGS, SETTINGS_MAP
 def test_every_key_is_editable_or_read_only():
     assert set(OPTIONS) | READ_ONLY_KEYS == set(SETTINGS_MAP) | set(EXTRA_SETTINGS)
     assert not set(OPTIONS) & READ_ONLY_KEYS
-    assert len(OPTIONS) == 140 and len(READ_ONLY_KEYS) == 16
+    assert len(OPTIONS) == 134 and len(READ_ONLY_KEYS) == 16
 
 
 def test_options_have_label_help_and_kind():
@@ -49,7 +48,6 @@ def test_choice_lists_match_gui_ahk():
     assert len(WM_CHOICES) == 14
     assert GEAR_CHOICES[-1] == "Titan" and GEAR_CHOICES[:2] == ["Exclude All", "Don't Exclude Any"]
     assert JEWEL_CHOICES[-1] == "Platinum" and CELESTIAL_CHOICES[-1] == "Galaxy"
-    assert PRIORITY_CHOICES == ["2 Squad", "War", "Medium", "Short", "Leftover"]
     assert WM_MODE_CHOICES == ["Blueprints Only", "Level Only", "Level and Blueprints"]
     assert "Health Only" in BLUEPRINT_CHOICES and "Armor Only" in BLUEPRINT_CHOICES
     assert DELAY_CHOICES == list(END_OF_CYCLE_DELAYS)
@@ -66,8 +64,8 @@ def test_order_validators():
     assert parse_order("1,1,2,3", catalog.CHAOS_GUARDIAN_CHOICES) == []
     assert parse_order("1,2,3", catalog.CHAOS_GUARDIAN_CHOICES) == []
     assert parse_order("", catalog.CHAOS_GUARDIAN_CHOICES) == []
-    assert is_permutation(["War", "2 Squad", "Leftover", "Short", "Medium"], PRIORITY_CHOICES)
-    assert not is_permutation(["War", "War", "Leftover", "Short", "Medium"], PRIORITY_CHOICES)
+    assert is_permutation(["3", "1", "4", "2"], catalog.CHAOS_GUARDIAN_CHOICES)
+    assert not is_permutation(["3", "3", "4", "2"], catalog.CHAOS_GUARDIAN_CHOICES)
 
 
 def test_ahk_stamp_formatter():

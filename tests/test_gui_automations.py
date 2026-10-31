@@ -15,7 +15,7 @@ from firestone_bot.gui.automation_catalog import (
     matches_group,
     setting_on,
 )
-from firestone_bot.gui.catalog import INVERTED_KEYS, OPTIONS, PRIORITY_KEYS, SELL_KEYS, WM_NONE
+from firestone_bot.gui.catalog import INVERTED_KEYS, OPTIONS, SELL_KEYS, WM_NONE
 from firestone_bot.progress import Progress
 from firestone_bot.settings import Settings
 
@@ -167,8 +167,8 @@ def test_scarab_claim_and_artifact_crafting_are_independent_of_play():
     assert not enabled(model, "tavern", "MaxTokens")
 
 
-def test_engineer_and_map_controls_follow_execution_modes():
-    model = settings(NoEng=0, UpgradeWM=WM_NONE, MapMissions=1, MapMode="detect")
+def test_engineer_controls_follow_the_upgrade_mode():
+    model = settings(NoEng=0, UpgradeWM=WM_NONE)
     assert not enabled(model, "engineer", "WMOptions")
     model.set("UpgradeWM", "Upgrade Aegis")
     model.set("WMOptions", "Level Only")
@@ -176,9 +176,19 @@ def test_engineer_and_map_controls_follow_execution_modes():
     assert not enabled(model, "engineer", "Blueprints")
     model.set("WMOptions", "Blueprints Only")
     assert enabled(model, "engineer", "Blueprints")
-    assert all(not enabled(model, "map", key) for key in PRIORITY_KEYS)
-    model.set("MapMode", "coordinates")
-    assert all(enabled(model, "map", key) for key in PRIORITY_KEYS)
+
+
+def test_the_map_editor_has_no_coordinates_mode_left():
+    """No setting chooses how the missions are found (owner, 2026-10-31: their labels, the
+    fixed list only as the automatic fallback): no mode, no category order; every map option
+    follows the map switch alone."""
+    keys = GROUPS_BY_ID["map"].keys
+    assert keys == ("MapMissions", "MapOpen", "MapHotkey", "MapReset")
+    assert not {"MapMode", "Priority1", "Priority5"} & set(OPTIONS)
+    model = settings(MapMissions=1, MapOpen="hotkey", MapReset=1)
+    assert all(enabled(model, "map", key) for key in keys)
+    model.set("MapMissions", "0")
+    assert not any(enabled(model, "map", key) for key in keys if key != "MapMissions")
 
 
 def test_known_level_locks_preserve_configuration_and_unknown_levels_do_not_gate():
@@ -287,15 +297,14 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
             "SellAll": "0",
             "SellNone": "0",
         }
-        page.open_group("map")
-        ordered = page.editors["map"].composites["priority"][0]
-        before = [model.get(key) for key in PRIORITY_KEYS]
+        page.open_group("guardians")
+        ordered = guardian.composites["guardian_order"][0]
+        assert model.get("ChaosGuardianOrder") == "1,2,3,4"
         ordered._move(0, 1)
-        assert [model.get(key) for key in PRIORITY_KEYS] == [before[1], before[0], *before[2:]]
-        binder.var("MapMode").set("detect")
+        assert model.get("ChaosGuardianOrder") == "2,1,3,4"
+        binder.var("GuardianChaosUpgrades").set("0")
         root.update()
         assert all(button.cget("state") == "disabled" for button in ordered.buttons)
-        assert page.editors["map"].reset_order_button.cget("state") == "disabled"
         assert "automation_query" not in ctx.window.gui_state
         assert not hasattr(page, "query")
         page.set_category("Expeditions")
@@ -334,11 +343,11 @@ def test_native_editors_write_live_settings_cache_views_and_release_observers(tm
         binder.release_view()
         assert not ticks and not binder._reload_hooks
         assert all(len(var.trace_info()) == 1 for var, _ in binder._vars.values())
-        binder.var("MapMode").set("coordinates")
+        binder.var("MapOpen").set("icon")
         binder.flush()
         binder.reload()
         root.update()
-        assert model.get("MapMode") == "coordinates"
+        assert model.get("MapOpen") == "icon"
         assert not errors
     finally:
         if page is not None:

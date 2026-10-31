@@ -1,5 +1,6 @@
-"""Coordinates mode: the mission points follow the map's scale (map_align.SCALE_KEY), which
-the landmark measures at every alignment."""
+"""The fallback's fixed mission points (a map drawn too small for its labels, map_start)
+follow the map's scale (map_align.SCALE_KEY), which the landmark measures at every
+alignment."""
 
 from __future__ import annotations
 

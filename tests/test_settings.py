@@ -69,6 +69,34 @@ def test_enlightenment_keys_defaults_and_sections(tmp_path):
     assert "MaxEnlighten=" not in text and "EnlightenDustReserve=2000" in text
 
 
+def test_the_coordinates_mode_keys_of_an_older_file_are_kept_unused(tmp_path):
+    """MapMode and the category order Priority1..5 are no settings since 2026-10-31 (owner:
+    the fixed list of points is only detection's automatic fallback, in the default order): a
+    new file has none; an older one that holds them (MapMode=coordinates was the default)
+    loads, they stay out of the live values and are written back as they were, after MapReset
+    in their section."""
+    assert not {"MapMode", "Priority1", "Priority5"} & set(Settings().values)
+    assert "MapMode" not in Settings().text() and "Priority1=" not in Settings().text()
+    p = tmp_path / "settings.ini"
+    old = [
+        "MapMode=coordinates",
+        "Priority1=2 Squad",
+        "Priority2=War",
+        "Priority3=Medium",
+        "Priority4=Short",
+        "Priority5=Leftover",
+    ]
+    p.write_text("\n".join(["[MissionPriority]", *old, "MapReset=1"]) + "\n", encoding="utf-16")
+    s = Settings.load(str(p))
+    assert s.flag("MapReset") and not {"MapMode", "Priority1", "Priority5"} & set(s.values)
+    assert s.extra["MissionPriority"]["MapMode"] == "coordinates"
+    s.set("MapReset", "0")
+    s.save()
+    section = p.read_text(encoding="utf-16").split("[MissionPriority]\n")[1].split("[")[0]
+    assert section.splitlines() == ["MapReset=0", *old]
+    assert Settings.load(str(p)).extra == s.extra
+
+
 def test_missing_file_gives_defaults(tmp_path):
     s = Settings.load(str(tmp_path / "nope.ini"))
     assert s.flag("SellEx")

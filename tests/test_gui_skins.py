@@ -122,14 +122,14 @@ def _context(root, tmp_path):
 
 def test_destroyed_controls_release_traces_reload_hooks_and_ticks(root, tmp_path):
     ctx, ticks = _context(root, tmp_path)
-    for key in ("Alch", "MapMode", "DiscordID"):
+    for key in ("Alch", "MapOpen", "DiscordID"):
         ctx.binder.var(key)
     core_traces = {key: len(var.trace_info()) for key, (var, _) in ctx.binder._vars.items()}
     shell = ctk.CTkFrame(root)
     shell.pack(fill="both", expand=True)
     card = widgets.Card(shell, ctx, "Alchemy", master="Alch")
     card.pack(fill="x")
-    choice = widgets.Choice(card.body, ctx, "MapMode", ["detect", "coords"])
+    choice = widgets.Choice(card.body, ctx, "MapOpen", ["auto", "icon", "hotkey"])
     choice.widget.pack()
     text = widgets.TextField(card.body, ctx, "DiscordID", pattern=r"^\d*$")
     text.widget.pack()
@@ -145,7 +145,7 @@ def test_destroyed_controls_release_traces_reload_hooks_and_ticks(root, tmp_path
     for key, count in core_traces.items():
         assert len(ctx.binder.var(key).trace_info()) == count
     # Old views must not receive writes after rebuilding a skin.
-    ctx.binder.var("MapMode").set("coords")
+    ctx.binder.var("MapOpen").set("icon")
     ctx.binder.var("DiscordID").set("123")
     ctx.binder.var("Alch").set("0")
     ctx.binder.flush()

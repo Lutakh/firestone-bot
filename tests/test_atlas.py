@@ -50,5 +50,7 @@ def test_probe_names_unique():
 
 
 def test_map_mission_groups_cover_priorities():
-    assert set(atlas.MAP_MISSION_GROUPS) == {"2 Squad", "War", "Medium", "Short", "Leftover"}
+    """The fallback's fixed list (map_start, a map drawn too small for its labels): the 78
+    points of 0.3.36, in the AHK bot's default category order (no setting since 2026-10-31)."""
+    assert list(atlas.MAP_MISSION_GROUPS) == ["2 Squad", "War", "Medium", "Short", "Leftover"]
     assert sum(len(v) for v in atlas.MAP_MISSION_GROUPS.values()) == 78

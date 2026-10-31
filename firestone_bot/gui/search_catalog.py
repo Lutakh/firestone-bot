@@ -469,9 +469,7 @@ def _build_targets() -> tuple[SearchResult, ...]:
             for key in group.keys:
                 option = OPTIONS[key]
                 title = option.label.lstrip("⚠ ")
-                if key.startswith("Priority"):
-                    title = f"Mission category priority · {option.label}"
-                elif key == "RestartGameTime":
+                if key == "RestartGameTime":
                     title = "Game restart interval"
                 targets.append(
                     SearchResult(
@@ -509,16 +507,6 @@ def _build_targets() -> tuple[SearchResult, ...]:
         targets.append(
             _target("workshop", section, section, title, f"Open Workshop · {title}.", kind="view")
         )
-    targets.append(
-        _target(
-            "automations",
-            "map",
-            "reset_category_order",
-            "Reset category order",
-            "Restore the map mission category priority to its defaults.",
-            "reset mission priority",
-        )
-    )
     for section, groups in (("heroes", ("heroes",)), ("tree", tuple(TREE_GROUPS))):
         for group in groups:
             for action in ("all", "none"):

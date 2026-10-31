@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from firestone_bot.gui.catalog import PRIORITY_CHOICES, PRIORITY_KEYS, WM_NONE
+from firestone_bot.gui.catalog import WM_NONE
 from firestone_bot.gui.context import PageContext
-from firestone_bot.gui.widgets import Card, OrderedList, page_frame, page_title, place_card
-from firestone_bot.settings import SETTINGS_MAP
+from firestone_bot.gui.widgets import Card, page_frame, page_title, place_card
 
 
 def build(parent, ctx: PageContext):
@@ -13,7 +12,7 @@ def build(parent, ctx: PageContext):
     page_title(content, "Missions & WM", "Map missions, campaign and war machine upgrades.")
     s = ctx.settings
 
-    prio = place_card(
+    missions = place_card(
         Card(
             content,
             ctx,
@@ -21,29 +20,9 @@ def build(parent, ctx: PageContext):
             master="MapMissions",
         )
     )
-    holder: dict[str, OrderedList] = {}
-
-    def make_list(p):
-        holder["list"] = OrderedList(
-            p,
-            ctx,
-            PRIORITY_CHOICES,
-            keys=PRIORITY_KEYS,
-            row_labels=["1st", "2nd", "3rd", "4th", "5th"],
-        )
-        return holder["list"]
-
-    prio.option("MapOpen")
-    prio.option("MapHotkey", width=80)
-    prio.option("MapMode")
-    prio.row("Categories", "Top = filled first (coordinates mode).", make_list)
-    prio.buttons(
-        (
-            "Reset to default order",
-            lambda: holder["list"].reset([SETTINGS_MAP[k][1] for k in PRIORITY_KEYS]),
-        )
-    )
-    prio.option("MapReset")
+    missions.option("MapOpen")
+    missions.option("MapHotkey", width=80)
+    missions.option("MapReset")
 
     campaign = place_card(Card(content, ctx, "Campaign", master="Campaign"))
     campaign.option("Liberation")
