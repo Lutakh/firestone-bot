@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from firestone_bot import runner as runner_mod
-from firestone_bot.game import BotStopped, ScreenNotReached
+from firestone_bot.game import BotStopped, ScreenNotReached, StepAborted
 from firestone_bot.inputguard import UserInterrupted
 
 
@@ -79,6 +79,22 @@ def test_town_step_runs_after_the_town_was_reopened(monkeypatch):
 
     r._step("Tavern beer", lambda: g.log.append("ran"), town=True)
     assert g.log == ["ran"]
+
+
+def test_a_step_aborted_goes_back_to_the_main_screen(monkeypatch):
+    """A map popup that stays open (map_redeem raises StepAborted): the rest of the step is
+    skipped, captured, and the screen cleared before the next step (it ran on the map under
+    the popup)."""
+    g = FakeGame()
+    r, calls = _runner(monkeypatch, g)
+
+    def feature():
+        raise StepAborted("a mission popup stays open")
+
+    r._step("Map", feature)
+    assert "Map: stopped (a mission popup stays open), back to the main screen" in g.log
+    assert ("diag", "step-map.png") in g.log
+    assert calls == ["chooser", "big_close", "big_close", "main_menu"]
 
 
 def test_exception_skips_and_recovers_without_town(monkeypatch):

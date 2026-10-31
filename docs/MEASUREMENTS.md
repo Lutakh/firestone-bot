@@ -559,3 +559,51 @@ See also the bag section of 2026-10-01. Owner's logs 2026-10-01..28 (Epic, new s
 - Expected with one look per visit (not measured live): opening 3.6 s, the look 1.0 s (two
   reads 0.3 s apart), the seven colour searches 0.2 s, closing 1.2 s: about 6 s instead of
   21.3 s on the owner's account; the first visit of a run and one an hour go the old way.
+
+## 2026-10-31 — the world map's mission popups by their look (Epic, 1920x1009, game 9.1.3a)
+
+The owner's diagnostics captures of 2026-10-29/30 (start popup, in progress paid and free,
+four Mission Rewards dialogs, three plain maps; G8N62Y's six maps at 1920x1017), read by
+vision/mission_popup.py. Client px; W = the panel's width.
+
+- The three popups share their top (dark line at y 187..188) and centre (x 959.5): start
+  411..1509 x 187..897 (W 1098), in progress 411..1509 x 187..796, Mission Rewards
+  416..1504 x 187..680 (W 1088). Around them a dark line (165,125,99), a light line
+  (255,239,214) and a cream frame (225,206,173) about 12 px wide; the header is cream from
+  the edges to the medallion. The map behind is not dimmed, and the desert is the panel's
+  parchment (203,160,125 against 203,165,129): a parchment blob of the in-progress popup ran
+  57 px under it; the cream blob alone (green >= 175) fits every popup within one cell.
+- Buttons, W-relative: Start 958..1209 x 798..881 (0.23 x 0.077), Complete instantly / Speed
+  up 1235..1492 (0.23), Cancel 955..1211 x 695..783, Okay 805..1115 x 567..638 (0.287 x
+  0.066); their tops 0.089 / 0.092 / 0.104 W above the panel's bottom. Inside the paid orange
+  box: gem 0.0255 / 0.0257 of it, label band (147,107,57) 0.36 / 0.41; on the free button
+  ("Free", grey Cancel (156,156,156), 2026-10-30 23:06) gem 0, label 0.003. Gem purple in
+  the whole panel: 521 / 526 px (0.00043 W^2) with a price, 3 px on the free popup, 2,653 to
+  9,696 px on the Mission Rewards (gift, mystery box, paw), 0 in the Okay's row.
+- The X: ring 1464..1529 x 173..238 (0.058 W), cross 1479..1515 x 186..221 (0.032 W), 12 px
+  in from the panel's right edge; a map icon's stars hide the ring's top on the start capture.
+- read() on the 15 captures: every popup told right (start, in progress paid / free,
+  rewards), none on the maps, 5..23 ms each. The same captures redrawn at 16 client shapes
+  (1280x720 to 3840x2160, 800x600, 4:3, 5:4, 16:10, 21:9, the MacBook's 3024x1964; taller
+  clients with the popup held at the canvas centre and at its top), nearest and smooth, with
+  colour casts of 8 per channel: all told right, 68 ms at most (4K). On that bench: the Okay
+  0.283..0.292 x 0.063..0.069 W, the Start 0.225..0.232 W, the panel's width / height
+  1.54..1.57 (start), 1.77..1.84 (in progress), 2.18..2.26 (rewards).
+- Not seen yet: any popup on a client taller than 16:9 (the bench draws both placements), a
+  real gem confirmation after a speed-up, the start popup with too few idle squads, the
+  classic style's map.
+- The centre's look (map_close.look_of: block means, 24 rows x 12 columns, of the client's
+  centre column band 0.2 of the canvas width each side, its top 8 % left out; changed: 0.12
+  of the blocks (LOOK_CHANGED) moved by more than 40 levels), on the bench at its 21 shapes
+  and placements: every popup moves 0.28 of the band at least (the Mission Rewards with red
+  and blue swapped at 800x600 and 1280x1024; 0.33 as drawn); a mission label's digits, a
+  60 px icon and the map moved by 1 or 2 px 0.007 at most; the idle banner gone with the map
+  under it 0.017, gone from over open sea 0.073..0.076 at the 16:9 to 21:9 shapes and the
+  taller ones with the popups centred (0.038..0.049 elsewhere): over half of LOOK_CHANGED,
+  under it. On the owner's 1:1 map (20261029-233300) the banner's rect replaced by another
+  capture's map: 0.052..0.063.
+- The World domination event's mystery mission (2026-10-31 04:54, Silverwood, "Silver
+  mission" ribbon, 1:58 left): the free layout as on 2026-10-30, but its progress bar still
+  mostly empty, and the bar's grey top line (120,121,140) runs across the grey Cancel's
+  columns 74 px above it; a button's labels leave rows short of its colour for 0.013 W at
+  most (the start popup's "Complete instantly").

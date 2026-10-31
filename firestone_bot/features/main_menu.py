@@ -68,10 +68,7 @@ def find_dialog_x(g: Game, area: tuple[int, int, int, int]) -> blobs.Blob | None
         min_w=atlas.DIALOG_X_CROSS_MIN,
         min_h=atlas.DIALOG_X_CROSS_MIN,
     )
-    for r in rings:
-        if any(r.x1 <= c.cx <= r.x2 and r.y1 <= c.cy <= r.y2 for c in crosses):
-            return r
-    return None
+    return blobs.ring_with_cross(rings, crosses)
 
 
 def _close_rate_popup(g: Game) -> None:

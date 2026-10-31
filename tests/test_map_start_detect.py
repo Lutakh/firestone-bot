@@ -1,8 +1,9 @@
-"""Detection mode of map_start: edge-scroll fallback and recentring."""
+"""Detection mode of map_start: edge-scroll fallback, recentring, the memory of missions, and
+the map search stopped by a popup that stays. What a mission click opens is answered here
+(started / closed / stuck); the popups themselves are read on real crops at every client
+shape in tests/test_map_popup_scenes.py."""
 
 from __future__ import annotations
-
-import numpy as np
 
 from firestone_bot.features import map_start
 from firestone_bot.vision import atlas
@@ -36,8 +37,8 @@ class FakeGame:
         self.started = 0
         self.troops_until = troops_until
         self.log = []
-        self.popup = False  # a start popup is open
-        self.stuck = False  # the popup ignores Start and close taps
+        self.popup = False  # a mission popup is open
+        self.stuck = False  # the popup takes no click
         self.vars = {}
         self.captures = []
         self.anchors = []
@@ -57,34 +58,16 @@ class FakeGame:
     def sleep(self, ms):
         pass
 
-    def move_to(self, p):
-        pass
-
-    def click(self):
-        if not self.stuck:
-            self.started += 1
-            self.popup = False
+    def now(self):
+        return 0.0
 
     def click_at(self, x, y, anchor=None):
+        assert not self.popup, "a map point clicked under an open popup"
         self.log.append(("click", x, y))
         self.anchors.append(anchor)
         self.popup = True
 
-    def tap(self, p, settle_ms=1500, expect=None):
-        self.log.append(("tap", p.x, p.y))
-        if not self.stuck:
-            self.popup = False
-
-    def wait_gone(self, probe, timeout_ms=0):
-        return not self.found(probe)
-
-    def region_image(self, rect, anchor=None):
-        x1, y1, x2, y2 = rect
-        return np.zeros((y2 - y1, x2 - x1, 3), np.uint8)  # the Start button: no gem
-
     def found(self, probe, variation=None):
-        if probe is atlas.MS_START_BUTTON:
-            return self.popup
         if probe is atlas.MAP_TROOP_IDLE:
             return self.started < self.troops_until
         return False
@@ -93,26 +76,40 @@ class FakeGame:
         self.offset += y1 - y0
         self.log.append(("drag", y1 - y0))
 
+    # the popup's side, as map_start's helpers would find it
+    def open_mission(self, g, before=None, what="the mission click"):
+        if not self.popup:
+            return map_start.NOTHING  # before a click: nothing left open
+        if self.stuck:
+            return map_start.STUCK
+        self.popup = False
+        self.started += 1
+        return map_start.STARTED
+
+    def map_clear(self, g, watch=None):
+        return not (self.popup and self.stuck)
+
 
 def _run(g, state, monkeypatch, aligned):
     from firestone_bot.features import map_align, map_detect
 
     monkeypatch.setattr(map_detect, "find_missions", lambda game: g.missions_by_offset[g.offset])
     monkeypatch.setattr(map_align, "align_map", lambda game: aligned.append(game.offset))
-    map_start.map_start_detected(g, state)
+    monkeypatch.setattr(map_start, "_open_mission", g.open_mission)
+    monkeypatch.setattr(map_start, "map_clear", g.map_clear)
+    monkeypatch.setattr(map_start, "look", lambda game: None)
+    return map_start.map_start_detected(g, state)
 
 
 def test_visible_missions_enough_no_scroll(monkeypatch):
     g = FakeGame({0: [(500, 400), (700, 420)]}, troops_until=2)
     aligned = []
-    _run(g, FakeState(), monkeypatch, aligned)
+    assert _run(g, FakeState(), monkeypatch, aligned) is True
     assert (
         g.started == 2
         and aligned == []
         and not any(e[0] == "drag" for e in g.log if isinstance(e, tuple))
     )
-    # the start popup of game 9.1.3a is captured once a run, before its first Start click
-    assert g.captures.count("mission-start-popup.png") == 1
     # the detected points are centre-anchored, like the map (report ANHNX9, 1920x1080)
     assert g.anchors == [atlas.ANCHOR_CENTER] * 2
 
@@ -140,27 +137,14 @@ def test_mission_seen_twice_is_clicked_once(monkeypatch):
     assert len(clicks) == 1 and state.resets >= 1
 
 
-def test_a_start_button_with_a_gem_is_never_clicked():
-    """Green is no proof of free (gem audit, 2026-10-22): a gem in the Start button keeps
-    the mission unstarted and its popup is closed."""
-    g = FakeGame({0: []}, troops_until=5)
-    g.popup = True
-    g.region_image = lambda rect, anchor=None: np.full(
-        (rect[3] - rect[1], rect[2] - rect[0], 3), (0x9D, 0x00, 0x9F), np.uint8
-    )
-    assert not map_start._start_ready(g)
-    assert "Mission Start: the Start button shows a gem, not clicked" in g.log
-
-
 def test_a_start_popup_left_open_stops_the_map_search(monkeypatch):
-    """A Start that does not close the popup: closed once, and when it stays, no other map
-    point is clicked onto it (its Complete instantly costs gems; new game version)."""
+    """A popup that stays: no other map point is clicked onto it (its Complete instantly
+    costs gems; new game version) and the map section is told to stop."""
     g = FakeGame({0: [(500, 400), (700, 420)]}, troops_until=9)
     g.stuck = True
-    _run(g, FakeState(), monkeypatch, [])
+    assert _run(g, FakeState(), monkeypatch, []) is False
     clicks = [e for e in g.log if isinstance(e, tuple) and e[0] == "click"]
     assert len(clicks) == 1 and g.started == 0
-    assert "Mission Start: the popup stays open after Start; map search stopped" in g.log
 
 
 def test_no_alignment_under_a_stuck_popup(monkeypatch):
@@ -173,3 +157,25 @@ def test_no_alignment_under_a_stuck_popup(monkeypatch):
     _run(g, FakeState(), monkeypatch, aligned)
     drags = [e[1] for e in g.log if isinstance(e, tuple) and e[0] == "drag"]
     assert drags == [s, -s, -s, s] and aligned == []
+
+
+def test_no_search_while_a_popup_stays_open(monkeypatch):
+    """A popup that cannot be closed before the search: its digits are no mission label (the
+    in-progress popup's timer was found as one, audit 2026-10-30), nothing is searched."""
+    g = FakeGame({0: [(500, 400)]}, troops_until=9)
+    g.popup = g.stuck = True
+    searched = []
+
+    def find(game):
+        searched.append(1)
+        return [(500, 400)]
+
+    from firestone_bot.features import map_align, map_detect
+
+    monkeypatch.setattr(map_detect, "find_missions", find)
+    monkeypatch.setattr(map_align, "align_map", lambda game: None)
+    monkeypatch.setattr(map_start, "_open_mission", g.open_mission)
+    monkeypatch.setattr(map_start, "map_clear", g.map_clear)
+    monkeypatch.setattr(map_start, "look", lambda game: None)
+    assert map_start.map_start_detected(g, FakeState()) is False
+    assert searched == [] and not [e for e in g.log if isinstance(e, tuple)]

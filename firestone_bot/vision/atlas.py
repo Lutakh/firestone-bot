@@ -124,7 +124,7 @@ MM_RATE_POPUP_X_AREA = (1300, 220, 1500, 400)  # around the AHK's (1397, 307)
 DIALOG_X_RING_MIN = 40  # logical px, the orange ring of a dialog X
 DIALOG_X_CROSS_MIN = 12  # logical px, its cream cross
 DIALOG_X_CROSS = 0xFFF9CE
-MAP_POPUP_CLOSE = Point(1870, 706)  # MapClose.ahk:7
+# MapClose.ahk:7 tapped (1870, 706) beside a map popup: its own X now (features/map_close.py)
 
 # --- ClaimEvents.ahk (main-screen part re-measured 2026-09-04) -------------------------------
 # AHK looked for the red dot in (1719,170)-(1741,204) and clicked the icon at (1691,229): the
@@ -1033,15 +1033,8 @@ MR_REFRESH_RECT = (95, 869, 297, 976)
 MR_NO_MISSIONS = Probe(117, 249, 208, 334, 0x1452B4, 3, "mr_no_missions")  # :25
 MR_MISSION_DONE = Probe(207, 305, 244, 348, GREEN_BUTTON, 3, "mr_mission_done")  # :33
 MR_FIRST_MISSION = Point(162, 334)  # :35
-MR_DIALOG_OK = Point(971, 628)  # :39
-MR_MORE_THAN_3_MIN = Probe(1427, 730, 1481, 762, 0x916A38, 0, "mr_more_than_3_min")  # :50
-MR_FREE_EARLY = Probe(1427, 730, 1481, 762, ORANGE_1, 10, "mr_free_early")  # :57
-MR_FREE_EARLY_BUTTON = Point(1365, 758)  # :59
-# around the mission's speed-up button, wide: a gem anywhere in it means the button is
-# paid (not measured in today's interface; a reward gem in it only skips a free click)
-MR_EARLY_RECT = (1100, 690, 1600, 830)
-# a "spend gems" confirmation over the map would show its gem in this centred rect
-MR_GEM_DIALOG_RECT = (560, 300, 1360, 760)
+# The popup that opens (in progress, Mission Rewards) is read by its look, not at the AHK's
+# points (vision/mission_popup.py, 2026-10-31).
 MR_SECOND_MISSION_NOT_DONE = Probe(205, 443, 242, 484, GREEN_BUTTON, 3, "mr_second_not_done")  # :71
 MR_RESET_AVAILABLE = Probe(104, 878, 300, 977, 0xED00EF, 3, "mr_reset_available")  # :92
 MR_RESET_BUTTON = Point(200, 930)  # :102
@@ -1421,9 +1414,8 @@ END_OF_CYCLE_PARK = Point(947, 755)  # MouseMove before the end-of-cycle delay
 
 # --- MapStart.ahk ---------------------------------------------------------------------------
 MAP_TROOP_IDLE = Probe(1175, 996, 1187, 1012, IDLE_TROOP, 10, "map_troop_idle")  # :179
-MS_START_BUTTON = Probe(953, 822, 1205, 898, GREEN_BUTTON, 10, "ms_start_button")  # :170
-MS_START = Point(1084, 865)  # :172
-MS_START_RECT = (953, 822, 1205, 898)  # the Start button (gem check)
+# The start popup and its Start (AHK :170-172) are read by their look
+# (vision/mission_popup.py, 2026-10-31).
 # Missions on the north edge of the map (2026-09-05): in a 1920x1009 client the centred map
 # loses ~35 px at the top and bottom compared with the 1920x1080 canvas, so an icon whose
 # centre is above logical y 100 is hidden behind the HUD (only its pin / timer shows) and a

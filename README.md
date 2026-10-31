@@ -416,6 +416,16 @@ the capture: when idle troops remain after the visible missions, the map is drag
 with the alignment below before the bot leaves. Measured on macOS in the new-adventure style
 (five out of five icons on the reference capture); other resolutions scale with the capture.
 
+In both modes the mission windows a click opens (start, in progress, Mission Rewards) are
+read by their look, at any screen shape: the bot finds the window's frame, its buttons and
+their colours, and clicks the buttons where they are. It presses a Start only when the
+"Complete instantly" beside it shows its gem price, a speed-up only in the free layout (grey
+Cancel, no price), a Mission Rewards' Okay only when no gem shows in its row, and closes
+anything else (by its X, else beside it). Something it does not recognise is closed, never
+clicked through; a window that stays open stops the map for that visit. The diagnostics
+folder then holds a picture of it (mission-popup-stuck.png, mission-popup-unread.png,
+mission-start-unpriced.png): please send a report with it.
+
 ## World-map alignment
 
 The mission points of the map are fixed coordinates, so the map must be at its default zoom

@@ -9,14 +9,41 @@
   2560x1080, 56 / 168 vertically at 16:10 / 4:3 (no dialog was ever seen on a client taller
   than 16:9). The scale model (min(w/1920, h/1080)) is right to 0.2 %: the misses are anchor
   (origin) errors. Plan, in this order:
-  1. Map mission popups by their look (one read of the panel: start / in progress / Mission
-     Rewards / unknown; buttons found inside it and clicked in screen px; close by the
-     popup's own X; every click confirmed by the next read; never a map click while a panel
-     is open). The Start probe misses below aspect 1.6 (16:10 fullscreen, 4:3, 5:4,
-     MacBook): "goes to the next mission, which it also doesn't start" (a player,
-     2026-10-30). MR_DIALOG_OK lands on a start popup's middle reward ("the honor symbol")
-     at every shape. Left mission list by look; MR_NO_MISSIONS never matches (sea 0x114292),
-     3.7 s and two blind taps per empty-map visit.
+  1. Map mission popups by their look: done 2026-10-31 (vision/mission_popup.py: one read of
+     the panel, start / in progress / Mission Rewards / unknown; buttons found inside it and
+     clicked in screen px; closed by the popup's own X, else beside it; every click
+     confirmed by the next reads; no map click and no search while a panel is open; the
+     MS_* / MR_* popup entries, MR_DIALOG_OK and MAP_POPUP_CLOSE are gone). The Start probe
+     missed below aspect 1.6 (16:10 fullscreen, 4:3, 5:4, MacBook): "goes to the next
+     mission, which it also doesn't start" (a player, 2026-10-30); MR_DIALOG_OK landed on a
+     start popup's middle reward ("the honor symbol") at every shape. The bench
+     (tests/screens.py) draws the real crops at 16 client shapes, both placements on taller
+     clients. Still to do in this step: the left mission list by its look (MR_NO_MISSIONS
+     never matches the sea 0x114292: 3.7 s and a tap on the sea per empty-map visit;
+     MR_MISSION_DONE / MR_FIRST_MISSION are (left, top) on a panel whose vertical anchor was
+     never measured), the Refresh Now button (MR_FREE_RESET and the paid reset's
+     MR_RESET_CONFIRM, a blind centred point), and one capture of each popup on a client
+     taller than 16:9 to settle its placement (a player's mission-start-popup.png, now saved
+     at every shape, will show it). After three adversarial reviews (2026-10-31): the reader
+     only knows the looks it was measured on, so the centre of the client, where every
+     popup draws, is compared before and after each click on the map and between two clicks
+     (map_close.look / Watch): a change with no popup read is closed beside where any popup
+     draws and must go, else the map section stops (StepAborted: the runner goes back to the
+     main screen). The free speed-up needs the free layout's grey Cancel; a start popup
+     whose Complete instantly shows no price at all is closed unstarted, said and captured
+     (mission-start-unpriced.png: never seen; a mission under 3 minutes might show it).
+     Open: the classic style's map popups were never captured; coordinates mode misses at
+     least one 9.1.3a mission position ((424,678) is 36 px from the nearest
+     MAP_MISSION_GROUPS point); with Campaign=0 the Hero upgrades step runs on the map after
+     every visit (its mode button search finds the map's Rank List); coordinates mode clicks
+     the next point 1 s after a click that showed nothing (the AHK timing), so a popup the
+     game shows later (a hitch) is started only after that click, made while it was coming
+     (detection mode waits up to 3 s for it; waiting there too would cost 1.5 s on every
+     point without a mission, up to 2 x 78 a visit: the owner's call). Around its north-edge
+     points, whose drags drop the look before a click, coordinates mode does wait (before
+     the drag, after a click that showed nothing, until 3 s after it; after a north click
+     that showed nothing): about +12 to +16 s of waits per full pass of the 78 points (+18 %
+     at 1920x1009, third review), only on visits that still have idle troops there.
   2. Daily reset (SHOP_MYSTERY_CLAIM_READY, (left, bottom) on the centred shop: misses at
      16:10, 4:3, 21:9, and every daily counter then freezes; add a time-based fallback);
      chaos rift entry (CHAOS_DOT / CHAOS_OPEN right-anchored on the centred guild map: 63 px
@@ -27,8 +54,8 @@
      helpers called without an anchor (per-corner stretch, then a thirds-rule click).
   3. Alchemist, game start button, new-style columns, daily missions, guardian, oracle,
      personal tree (blind clicks that spend points), garage, exotic upgrades.
-  A test bench renders the real crops at about 25 client shapes (scene model independent of
-  the atlas: clicks must land inside the true button, never on a paid or forbidden one).
+  The test bench (tests/screens.py: a scene model independent of the atlas, clicks inside the
+  true button, never on a paid or forbidden one) grows with each screen moved to its look.
   A measurement session on the owner's 1920x1080 screen (windowed 1600x1000, ~1333x1000,
   1250x1000, 1900x815 via tools/window_tool.py, the game restarted in each for the map) would
   settle the vertical placement of dialogs on taller clients and the map's scale at 21:9.
@@ -259,14 +286,11 @@
   (mission-dialog-unknown.png) and closed instead of left open under the next map clicks;
   a start popup still showing after Start is closed, and when it stays, the map search
   stops (mission-start-stuck.png); the in-progress popup is read once it has scaled in.
-  To do with one uncropped 1:1 Steam capture of the new in-progress, start and free
-  dialogs: centre anchors for the MR_* / MS_* dialog entries (thirds-rule right/bottom
-  anchors put them 63 px off at 16:9, worse at 21:9, 4:3, 5:4), MR_MORE_THAN_3_MIN at
-  variation 2 (the exact brown covers ~6 of 41 band rows), the free state's look.
   2026-10-28: 16:9 works as is (report ANHNX9 at 1920x1080: 29 in-progress reads, 11 free
   speed-ups, 21 starts, no gem spent); the in-progress and start popups are now captured
   once a run (mission-in-progress.png, mission-start-popup.png) for the anchors at 16:10,
-  4:3 and 21:9, where they are 60-250 px off.
+  4:3 and 21:9, where they are 60-250 px off. 2026-10-31: the popups are read by their look
+  (see "Any screen shape" above); the free state was captured (grey Cancel, "Free", no gem).
 
 - Meteorite research dead on game 9.1.3a (the owner's Epic game since 2026-10-23 15:26:
   111 hourly "the popup shows an unknown research", 20,581 meteorites unspent; report

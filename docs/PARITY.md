@@ -31,7 +31,7 @@ was checked but the branch behind it was not exercised (nothing to claim at the 
 | subFunctions/MainMenu.ahk | main_menu | yes | yes | | Alt+Tab replaced by window activation; SafetyCap optional |
 | subFunctions/OpenTown.ahk | open_town | yes | yes | | |
 | subFunctions/GoMap.ahk | go_map | yes | yes | | |
-| subFunctions/MapClose.ahk | map_close | yes | | | exercised inside map_start |
+| subFunctions/MapClose.ahk | map_close | yes | | | exercised inside map_start; the popup's own X (located), else a tap beside the panel found, confirmed (2026-10-31) |
 | ClaimEvents.ahk | claim_events | yes | probe only | | no event red dot at test time |
 | Quests.ahk | quests | yes | yes | | AHK never calls BigClose (brace before it); reproduced |
 | Shop.ahk | shop | yes | yes | | |

@@ -97,6 +97,15 @@ def mask_blobs(
     return sorted(out)
 
 
+def ring_with_cross(rings: list[Blob], crosses: list[Blob]) -> Blob | None:
+    """The first ring holding a cross's centre: a dialog's close X (an orange ring around a
+    cream cross). Both lists in the same coordinates (logical, or a capture's pixels)."""
+    for r in rings:
+        if any(r.x1 <= c.cx <= r.x2 and r.y1 <= c.cy <= r.y2 for c in crosses):
+            return r
+    return None
+
+
 def find_blobs(
     g,
     rect: tuple[int, int, int, int],

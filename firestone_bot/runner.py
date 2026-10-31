@@ -46,7 +46,7 @@ from firestone_bot.features import (
 )
 from firestone_bot.features.heartbeat import send_heartbeat
 from firestone_bot.foreground import BACK, FRONT, GONE, ForegroundGuard
-from firestone_bot.game import BotStopped, Game, GameNotInFront, ScreenNotReached
+from firestone_bot.game import BotStopped, Game, GameNotInFront, ScreenNotReached, StepAborted
 from firestone_bot.inputguard import UserInterrupted
 from firestone_bot.platform import capture, process
 from firestone_bot.platform.types import GameWindowNotFound
@@ -372,6 +372,8 @@ class Runner:
             raise
         except ScreenNotReached as e:
             g.status(f"{name}: its screen ({e}) did not show, step skipped")
+        except StepAborted as e:
+            g.status(f"{name}: stopped ({e}), back to the main screen")
         except Exception:  # informational only
             log.exception("%s failed", name)
             g.status(f"{name}: failed ({sys.exc_info()[1]!r}), step skipped")

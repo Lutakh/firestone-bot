@@ -132,6 +132,12 @@ class ScreenNotReached(Exception):
     machine's unlock animation in the engineer's garage lost a whole cycle)."""
 
 
+class StepAborted(Exception):
+    """A feature stopped on a screen it must not click through (a world-map mission popup
+    that does not close, 2026-10-31): the runner skips the rest of the step and goes back to
+    the main screen, as for ScreenNotReached; the next step was run on the map under it."""
+
+
 class GameNotInFront(Exception):
     """Windows: the game window is not the foreground window and could not be brought
     there, so the click or key about to be sent was not (2026-10-25: seven hours of clicks
@@ -241,6 +247,10 @@ class Game:
         return self.vp
 
     # -- timing / status ----------------------------------------------------------------
+    def now(self) -> float:
+        """The clock sleep() runs on, in seconds (time.monotonic): durations between calls."""
+        return time.monotonic()
+
     def sleep(self, ms: float) -> None:
         end = time.monotonic() + ms / 1000 * self.time_scale
         while True:
@@ -646,6 +656,12 @@ class Game:
 
     def found(self, p: Probe, variation: int | None = None) -> bool:
         return self.search(p, variation) is not None
+
+    def client_image(self) -> tuple[np.ndarray, Rect]:
+        """BGR pixels of the whole client and its screen rect: a screen read by its look
+        (vision/mission_popup.py) needs no anchor, its boxes are clicked in screen px."""
+        client = self._viewport().client
+        return capture.grab(client)[:, :, :3], client
 
     def region_image(self, rect: tuple[int, int, int, int], anchor=None) -> np.ndarray:
         """BGR pixels of a logical rect (x1, y1, x2, y2), e.g. a counter's digits."""

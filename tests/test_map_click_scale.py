@@ -3,6 +3,8 @@ the landmark measures at every alignment."""
 
 from __future__ import annotations
 
+import numpy as np
+
 from firestone_bot.features import map_align, map_start
 from firestone_bot.platform.window import Rect
 from firestone_bot.vision import atlas
@@ -23,6 +25,9 @@ class G:
 
     def sleep(self, ms):
         pass
+
+    def client_image(self):  # the look taken before the click (map_close.look)
+        return np.zeros((10, 10, 3), np.uint8), Rect(0, 0, 10, 10)
 
 
 def test_points_are_clicked_as_measured_on_a_canvas_scaled_map():
